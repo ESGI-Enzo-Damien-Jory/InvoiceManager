@@ -8,14 +8,7 @@ import {
   BsFileEarmarkText,
 } from 'react-icons/bs';
 import HorizontalSeparatorLine from '@/components/_atoms/HoriontalSeparatorLine/HorizontalSeparatorLine';
-
-const Placeholder = ({ size = 'small' }) => (
-  <span className={`${styles.placeholder} ${styles[size]}`}></span>
-);
-
-Placeholder.propTypes = {
-  size: PropTypes.string,
-};
+import Placeholder from '@/components/_atoms/Placeholder/Placeholder';
 
 const PreviewHeader = ({ selectedFormat, setSelectedFormat }) => (
   <div className={styles.topbar_header}>
