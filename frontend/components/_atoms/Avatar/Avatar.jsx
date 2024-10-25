@@ -7,6 +7,7 @@ export default function Avatar({
   image_source,
   alt_text = 'User Avatar',
   username = '',
+  backgroundColor = '#f0f0f0',
 }) {
   const [imageError, setImageError] = useState(false);
 
@@ -17,7 +18,7 @@ export default function Avatar({
   };
 
   return (
-    <div className={styles.avatar}>
+    <div className={styles.avatar} style={{ backgroundColor }}>
       {image_source && !imageError ? (
         <Image
           src={image_source}
@@ -38,4 +39,5 @@ Avatar.propTypes = {
   image_source: PropTypes.string,
   alt_text: PropTypes.string,
   username: PropTypes.string,
+  backgroundColor: PropTypes.string,
 };

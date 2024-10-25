@@ -1,0 +1,70 @@
+.underline_navbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+
+  * {
+    padding: 0;
+    margin: 0;
+  }
+}
+
+.options_container {
+  display: flex;
+  gap: 20px;
+  position: relative;
+}
+
+.underline_navbar_option {
+  color: #828282;
+  border: none;
+  background-color: transparent;
+  font-size: 13px;
+  padding: 0 10px 5px 10px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: color 0.3s ease;
+
+  &:hover {
+    cursor: pointer;
+    color: #dadada;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: transparent;
+    transition: background-color 0.3s ease;
+  }
+}
+
+.underline_navbar_option_selected {
+  color: #dadada;
+
+  &:hover {
+    cursor: default;
+  }
+
+  &::after {
+    background-color: #e29c23;
+  }
+}
+
+.sliding_underline {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background-color: #e29c23;
+  transition:
+    left 0.3s ease,
+    width 0.3s ease;
+}

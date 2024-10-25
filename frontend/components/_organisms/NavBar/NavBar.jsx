@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import styles from './NavBar.module.scss';
-
+import PropTypes from 'prop-types';
 import NavBarButton from '../../_atoms/NavBarButton/NavBarButton';
 import { AiFillDollarCircle } from 'react-icons/ai';
 import { IoIosPerson } from 'react-icons/io';
 import { BiSolidReport } from 'react-icons/bi';
 import HorizontalSeparatorLine from '../../_atoms/HoriontalSeparatorLine/HorizontalSeparatorLine';
 
-export default function NavBar() {
+export default function NavBar({ setSelectedComponent }) {
   const [activeButton, setActiveButton] = useState('Billing');
 
   const handleButtonClick = (buttonName) => {
     setActiveButton(buttonName);
+    setSelectedComponent(buttonName);
   };
 
   return (
@@ -40,3 +41,7 @@ export default function NavBar() {
     </div>
   );
 }
+
+NavBar.propTypes = {
+  setSelectedComponent: PropTypes.func.isRequired,
+};

@@ -34,6 +34,7 @@ const ClientsPage = () => {
         }
 
         const data = await response.json();
+        console.log('data:', data.data);
         setClients(data.data);
       } catch (err) {
         console.error('Error fetching clients:', err);
