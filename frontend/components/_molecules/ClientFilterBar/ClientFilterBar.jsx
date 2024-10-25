@@ -11,12 +11,9 @@ export default function ClientFilterBar({ clients, onSearch }) {
     all: clients?.length || 0,
     active:
       clients?.filter((client) => client.status === 'active')?.length || 0,
-    inactive:
-      clients?.filter((client) => client.status === 'inactive')?.length || 0,
+    favorites:
+      clients?.filter((client) => client.status === 'favorites')?.length || 0,
   };
-
-  const filterIndex = ['all', 'active', 'inactive'].indexOf(selectedFilter);
-  const indicatorPosition = `translateX(${filterIndex * 100}%)`;
 
   const handleSearch = (searchTerm) => {
     if (!searchTerm.trim()) {
@@ -108,15 +105,12 @@ export default function ClientFilterBar({ clients, onSearch }) {
         </button>
 
         <div className={styles.radio_group}>
-          <div
-            className={styles.indicator}
-            style={{ transform: indicatorPosition }}
-          ></div>
-          {['all', 'active', 'inactive'].map((filter) => {
+          <div className={styles.indicator}></div>
+          {['all', 'active', 'favorites'].map((filter) => {
             const filterLabels = {
               all: 'All',
               active: 'Recent',
-              inactive: 'Outstanding',
+              favorites: 'Favorites',
             };
 
             const filterLabel = filterLabels[filter];
