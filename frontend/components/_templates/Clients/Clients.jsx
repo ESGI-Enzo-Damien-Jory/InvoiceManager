@@ -21,7 +21,8 @@ export default function Clients() {
   const [filteredClients, setFilteredClients] = useState([]);
   const [selectedOption, setSelectedOption] = useState('Individuals');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [createError, setCreateError] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -86,13 +87,15 @@ export default function Clients() {
         throw new Error(errorData.error || `Error: ${response.statusText}`);
       }
 
-      // Fetch the updated client list immediately after adding
-      await fetchClients();
+      try {
+        await fetchClients();
+      } catch (err) {
+        setFetchError(err.message);
+      }
 
-      // Close the popup after successful addition
       setIsPopupOpen(false);
     } catch (err) {
-      setError(err.message);
+      setCreateError(err.message);
       throw err;
     }
   };
@@ -141,7 +144,7 @@ export default function Clients() {
 
       <div className={styles.content}>
         {loading && <Loader />}
-        {!loading && !error && filteredClients?.length === 0 && (
+        {!loading && !fetchError && filteredClients?.length === 0 && (
           <div className={styles.not_found}>
             <NotFound
               text={`No ${selectedOption.toLowerCase()} found`}
@@ -149,7 +152,7 @@ export default function Clients() {
             />
           </div>
         )}
-        {!loading && !error && filteredClients.length > 0 && (
+        {!loading && !fetchError && filteredClients.length > 0 && (
           <div className={styles.data_content}>
             <div className={styles.table_container}>
               <table className={styles.table}>
@@ -236,7 +239,7 @@ export default function Clients() {
         <CreateForm
           selectedOption={selectedOption}
           rawQueryMethod={createClient}
-          onSuccess={() => fetchClients()} // Use this to refetch if needed
+          onSuccess={() => fetchClients()}
         />
       </Popup>
     </div>
