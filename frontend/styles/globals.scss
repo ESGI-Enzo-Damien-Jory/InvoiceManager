@@ -24,3 +24,33 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.toast {
+  z-index: 10000;
+}
+
+.custom-toast-container {
+  z-index: 9999; // Ensure it's above backdrops
+  top: 20px;
+  right: 20px;
+}
+
+.custom-toast {
+  background-color: #33353a;
+  color: #fff;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+
+  .Toastify__progress-bar {
+    background-color: #e29c23;
+  }
+}
+
+.custom-toast-success {
+  background-color: #4caf50;
+}
+
+.custom-toast-error {
+  background-color: #f44336;
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AiOutlineSortAscending } from 'react-icons/ai';
 import { IoEllipsisHorizontal } from 'react-icons/io5';
 import styles from './Clients.module.scss';
@@ -10,10 +10,10 @@ import NotFound from '@/components/_atoms/NotFound/NotFound';
 import Avatar from '@/components/_atoms/Avatar/Avatar';
 import Placeholder from '@/components/_atoms/Placeholder/Placeholder';
 import Loader from '@/components/_atoms/Loader/Loader';
-import { useUser } from '@clerk/nextjs';
+import { SignedIn, useUser } from '@clerk/nextjs';
 import ClientFilterBar from '@/components/_molecules/ClientFilterBar/ClientFilterBar';
 import Popup from '@/components/_atoms/Popup/Popup';
-import CreateForm from '@/components/_molecules/ClientCreateForm/CreateForm';
+import CreateForm from '@/components/_molecules/CreateForm/CreateForm';
 
 export default function Clients() {
   const { user, isLoaded, isSignedIn } = useUser();
@@ -26,41 +26,80 @@ export default function Clients() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchClients = async () => {
-      if (!isLoaded || !isSignedIn) {
-        setLoading(false);
-        return;
-      }
+  const fetchClients = useCallback(async () => {
+    if (!isLoaded || !isSignedIn) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        if (!user?.id) throw new Error('User ID not available');
-        const clientType =
-          selectedOption === 'Individuals' ? 'individual' : 'company';
+    try {
+      if (!user?.id) throw new Error('User ID not available');
+      const clientType =
+        selectedOption === 'Individuals' ? 'individual' : 'company';
 
-        const response = await fetch(`/api/clients?type=${clientType}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'user-id': 'user_2aX9NB1',
-          },
-        });
+      const response = await fetch(`/api/clients?type=${clientType}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user?.id,
+        },
+      });
 
-        if (!response.ok)
-          throw new Error(`Error fetching clients: ${response.statusText}`);
+      if (!response.ok)
+        throw new Error(`Error fetching clients: ${response.statusText}`);
 
-        const data = await response.json();
-        setClients(data.data);
-        setFilteredClients(data.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClients();
+      const data = await response.json();
+      setClients(data.data);
+      setFilteredClients(data.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [isLoaded, isSignedIn, selectedOption, user]);
+
+  const createClient = async (clientData) => {
+    if (!isSignedIn) {
+      return Promise.reject(new Error('User not signed in'));
+    }
+
+    if (!clientData) {
+      return Promise.reject(new Error('No client data provided'));
+    }
+
+    clientData.image = clientData.image || null;
+    const type = selectedOption === 'Individuals' ? 'individual' : 'company';
+    clientData.type = type;
+
+    try {
+      const response = await fetch('/api/clients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user?.id,
+        },
+        body: JSON.stringify(clientData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Error: ${response.statusText}`);
+      }
+
+      // Fetch the updated client list immediately after adding
+      await fetchClients();
+
+      // Close the popup after successful addition
+      setIsPopupOpen(false);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, [isLoaded, isSignedIn, selectedOption, user, fetchClients]);
 
   const getSortIconClassName = (field) => {
     if (sortField !== field) return styles.sort_icon;
@@ -102,8 +141,7 @@ export default function Clients() {
 
       <div className={styles.content}>
         {loading && <Loader />}
-        {!loading && error && <div>Error: {error}</div>}
-        {!loading && !error && filteredClients.length === 0 && (
+        {!loading && !error && filteredClients?.length === 0 && (
           <div className={styles.not_found}>
             <NotFound
               text={`No ${selectedOption.toLowerCase()} found`}
@@ -195,7 +233,11 @@ export default function Clients() {
         setIsOpened={setIsPopupOpen}
         title={`${selectedOption === 'Individuals' ? 'Client' : 'Company'}`}
       >
-        <CreateForm selectedOption={selectedOption} />
+        <CreateForm
+          selectedOption={selectedOption}
+          rawQueryMethod={createClient}
+          onSuccess={() => fetchClients()} // Use this to refetch if needed
+        />
       </Popup>
     </div>
   );

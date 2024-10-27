@@ -1,10 +1,9 @@
 .main_wrapper {
   display: flex;
   justify-content: center;
-  padding: 0 40px;
-  gap: 40px;
+  padding: 0 10px;
+  gap: 30px;
   width: 100%;
-  max-width: 1200px;
 }
 
 .left_box {
@@ -22,7 +21,7 @@
     color: #dadada;
     font-weight: 500;
     margin-bottom: 10px;
-    font-size: 1.2rem;
+    font-size: 14px;
   }
 
   .input_group,
@@ -36,13 +35,13 @@
   position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   width: 100%;
 
   .icon_inside_input {
     position: absolute;
     left: 14px;
-    font-size: 1.1em;
+    font-size: 16px;
     color: #48484e;
     pointer-events: none;
   }
@@ -55,8 +54,8 @@
     border: 1px solid #2e2e32;
     border-radius: 8px;
     width: 100%;
-    height: 42px;
-    font-size: 1rem;
+    height: 30px;
+    font-size: 12px;
     transition:
       border 0.3s ease,
       background-color 0.3s ease,
@@ -93,7 +92,7 @@
     top: calc(100% - 6px);
     left: 0;
     color: #ff4d4f;
-    font-size: 0.8rem;
+    font-size: 10px;
   }
 }
 
@@ -117,12 +116,12 @@
   display: flex;
   gap: 15px;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 
   button {
-    padding: 8px 24px;
+    padding: 6px 24px;
     border: none;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     color: #1f1f23;
     background: #e29c23;
@@ -151,7 +150,7 @@
 }
 
 .options_section {
-  padding: 0 20px;
+  padding: 0 15px;
   background: #26262a;
   border-radius: 12px;
   flex: 0.5;
@@ -162,7 +161,7 @@
 }
 
 .label_name {
-  font-size: 14px;
+  font-size: 12px;
   color: #cacaca;
 }
 
@@ -179,20 +178,22 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 8px;
+  padding-left: 12px;
   color: #dadada;
   opacity: 0.7;
 
   h4 {
     margin: 0;
     font-weight: 600;
+    font-size: 14px;
     color: #dadada;
   }
 
   p {
     margin: 0;
     color: #cacaca;
-    font-size: 0.9rem;
+    font-size: 10px;
   }
 
   &:hover {

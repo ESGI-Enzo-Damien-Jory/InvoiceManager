@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import {
   FiUser,
@@ -16,25 +18,22 @@ import { MdLocationCity } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { validateForm } from './validation';
 import styles from './CreateForm.module.scss';
+import { toast } from 'react-toastify';
 
 const InputField = ({
   id,
   name,
   placeholder,
-  type = 'text',
-  size = 'default',
   icon: Icon,
   value,
   onChange,
   onBlur,
   error,
 }) => (
-  <div
-    className={`${styles.input_with_icon} ${size === 'small' ? styles.small : ''}`}
-  >
+  <div className={styles.input_with_icon}>
     {Icon && <Icon className={styles.icon_inside_input} />}
     <input
-      type={type}
+      type="text"
       id={id}
       name={name}
       value={value}
@@ -51,8 +50,6 @@ InputField.propTypes = {
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
   placeholder: PropTypes.string.isRequired,
-  type: PropTypes.string,
-  size: PropTypes.string,
   icon: PropTypes.elementType,
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
@@ -60,33 +57,34 @@ InputField.propTypes = {
   error: PropTypes.string,
 };
 
-export default function CreateForm({ selectedOption }) {
+const initialFormData = {
+  first_name: '',
+  last_name: '',
+  company_name: '',
+  contact_name: '',
+  email: '',
+  phone: '',
+  address: '',
+  city: '',
+  country: '',
+  state: '',
+  zip: '',
+};
+
+export default function CreateForm({ selectedOption, rawQueryMethod }) {
   const isIndividual = selectedOption === 'Individuals';
-
-  const [formData, setFormData] = useState({
-    client_first_name: '',
-    client_last_name: '',
-    company_name: '',
-    contact_name: '',
-    client_email: '',
-    client_phone: '',
-    client_address: '',
-    client_city: '',
-    client_country: '',
-    client_state: '',
-    client_zip: '',
-  });
-
   const [errors, setErrors] = useState({});
+  const [formData, setFormData] = useState(initialFormData);
 
-  const validateField = (name, value) => {
-    const result = validateForm({ ...formData, [name]: value });
-    setErrors(result.getErrors());
+  const resetFormData = () => {
+    setFormData(initialFormData);
   };
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
-    validateField(name, value);
+    const updatedFormData = { ...formData, [name]: value };
+    const result = validateForm(updatedFormData);
+    setErrors(result.getErrors());
   };
 
   const handleChange = (e) => {
@@ -94,7 +92,41 @@ export default function CreateForm({ selectedOption }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const isFormValid = Object.keys(errors).length === 0;
+  const handleExecution = async () => {
+    const toastId = toast('Loading...', {
+      style: { backgroundColor: '#33353a', color: '#fff' },
+    });
+
+    const validationSuite = validateForm(formData);
+
+    if (validationSuite.hasErrors()) {
+      console.log('Validation errors:', validationSuite.getErrors());
+      toast.update(toastId, {
+        render: 'Please fix the validation errors',
+        type: 'warning',
+        isLoading: false,
+      });
+      return;
+    }
+
+    try {
+      const submissionData = validateForm.getData();
+
+      await rawQueryMethod(submissionData);
+      toast.update(toastId, {
+        render: 'Client Created!',
+        type: 'success',
+        isLoading: false,
+      });
+      resetFormData();
+    } catch (error) {
+      toast.update(toastId, {
+        render: error.message,
+        type: 'error',
+        isLoading: false,
+      });
+    }
+  };
 
   return (
     <div className={styles.main_wrapper}>
@@ -105,26 +137,24 @@ export default function CreateForm({ selectedOption }) {
             {isIndividual ? (
               <>
                 <InputField
-                  id="client_first_name"
-                  name="client_first_name"
+                  id="first_name"
+                  name="first_name"
                   placeholder="First Name"
-                  size="small"
                   icon={FiUser}
-                  value={formData.client_first_name}
+                  value={formData.first_name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  error={errors.client_first_name}
+                  error={errors.first_name}
                 />
                 <InputField
-                  id="client_last_name"
-                  name="client_last_name"
+                  id="last_name"
+                  name="last_name"
                   placeholder="Last Name"
-                  size="small"
                   icon={FiUser}
-                  value={formData.client_last_name}
+                  value={formData.last_name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  error={errors.client_last_name}
+                  error={errors.last_name}
                 />
               </>
             ) : (
@@ -158,26 +188,26 @@ export default function CreateForm({ selectedOption }) {
           <h3>Contact</h3>
           <div className={styles.contact_row}>
             <InputField
-              id="client_email"
-              name="client_email"
+              id="email"
+              name="email"
               type="email"
               placeholder="Email"
               icon={FiMail}
-              value={formData.client_email}
+              value={formData.email}
               onChange={handleChange}
               onBlur={handleBlur}
-              error={errors.client_email}
+              error={errors.email}
             />
             <InputField
-              id="client_phone"
-              name="client_phone"
+              id="phone"
+              name="phone"
               type="tel"
               placeholder="Phone Number"
               icon={FiPhone}
-              value={formData.client_phone}
+              value={formData.phone}
               onChange={handleChange}
               onBlur={handleBlur}
-              error={errors.client_phone}
+              error={errors.phone}
             />
           </div>
         </section>
@@ -187,56 +217,56 @@ export default function CreateForm({ selectedOption }) {
           <div>
             <div className={styles.billing_stacked_infos}>
               <InputField
-                id="client_address"
-                name="client_address"
+                id="address"
+                name="address"
                 placeholder="Address"
                 icon={FiHome}
-                value={formData.client_address}
+                value={formData.address}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                error={errors.client_address}
+                error={errors.address}
               />
               <InputField
-                id="client_city"
-                name="client_city"
+                id="city"
+                name="city"
                 placeholder="City"
                 icon={MdLocationCity}
-                value={formData.client_city}
+                value={formData.city}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                error={errors.client_city}
+                error={errors.city}
               />
             </div>
             <div className={styles.billing_stacked_infos}>
               <InputField
-                id="client_zip"
-                name="client_zip"
+                id="zip"
+                name="zip"
                 placeholder="Zip/Postal Code"
                 icon={FiHash}
-                value={formData.client_zip}
+                value={formData.zip}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                error={errors.client_zip}
+                error={errors.zip}
               />
               <InputField
-                id="client_state"
-                name="client_state"
+                id="state"
+                name="state"
                 placeholder="State/Region"
                 icon={MdLocationCity}
-                value={formData.client_state}
+                value={formData.state}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                error={errors.client_state}
+                error={errors.state}
               />
               <InputField
-                id="client_country"
-                name="client_country"
+                id="country"
+                name="country"
                 placeholder="Country"
                 icon={FiMapPin}
-                value={formData.client_country}
+                value={formData.country}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                error={errors.client_country}
+                error={errors.country}
               />
             </div>
           </div>
@@ -247,7 +277,11 @@ export default function CreateForm({ selectedOption }) {
         <OptionSection isIndividual={isIndividual} />
         <div className={styles.button_group}>
           <button>Cancel</button>
-          <button disabled={!isFormValid}>
+          <button
+            onClick={() => {
+              handleExecution();
+            }}
+          >
             Save {isIndividual ? 'Client' : 'Company'}
           </button>
         </div>
@@ -258,6 +292,7 @@ export default function CreateForm({ selectedOption }) {
 
 CreateForm.propTypes = {
   selectedOption: PropTypes.string.isRequired,
+  rawQueryMethod: PropTypes.func.isRequired,
 };
 
 const OptionSection = ({ isIndividual }) => (

@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { IoIosClose } from 'react-icons/io';
 import styles from './Popup.module.scss';
+import { ToastContainer } from 'react-toastify';
 
 export default function Popup({ isOpened, setIsOpened, title, children }) {
   const dialogRef = useRef(null);
@@ -56,6 +57,18 @@ export default function Popup({ isOpened, setIsOpened, title, children }) {
           <div className={styles.popup_content}>{children}</div>
         </div>
       </div>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        toastStyle={{
+          backgroundColor: '#1F1F23',
+          color: '#dadada',
+          borderRadius: '8px',
+          border: '1px solid #2E2E32',
+          padding: '1rem',
+          boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.2)',
+        }}
+      />
     </dialog>
   );
 }

@@ -32,6 +32,8 @@ async function createClient(req, res) {
       return res.status(401).json({ error: 'User authentication required' });
     }
 
+    console.log('Creating client:', req.body);
+
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -73,7 +75,29 @@ async function createClient(req, res) {
     }
   } catch (error) {
     console.error('Error creating client:', error);
-    res.status(500).json({ error: 'Internal server error' });
+
+    let status = 500;
+    let message = 'Internal server error';
+
+    switch (error.errno) {
+      case 1062:
+        status = 409;
+        message = 'Duplicate entry, the client already exists';
+        break;
+      case 1452:
+        status = 400;
+        message = 'Invalid foreign key reference';
+        break;
+      case 1048:
+        status = 400;
+        message = 'Required fields are missing';
+        break;
+      default:
+        console.error('Unhandled MySQL error:', error);
+        break;
+    }
+
+    res.status(status).json({ error: message });
   }
 }
 
