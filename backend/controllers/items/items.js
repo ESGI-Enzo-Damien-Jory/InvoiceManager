@@ -186,7 +186,7 @@ async function listItems(req, res) {
       ${type ? 'AND type = ?' : ''}
       ${is_active !== undefined ? 'AND is_active = ?' : ''}
       AND (name LIKE ? OR description LIKE ?)
-      ORDER BY ${sortByColumn} ${sortOrder}
+      ORDER BY ${sortByColumn} ?
     `;
 
     const params = [req.user.id];
@@ -194,7 +194,7 @@ async function listItems(req, res) {
     if (is_active !== undefined) params.push(is_active);
 
     const searchParam = `%${search.trim()}%`;
-    params.push(searchParam, searchParam);
+    params.push(searchParam, searchParam, sortOrder);
 
     const [items] = await pool.execute(query, params);
     res.json({ data: items });
