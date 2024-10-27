@@ -8,9 +8,9 @@ const {
   createEntity,
   getEntityById,
   updateEntity,
-  deleteEntity,
   listEntities,
 } = require('../utils/utils');
+const pool = require('../../config/database');
 
 const TABLE_NAME = 'Tax';
 
@@ -21,10 +21,25 @@ const TABLE_NAME = 'Tax';
  * @param {Object} res - Response object
  */
 async function createTax(req, res) {
-  const { name, rate, apply_by_default } = req.body;
+  const { name, type, value, apply_by_default } = req.body;
+
+  if (type === 'percentage' && (value < 0 || value > 100)) {
+    return res
+      .status(400)
+      .json({ error: 'Percentage tax must be between 0 and 100' });
+  }
+  if (type === 'fixed' && value < 0) {
+    return res.status(400).json({ error: 'Fixed tax cannot be negative' });
+  }
+  if (!['percentage', 'fixed'].includes(type)) {
+    return res
+      .status(400)
+      .json({ error: 'Tax type must be either percentage or fixed' });
+  }
+
   await createEntity({
     tableName: TABLE_NAME,
-    data: { name, rate, apply_by_default },
+    data: { name, type, value, apply_by_default },
     res,
     user: req.user,
   });
@@ -44,6 +59,7 @@ async function getTaxById(req, res) {
     user: req.user,
   });
 }
+
 /**
  * Updates a tax's details
  * @async
@@ -51,28 +67,70 @@ async function getTaxById(req, res) {
  * @param {Object} res - Response object
  */
 async function updateTax(req, res) {
-  const { name, rate, apply_by_default } = req.body;
+  const { name, type, value, apply_by_default } = req.body;
+
+  if (type && value !== undefined) {
+    if (type === 'percentage' && (value < 0 || value > 100)) {
+      return res
+        .status(400)
+        .json({ error: 'Percentage tax must be between 0 and 100' });
+    }
+    if (type === 'fixed' && value < 0) {
+      return res.status(400).json({ error: 'Fixed tax cannot be negative' });
+    }
+    if (!['percentage', 'fixed'].includes(type)) {
+      return res
+        .status(400)
+        .json({ error: 'Tax type must be either percentage or fixed' });
+    }
+  }
+
   await updateEntity({
     tableName: TABLE_NAME,
     id: req.params.id,
-    data: { name, rate, apply_by_default },
+    data: { name, type, value, apply_by_default },
     res,
     user: req.user,
   });
 }
+
 /**
- * Deletes a tax by ID
+ * Deletes a tax and preserves its information in associated invoices
  * @async
  * @param {Object} req - Request object containing tax ID
  * @param {Object} res - Response object
  */
+
 async function deleteTax(req, res) {
-  await deleteEntity({
-    tableName: TABLE_NAME,
-    id: req.params.id,
-    res,
-    user: req.user,
-  });
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'User authentication required' });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    await connection.execute('SET @current_user_id = ?', [req.user.id]);
+
+    const [result] = await connection.execute(
+      'DELETE FROM Tax WHERE id = ? AND created_by_user_id = ?',
+      [req.params.id, req.user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: 'Tax not found' });
+    }
+
+    await connection.commit();
+    res.json({ message: 'Tax deleted successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error deleting tax:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    connection.release();
+  }
 }
 
 /**

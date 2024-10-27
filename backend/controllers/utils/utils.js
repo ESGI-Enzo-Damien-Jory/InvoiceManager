@@ -245,7 +245,10 @@ async function listEntities({
       }
     });
 
-    query += ` ORDER BY ${orderBy}`;
+    if (orderBy) {
+      const validOrderBy = orderBy.replace(/[^a-zA-Z_, ]/g, '');
+      query += ` ORDER BY ${validOrderBy}`;
+    }
 
     const [rows] = await pool.execute(query, params);
 

@@ -8,9 +8,9 @@ const {
   createEntity,
   getEntityById,
   updateEntity,
-  deleteEntity,
   listEntities,
 } = require('../utils/utils');
+const pool = require('../../config/database');
 
 const TABLE_NAME = 'Discount';
 
@@ -22,6 +22,21 @@ const TABLE_NAME = 'Discount';
  */
 async function createDiscount(req, res) {
   const { name, type, value, is_active } = req.body;
+
+  if (type === 'percentage' && (value < 0 || value > 100)) {
+    return res
+      .status(400)
+      .json({ error: 'Percentage discount must be between 0 and 100' });
+  }
+  if (type === 'fixed' && value < 0) {
+    return res.status(400).json({ error: 'Fixed discount cannot be negative' });
+  }
+  if (!['percentage', 'fixed'].includes(type)) {
+    return res
+      .status(400)
+      .json({ error: 'Discount type must be either percentage or fixed' });
+  }
+
   await createEntity({
     tableName: TABLE_NAME,
     data: { name, type, value, is_active },
@@ -53,6 +68,25 @@ async function getDiscountById(req, res) {
  */
 async function updateDiscount(req, res) {
   const { name, type, value, is_active } = req.body;
+
+  if (type && value !== undefined) {
+    if (type === 'percentage' && (value < 0 || value > 100)) {
+      return res
+        .status(400)
+        .json({ error: 'Percentage discount must be between 0 and 100' });
+    }
+    if (type === 'fixed' && value < 0) {
+      return res
+        .status(400)
+        .json({ error: 'Fixed discount cannot be negative' });
+    }
+    if (!['percentage', 'fixed'].includes(type)) {
+      return res
+        .status(400)
+        .json({ error: 'Discount type must be either percentage or fixed' });
+    }
+  }
+
   await updateEntity({
     tableName: TABLE_NAME,
     id: req.params.id,
@@ -63,18 +97,41 @@ async function updateDiscount(req, res) {
 }
 
 /**
- * Deletes a discount by ID
+ * Deletes a discount and preserves its information in associated invoices
  * @async
  * @param {Object} req - Request object containing discount ID
  * @param {Object} res - Response object
  */
 async function deleteDiscount(req, res) {
-  await deleteEntity({
-    tableName: TABLE_NAME,
-    id: req.params.id,
-    res,
-    user: req.user,
-  });
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'User authentication required' });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    await connection.execute('SET @current_user_id = ?', [req.user.id]);
+
+    const [result] = await connection.execute(
+      'DELETE FROM Discount WHERE id = ? AND created_by_user_id = ?',
+      [req.params.id, req.user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: 'Discount not found' });
+    }
+
+    await connection.commit();
+    res.json({ message: 'Discount deleted successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error deleting discount:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    connection.release();
+  }
 }
 
 /**

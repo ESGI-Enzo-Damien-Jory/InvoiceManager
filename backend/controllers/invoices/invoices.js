@@ -221,7 +221,7 @@ async function getInvoiceById(req, res) {
   try {
     const { id } = req.params;
 
-    const [invoice] = await pool.execute(
+    const [invoices] = await pool.execute(
       `SELECT 
         i.*,
         JSON_OBJECT(
@@ -232,57 +232,92 @@ async function getInvoiceById(req, res) {
           'address', c.address,
           'details', CASE 
             WHEN c.type = 'individual' THEN 
-              (SELECT JSON_OBJECT('first_name', ci.first_name, 'last_name', ci.last_name)
-               FROM Client_Individual ci WHERE ci.client_id = c.id)
+              JSON_OBJECT('first_name', ci.first_name, 'last_name', ci.last_name)
             ELSE 
-              (SELECT JSON_OBJECT('company_name', cc.company_name)
-               FROM Client_Company cc WHERE cc.client_id = c.id)
+              JSON_OBJECT('company_name', cc.company_name)
           END
         ) as client,
-        (SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', il.id,
-            'item_id', il.item_id,
-            'quantity', il.quantity,
-            'price', il.price,
-            'description', il.description,
-            'item_details', (SELECT JSON_OBJECT(
-              'name', i.name,
-              'description', i.description,
-              'type', i.type
-            ) FROM Item i WHERE i.id = il.item_id)
-          )
-        ) FROM Invoice_Line il WHERE il.invoice_id = i.id) as line_items,
-        (SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', t.id,
-            'name', t.name,
-            'rate', t.rate
-          )
-        ) FROM Tax t 
-        JOIN Invoice_Tax it ON t.id = it.tax_id 
-        WHERE it.invoice_id = i.id) as taxes,
-        (SELECT JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', d.id,
-            'name', d.name,
-            'type', d.type,
-            'value', d.value
-          )
-        ) FROM Discount d 
-        JOIN Invoice_Discount id ON d.id = id.discount_id 
-        WHERE id.invoice_id = i.id) as discounts
+        COALESCE(
+          (SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', il.id,
+              'item_id', il.item_id,
+              'quantity', il.quantity,
+              'price', il.price,
+              'description', il.description,
+              'item_details', JSON_OBJECT(
+                'name', itm.name,
+                'description', itm.description,
+                'type', itm.type
+              )
+            )
+          ) 
+          FROM Invoice_Line il 
+          LEFT JOIN Item itm ON il.item_id = itm.id 
+          WHERE il.invoice_id = i.id),
+        '[]'
+        ) as line_items,
+        COALESCE(
+          (SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', t.id,
+              'name', t.name,
+              'type', t.type,
+              'value', t.value
+            )
+          ) 
+          FROM Tax t 
+          JOIN Invoice_Tax it ON t.id = it.tax_id 
+          WHERE it.invoice_id = i.id),
+        '[]'
+        ) as taxes,
+        COALESCE(
+          (SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', d.id,
+              'name', d.name,
+              'type', d.type,
+              'value', d.value
+            )
+          ) 
+          FROM Discount d 
+          JOIN Invoice_Discount id_disc ON d.id = id_disc.discount_id 
+          WHERE id_disc.invoice_id = i.id),
+        '[]'
+        ) as discounts
       FROM Invoice i
       JOIN Client c ON i.client_id = c.id
+      LEFT JOIN Client_Individual ci ON c.id = ci.client_id AND c.type = 'individual'
+      LEFT JOIN Client_Company cc ON c.id = cc.client_id AND c.type = 'company'
       WHERE i.id = ? AND i.created_by_user_id = ?`,
       [id, req.user.id]
     );
 
-    if (!invoice[0]) {
+    if (!invoices[0]) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    res.json(invoice[0]);
+    const invoice = invoices[0];
+
+    // Fix JSON parsing by ensuring we have valid JSON strings
+    const result = {
+      ...invoice,
+      client:
+        typeof invoice.client === 'string'
+          ? JSON.parse(invoice.client)
+          : invoice.client,
+      line_items:
+        typeof invoice.line_items === 'string'
+          ? JSON.parse(invoice.line_items)
+          : [],
+      taxes: typeof invoice.taxes === 'string' ? JSON.parse(invoice.taxes) : [],
+      discounts:
+        typeof invoice.discounts === 'string'
+          ? JSON.parse(invoice.discounts)
+          : [],
+    };
+
+    res.json(result);
   } catch (error) {
     console.error('Error retrieving invoice:', error);
     res.status(500).json({ error: 'Internal server error' });

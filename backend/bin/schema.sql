@@ -82,7 +82,7 @@ CREATE TABLE `Item` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `created_by_user_id` INT UNSIGNED NOT NULL,
     `name` VARCHAR(255) NOT NULL,
-    `description` VARCHAR(255) NOT NULL,
+    `description` VARCHAR(255) NULL,
     `default_price` DECIMAL(10, 2) NOT NULL,
     `type` ENUM('product', 'service') NOT NULL,
     `image` MEDIUMBLOB NULL,
@@ -112,12 +112,16 @@ CREATE TABLE `Tax` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `created_by_user_id` INT UNSIGNED NOT NULL,
     `name` VARCHAR(255) NOT NULL,
-    `rate` DECIMAL(8, 2) NOT NULL,
+    `type` ENUM('percentage', 'fixed') NOT NULL,
+    `value` DECIMAL(10, 2) NOT NULL,
     `apply_by_default` BOOLEAN NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`created_by_user_id`) REFERENCES `User`(`id`),
-    CONSTRAINT check_valid_tax_rate CHECK (rate >= 0 AND rate <= 100),
+    CONSTRAINT check_valid_tax CHECK (
+        (type = 'percentage' AND value >= 0 AND value <= 100) OR
+        (type = 'fixed' AND value >= 0)
+    ),
     CONSTRAINT unique_tax_name_per_user UNIQUE (name, created_by_user_id)
 );
 
@@ -184,7 +188,8 @@ CREATE TABLE `Invoice_Log` (
     ) NOT NULL,
     `tax_id` INT UNSIGNED NULL,
     `tax_name` VARCHAR(255) NULL,
-    `tax_rate` DECIMAL(8, 2) NULL,
+    `tax_type` ENUM('percentage', 'fixed') NULL,
+    `tax_value` DECIMAL(8, 2) NULL,
     `discount_id` INT UNSIGNED NULL,
     `discount_name` VARCHAR(255) NULL,
     `discount_type` ENUM('percentage', 'fixed') NULL,
@@ -254,7 +259,7 @@ DELIMITER //
 CREATE PROCEDURE update_total_amount(IN invoiceId INT UNSIGNED)
 BEGIN
     DECLARE var_subtotal DECIMAL(10, 2);
-    DECLARE var_total_tax_rate DECIMAL(8, 2);
+    DECLARE var_total_tax DECIMAL(10, 2);
     DECLARE var_total_discount DECIMAL(10, 2);
     DECLARE var_final_amount DECIMAL(10, 2);
 
@@ -262,7 +267,13 @@ BEGIN
     FROM Invoice 
     WHERE id = invoiceId;
 
-    SELECT COALESCE(SUM(rate), 0) INTO var_total_tax_rate
+    SELECT COALESCE(SUM(
+        CASE 
+            WHEN t.type = 'fixed' THEN t.value
+            WHEN t.type = 'percentage' THEN (var_subtotal * t.value / 100)
+            ELSE 0
+        END
+    ), 0) INTO var_total_tax
     FROM Tax t
     INNER JOIN Invoice_Tax it ON t.id = it.tax_id
     WHERE it.invoice_id = invoiceId;
@@ -278,7 +289,7 @@ BEGIN
     INNER JOIN Invoice_Discount id ON d.id = id.discount_id
     WHERE id.invoice_id = invoiceId;
 
-    SET var_final_amount = COALESCE(var_subtotal + (var_subtotal * var_total_tax_rate / 100) - var_total_discount, 0);
+    SET var_final_amount = COALESCE(var_subtotal + var_total_tax - var_total_discount, 0);
 
     UPDATE Invoice
     SET total_amount = var_final_amount
@@ -582,8 +593,8 @@ CREATE TRIGGER after_invoice_tax_change
 AFTER INSERT ON Invoice_Tax
 FOR EACH ROW
 BEGIN
-    SELECT name, rate 
-    INTO @tax_name, @tax_rate
+    SELECT name, type, value 
+    INTO @tax_name, @tax_type, @tax_value
     FROM Tax 
     WHERE id = NEW.tax_id;
 
@@ -592,7 +603,8 @@ BEGIN
         modification_type,
         tax_id,
         tax_name,
-        tax_rate,
+        tax_type,
+        tax_value,
         changed_by_user_id,
         details
     ) VALUES (
@@ -600,7 +612,8 @@ BEGIN
         'tax_added',
         NEW.tax_id,
         @tax_name,
-        @tax_rate,
+        @tax_type,
+        @tax_value,
         IFNULL(@current_user_id, NULL),
         'Tax added to invoice'
     );
@@ -608,12 +621,21 @@ BEGIN
     CALL update_total_amount(NEW.invoice_id);
 END//
 
+
+CREATE TRIGGER before_tax_delete
+BEFORE DELETE ON Tax
+FOR EACH ROW
+BEGIN
+    DELETE FROM Invoice_Tax 
+    WHERE tax_id = OLD.id;
+END//
+
 CREATE TRIGGER after_invoice_tax_delete
 AFTER DELETE ON Invoice_Tax
 FOR EACH ROW
 BEGIN
-    SELECT name, rate 
-    INTO @tax_name, @tax_rate
+    SELECT name, type, value 
+    INTO @tax_name, @tax_type, @tax_value
     FROM Tax 
     WHERE id = OLD.tax_id;
 
@@ -622,7 +644,8 @@ BEGIN
         modification_type,
         tax_id,
         tax_name,
-        tax_rate,
+        tax_type,
+        tax_value,
         changed_by_user_id,
         details
     ) VALUES (
@@ -630,7 +653,8 @@ BEGIN
         'tax_removed',
         OLD.tax_id,
         @tax_name,
-        @tax_rate,
+        @tax_type,
+        @tax_value,
         IFNULL(@current_user_id, NULL),
         'Tax removed from invoice'
     );
@@ -668,6 +692,14 @@ BEGIN
     );
     
     CALL update_total_amount(NEW.invoice_id);
+END//
+
+CREATE TRIGGER before_discount_delete
+BEFORE DELETE ON Discount
+FOR EACH ROW
+BEGIN
+    DELETE FROM Invoice_Discount 
+    WHERE discount_id = OLD.id;
 END//
 
 CREATE TRIGGER after_invoice_discount_delete
