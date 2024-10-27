@@ -79,35 +79,12 @@ async function updateDiscount(req, res) {
  * @param {Object} res - Response object
  */
 async function deleteDiscount(req, res) {
-  if (!req.user?.id) {
-    return res.status(401).json({ error: 'User authentication required' });
-  }
-
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    await connection.execute('SET @current_user_id = ?', [req.user.id]);
-
-    const [result] = await connection.execute(
-      'DELETE FROM Discount WHERE id = ? AND created_by_user_id = ?',
-      [req.params.id, req.user.id]
-    );
-
-    if (result.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(404).json({ message: 'Discount not found' });
-    }
-
-    await connection.commit();
-    res.json({ message: 'Discount deleted successfully' });
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error deleting discount:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    connection.release();
-  }
+  await deleteEntityWithTransaction({
+    tableName: TABLE_NAME,
+    id: req.params.id,
+    res,
+    user: req.user,
+  });
 }
 
 /**

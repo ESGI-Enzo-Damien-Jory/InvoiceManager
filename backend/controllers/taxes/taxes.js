@@ -80,35 +80,12 @@ async function updateTax(req, res) {
  */
 
 async function deleteTax(req, res) {
-  if (!req.user?.id) {
-    return res.status(401).json({ error: 'User authentication required' });
-  }
-
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    await connection.execute('SET @current_user_id = ?', [req.user.id]);
-
-    const [result] = await connection.execute(
-      'DELETE FROM Tax WHERE id = ? AND created_by_user_id = ?',
-      [req.params.id, req.user.id]
-    );
-
-    if (result.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(404).json({ message: 'Tax not found' });
-    }
-
-    await connection.commit();
-    res.json({ message: 'Tax deleted successfully' });
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error deleting tax:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    connection.release();
-  }
+  await deleteEntityWithTransaction({
+    tableName: TABLE_NAME,
+    id: req.params.id,
+    res,
+    user: req.user,
+  });
 }
 
 /**

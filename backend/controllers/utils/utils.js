@@ -284,6 +284,54 @@ function validateTypeAndValue(type, value, res) {
   return true;
 }
 
+/**
+ * Deletes an entity by ID with user access check and transaction management
+ * @async
+ * @param {Object} params - Parameters for the delete operation
+ * @param {string} params.tableName - Name of the table to delete from
+ * @param {number|string} params.id - ID of the entity to delete
+ * @param {Object} params.res - Response object
+ * @param {Object} params.user - User object from request
+ * @param {string} [params.userIdField='created_by_user_id'] - Name of the user ID field in the table
+ * @returns {Promise<void>}
+ */
+async function deleteEntityWithTransaction({
+  tableName,
+  id,
+  res,
+  user,
+  userIdField = 'created_by_user_id',
+}) {
+  if (!user?.id) {
+    return res.status(401).json({ error: 'User authentication required' });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute('SET @current_user_id = ?', [user.id]);
+
+    const [result] = await connection.execute(
+      `DELETE FROM ${tableName} WHERE id = ? AND ${userIdField} = ?`,
+      [id, user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: `${tableName} not found` });
+    }
+
+    await connection.commit();
+    res.json({ message: `${tableName} deleted successfully` });
+  } catch (error) {
+    await connection.rollback();
+    console.error(`Error deleting ${tableName}:`, error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    connection.release();
+  }
+}
+
 module.exports = {
   createEntity,
   getEntityById,
@@ -291,4 +339,5 @@ module.exports = {
   deleteEntity,
   listEntities,
   validateTypeAndValue,
+  deleteEntityWithTransaction,
 };
