@@ -13,6 +13,7 @@ import {
   FiAlertTriangle,
 } from 'react-icons/fi';
 import { MdLocationCity } from 'react-icons/md';
+import PropTypes from 'prop-types';
 import { validateForm } from './validation';
 import styles from './CreateForm.module.scss';
 
@@ -45,6 +46,19 @@ const InputField = ({
     {error && <p className={styles.error_text}>{error}</p>}
   </div>
 );
+
+InputField.propTypes = {
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  placeholder: PropTypes.string.isRequired,
+  type: PropTypes.string,
+  size: PropTypes.string,
+  icon: PropTypes.elementType,
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onBlur: PropTypes.func.isRequired,
+  error: PropTypes.string,
+};
 
 export default function CreateForm({ selectedOption }) {
   const isIndividual = selectedOption === 'Individuals';
@@ -183,7 +197,7 @@ export default function CreateForm({ selectedOption }) {
                 error={errors.client_address}
               />
               <InputField
-                id="client_city" // Added city field
+                id="client_city"
                 name="client_city"
                 placeholder="City"
                 icon={MdLocationCity}
@@ -242,6 +256,10 @@ export default function CreateForm({ selectedOption }) {
   );
 }
 
+CreateForm.propTypes = {
+  selectedOption: PropTypes.string.isRequired,
+};
+
 const OptionSection = ({ isIndividual }) => (
   <div className={styles.options}>
     <OptionItem
@@ -274,6 +292,10 @@ const OptionSection = ({ isIndividual }) => (
   </div>
 );
 
+OptionSection.propTypes = {
+  isIndividual: PropTypes.bool.isRequired,
+};
+
 const OptionItem = ({ icon: Icon, title, description }) => (
   <div className={styles.option_item}>
     {Icon && <Icon className={styles.option_icon} />}
@@ -283,3 +305,9 @@ const OptionItem = ({ icon: Icon, title, description }) => (
     </div>
   </div>
 );
+
+OptionItem.propTypes = {
+  icon: PropTypes.elementType,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string.isRequired,
+};
