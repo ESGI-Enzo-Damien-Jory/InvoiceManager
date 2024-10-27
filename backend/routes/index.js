@@ -17,6 +17,25 @@ const taxesController = require('../controllers/taxes/taxes');
 const discountsController = require('../controllers/discounts/discounts');
 const attachmentsController = require('../controllers/attachments/attachments');
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Invoices
+ *     description: Operations related to invoices
+ *   - name: Clients
+ *     description: Operations related to clients
+ *   - name: Items
+ *     description: Operations related to items
+ *   - name: Templates
+ *     description: Operations related to templates
+ *   - name: Taxes
+ *     description: Operations related to taxes
+ *   - name: Discounts
+ *     description: Operations related to discounts
+ *   - name: Attachments
+ *     description: Operations related to attachments
+ */
+
 /** ------------------------ Users Routes ------------------------ **/
 
 /**
@@ -169,32 +188,13 @@ router.delete('/users/:id', usersController.deleteUser);
  */
 router.get('/users', usersController.listUsers);
 
-/**
- * @swagger
- * tags:
- *   - name: Invoices
- *     description: Operations related to invoices
- *   - name: Clients
- *     description: Operations related to clients
- *   - name: Items
- *     description: Operations related to items
- *   - name: Templates
- *     description: Operations related to templates
- *   - name: Taxes
- *     description: Operations related to taxes
- *   - name: Discounts
- *     description: Operations related to discounts
- *   - name: Attachments
- *     description: Operations related to attachments
- */
-
 /** ------------------------ Invoices Routes ------------------------ **/
 
 /**
  * @swagger
  * /invoices:
  *   post:
- *     summary: Create a new invoice
+ *     summary: Create a new invoice with line items
  *     tags: [Invoices]
  *     requestBody:
  *       required: true
@@ -202,22 +202,57 @@ router.get('/users', usersController.listUsers);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - client_id
+ *               - template_id
+ *               - expiration_date
+ *               - currency
+ *               - invoice_subject
+ *               - line_items
  *             properties:
  *               client_id:
  *                 type: integer
- *               user_id:
- *                 type: integer
+ *                 description: ID of the client for this invoice
  *               template_id:
  *                 type: integer
+ *                 description: ID of the template to use
  *               expiration_date:
  *                 type: string
  *                 format: date
+ *                 description: When the invoice expires (must be after creation date)
  *               currency:
  *                 type: string
+ *                 enum: [USD, EUR, GBP, JPY, CAD, AUD]
+ *                 description: Currency code for the invoice
  *               notes:
  *                 type: string
+ *                 description: Optional notes for the invoice
  *               invoice_subject:
  *                 type: string
+ *                 description: Subject or title of the invoice
+ *               line_items:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 100
+ *                 description: Array of line items for the invoice
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - item_id
+ *                     - quantity
+ *                   properties:
+ *                     item_id:
+ *                       type: integer
+ *                       description: ID of the referenced item
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *                       description: Quantity of the item
+ *                     price:
+ *                       type: number
+ *                       format: float
+ *                       minimum: 0
+ *                       description: Optional override price (uses item's default_price if not provided)
  *     responses:
  *       201:
  *         description: Invoice created successfully
@@ -228,10 +263,53 @@ router.get('/users', usersController.listUsers);
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the created invoice.
+ *                   description: The ID of the created invoice
  *                 invoice_number:
  *                   type: string
- *                   description: The generated invoice number.
+ *                   description: The generated invoice number (format INV[YEAR][SEQUENCE])
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message describing the validation failure
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: User authentication required
+ *       404:
+ *         description: Referenced entity not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Client not found or inactive
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error
  */
 router.post('/invoices', invoicesController.createInvoice);
 

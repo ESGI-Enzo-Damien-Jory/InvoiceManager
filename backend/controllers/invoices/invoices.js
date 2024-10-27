@@ -9,6 +9,20 @@ const pool = require('../../config/database');
 
 const TABLE_NAME = 'Invoice';
 
+const MAX_LINE_ITEMS = 100;
+const MAX_TOTAL_AMOUNT = 1000000;
+const SUPPORTED_CURRENCIES = [
+  'USD',
+  'EUR',
+  'GBP',
+  'JPY',
+  'CAD',
+  'AUD',
+  'CHF',
+  'CNY',
+  'INR',
+];
+
 /**
  * Creates a new invoice
  * @async
@@ -20,7 +34,10 @@ async function createInvoice(req, res) {
     return res.status(401).json({ error: 'User authentication required' });
   }
 
+  const connection = await pool.getConnection();
   try {
+    await connection.beginTransaction();
+
     const {
       client_id,
       template_id,
@@ -28,18 +45,50 @@ async function createInvoice(req, res) {
       currency,
       notes,
       invoice_subject,
+      line_items,
     } = req.body;
 
-    const [clientCheck] = await pool.execute(
-      'SELECT id FROM Client WHERE id = ? AND created_by_user_id = ?',
+    if (!SUPPORTED_CURRENCIES.includes(currency)) {
+      await connection.rollback();
+      return res.status(400).json({
+        error: `Unsupported currency. Please use one of: ${SUPPORTED_CURRENCIES.join(', ')}`,
+      });
+    }
+
+    if (!Array.isArray(line_items) || line_items.length === 0) {
+      await connection.rollback();
+      return res
+        .status(400)
+        .json({ error: 'At least one line item is required' });
+    }
+
+    if (line_items.length > MAX_LINE_ITEMS) {
+      await connection.rollback();
+      return res.status(400).json({
+        error: `Maximum ${MAX_LINE_ITEMS} line items allowed per invoice`,
+      });
+    }
+
+    const missingItemId = line_items.some((item) => !item.item_id);
+    if (missingItemId) {
+      await connection.rollback();
+      return res.status(400).json({
+        error:
+          'All line items must reference an existing item (item_id is required)',
+      });
+    }
+
+    const [clientCheck] = await connection.execute(
+      'SELECT id FROM Client WHERE id = ? AND created_by_user_id = ? AND is_active = TRUE',
       [client_id, req.user.id]
     );
 
     if (clientCheck.length === 0) {
-      return res.status(404).json({ message: 'Client not found' });
+      await connection.rollback();
+      return res.status(404).json({ message: 'Client not found or inactive' });
     }
 
-    const [lastInvoice] = await pool.execute(
+    const [lastInvoice] = await connection.execute(
       'SELECT MAX(CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED)) as last_num FROM Invoice WHERE invoice_number LIKE ?',
       [`INV${new Date().getFullYear()}%`]
     );
@@ -47,9 +96,9 @@ async function createInvoice(req, res) {
     const nextNum = (lastInvoice[0].last_num || 0) + 1;
     const invoice_number = `INV${new Date().getFullYear()}${nextNum.toString().padStart(4, '0')}`;
 
-    const [result] = await pool.execute(
+    const [result] = await connection.execute(
       `INSERT INTO Invoice (
-        invoice_number, client_id, created_by_user_id, template_id, 
+        invoice_number, client_id, created_by_user_id, template_id,
         expiration_date, currency, notes, invoice_subject
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -64,14 +113,97 @@ async function createInvoice(req, res) {
       ]
     );
 
+    const invoiceId = result.insertId;
+
+    const itemIds = [...new Set(line_items.map((item) => item.item_id))];
+
+    const query = `SELECT id, name, default_price, description, is_active 
+    FROM Item 
+    WHERE id IN (${itemIds.map(() => '?').join(',')}) 
+    AND created_by_user_id = ?`;
+    const values = [...itemIds, req.user.id];
+    const [items] = await connection.execute(query, values);
+
+    const itemsMap = new Map(items.map((item) => [item.id, item]));
+
+    const missingItems = itemIds.filter((id) => !itemsMap.has(id));
+    if (missingItems.length > 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        error: `Items with ids ${missingItems.join(', ')} not found or do not belong to user`,
+      });
+    }
+
+    const inactiveItems = items
+      .filter((item) => !item.is_active)
+      .map((item) => item.name);
+    if (inactiveItems.length > 0) {
+      await connection.rollback();
+      return res.status(400).json({
+        error: `The following items are inactive and cannot be used: ${inactiveItems.join(', ')}`,
+      });
+    }
+
+    const combinedItems = new Map();
+    for (const item of line_items) {
+      const key = `item_${item.item_id}`;
+
+      if (combinedItems.has(key)) {
+        const existing = combinedItems.get(key);
+        existing.quantity += item.quantity;
+      } else {
+        combinedItems.set(key, { ...item });
+      }
+    }
+
+    let preliminaryTotal = 0;
+    for (const item of combinedItems.values()) {
+      const { item_id, quantity, price: providedPrice } = item;
+      const itemDetails = itemsMap.get(item_id);
+
+      if (!quantity || quantity <= 0 || !Number.isInteger(quantity)) {
+        await connection.rollback();
+        return res.status(400).json({
+          error: 'Quantity must be a positive integer',
+        });
+      }
+
+      const finalPrice = providedPrice || itemDetails.default_price;
+      if (finalPrice < 0) {
+        await connection.rollback();
+        return res.status(400).json({
+          error: 'Price must be non-negative',
+        });
+      }
+
+      preliminaryTotal += quantity * finalPrice;
+      if (preliminaryTotal > MAX_TOTAL_AMOUNT) {
+        await connection.rollback();
+        return res.status(400).json({
+          error: `Invoice total amount exceeds maximum limit of ${MAX_TOTAL_AMOUNT}`,
+        });
+      }
+
+      await connection.execute(
+        `INSERT INTO Invoice_Line (
+          invoice_id, item_id, quantity, price, description
+        ) VALUES (?, ?, ?, ?, ?)`,
+        [invoiceId, item_id, quantity, finalPrice, itemDetails.description]
+      );
+    }
+
+    await connection.commit();
     res.status(201).json({
-      id: result.insertId,
+      id: invoiceId,
       invoice_number,
       message: 'Invoice created successfully',
     });
   } catch (error) {
+    await connection.rollback();
     console.error('Error creating invoice:', error);
     res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    connection.release();
   }
 }
 
