@@ -17,7 +17,7 @@ export const validateForm = create((formData) => {
       defaultCountryCode
     );
 
-    enforce(phoneNumber && phoneNumber.isValid()).isTruthy();
+    enforce(phoneNumber?.isValid()).isTruthy();
   });
 
   test('client_zip', 'Please enter a valid zip code', () => {
