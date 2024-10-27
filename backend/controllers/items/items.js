@@ -144,25 +144,25 @@ async function listItems(req, res) {
     order = 'DESC',
   } = req.query;
 
-  if (type && !['product', 'service'].includes(type)) {
+  // Validate the `type` parameter
+  if (type && !VALID_TYPES.includes(type)) {
     return res.status(400).json({
       error: 'Invalid type. Must be either product or service',
     });
   }
 
+  // Validate `sort_by` parameter
   const allowedColumns = ['created_at', 'name', 'type', 'default_price'];
-  if (sort_by && !allowedColumns.includes(sort_by)) {
-    return res.status(400).json({
-      error: `Invalid sort column. Must be one of: ${allowedColumns.join(', ')}`,
-    });
-  }
+  const sortByColumn = allowedColumns.includes(sort_by)
+    ? sort_by
+    : 'created_at';
 
-  if (order && !['ASC', 'DESC'].includes(order.toUpperCase())) {
-    return res.status(400).json({
-      error: 'Invalid sort order. Must be ASC or DESC',
-    });
-  }
+  // Validate `order` parameter
+  const sortOrder = ['ASC', 'DESC'].includes(order.toUpperCase())
+    ? order.toUpperCase()
+    : 'DESC';
 
+  // If no search query, use the listEntities utility with filters
   if (!search) {
     const filters = {};
     if (type) filters.type = type;
@@ -173,27 +173,25 @@ async function listItems(req, res) {
       res,
       user: req.user,
       filters,
-      orderBy: sort_by ? `${sort_by} ${order}` : undefined,
+      orderBy: `${sortByColumn} ${sortOrder}`,
     });
     return;
   }
 
+  // Handle search functionality with validation applied to sortByColumn and sortOrder
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'User authentication required' });
     }
 
-    const sortColumn = sort_by || 'created_at';
-    const sortOrder = order.toUpperCase();
-
-    let query = `
+    const query = `
       SELECT *
       FROM ${TABLE_NAME}
       WHERE created_by_user_id = ?
       ${type ? 'AND type = ?' : ''}
       ${is_active !== undefined ? 'AND is_active = ?' : ''}
       AND (name LIKE ? OR description LIKE ?)
-      ORDER BY ${sortColumn} ${sortOrder}
+      ORDER BY ${sortByColumn} ${sortOrder}
     `;
 
     const params = [req.user.id];
