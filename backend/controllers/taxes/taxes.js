@@ -23,18 +23,8 @@ const TABLE_NAME = 'Tax';
 async function createTax(req, res) {
   const { name, type, value, apply_by_default } = req.body;
 
-  if (type === 'percentage' && (value < 0 || value > 100)) {
-    return res
-      .status(400)
-      .json({ error: 'Percentage tax must be between 0 and 100' });
-  }
-  if (type === 'fixed' && value < 0) {
-    return res.status(400).json({ error: 'Fixed tax cannot be negative' });
-  }
-  if (!['percentage', 'fixed'].includes(type)) {
-    return res
-      .status(400)
-      .json({ error: 'Tax type must be either percentage or fixed' });
+  if (!validateTypeAndValue(type, value, res)) {
+    return;
   }
 
   await createEntity({
@@ -69,20 +59,8 @@ async function getTaxById(req, res) {
 async function updateTax(req, res) {
   const { name, type, value, apply_by_default } = req.body;
 
-  if (type && value !== undefined) {
-    if (type === 'percentage' && (value < 0 || value > 100)) {
-      return res
-        .status(400)
-        .json({ error: 'Percentage tax must be between 0 and 100' });
-    }
-    if (type === 'fixed' && value < 0) {
-      return res.status(400).json({ error: 'Fixed tax cannot be negative' });
-    }
-    if (!['percentage', 'fixed'].includes(type)) {
-      return res
-        .status(400)
-        .json({ error: 'Tax type must be either percentage or fixed' });
-    }
+  if (type && value !== undefined && !validateTypeAndValue(type, value, res)) {
+    return;
   }
 
   await updateEntity({

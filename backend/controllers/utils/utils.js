@@ -261,10 +261,34 @@ async function listEntities({
   }
 }
 
+/**
+ * Validates the type and value of percentage or fixed amount
+ * @param {string} type - The type of the value (percentage or fixed)
+ * @param {number} value - The value to validate
+ * @param {Object} res - Response object to handle errors
+ * @returns {boolean} - Returns true if valid, false if an error response is sent
+ */
+function validateTypeAndValue(type, value, res) {
+  if (type === 'percentage' && (value < 0 || value > 100)) {
+    res.status(400).json({ error: 'Percentage must be between 0 and 100' });
+    return false;
+  }
+  if (type === 'fixed' && value < 0) {
+    res.status(400).json({ error: 'Fixed value cannot be negative' });
+    return false;
+  }
+  if (!['percentage', 'fixed'].includes(type)) {
+    res.status(400).json({ error: 'Type must be either percentage or fixed' });
+    return false;
+  }
+  return true;
+}
+
 module.exports = {
   createEntity,
   getEntityById,
   updateEntity,
   deleteEntity,
   listEntities,
+  validateTypeAndValue,
 };
