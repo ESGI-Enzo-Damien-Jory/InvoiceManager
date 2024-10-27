@@ -10,7 +10,7 @@ import NotFound from '@/components/_atoms/NotFound/NotFound';
 import Avatar from '@/components/_atoms/Avatar/Avatar';
 import Placeholder from '@/components/_atoms/Placeholder/Placeholder';
 import Loader from '@/components/_atoms/Loader/Loader';
-import { SignedIn, useUser } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 import ClientFilterBar from '@/components/_molecules/ClientFilterBar/ClientFilterBar';
 import Popup from '@/components/_atoms/Popup/Popup';
 import CreateForm from '@/components/_molecules/CreateForm/CreateForm';
