@@ -89,15 +89,16 @@
 }
 
 .checkbox_container {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 60px;
+  height: 100%;
 }
 
 .custom_checkbox {
-  position: absolute;
-  margin-top: 1%;
+  position: relative;
   display: inline-block;
   width: 18px;
   height: 18px;
