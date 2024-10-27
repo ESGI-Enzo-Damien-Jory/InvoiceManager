@@ -144,25 +144,21 @@ async function listItems(req, res) {
     order = 'DESC',
   } = req.query;
 
-  // Validate the `type` parameter
   if (type && !VALID_TYPES.includes(type)) {
     return res.status(400).json({
       error: 'Invalid type. Must be either product or service',
     });
   }
 
-  // Validate `sort_by` parameter
   const allowedColumns = ['created_at', 'name', 'type', 'default_price'];
   const sortByColumn = allowedColumns.includes(sort_by)
     ? sort_by
     : 'created_at';
 
-  // Validate `order` parameter
   const sortOrder = ['ASC', 'DESC'].includes(order.toUpperCase())
     ? order.toUpperCase()
     : 'DESC';
 
-  // If no search query, use the listEntities utility with filters
   if (!search) {
     const filters = {};
     if (type) filters.type = type;
@@ -178,7 +174,6 @@ async function listItems(req, res) {
     return;
   }
 
-  // Handle search functionality with validation applied to sortByColumn and sortOrder
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'User authentication required' });
