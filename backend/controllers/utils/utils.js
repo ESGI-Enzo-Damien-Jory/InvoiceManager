@@ -6,6 +6,148 @@
 
 const pool = require('../../config/database');
 
+const allowedTables = {
+  User: [
+    'id',
+    'clerk_user_id',
+    'first_name',
+    'last_name',
+    'username',
+    'email',
+    'role',
+    'is_active',
+    'last_login',
+    'created_at',
+    'updated_at',
+  ],
+  Client: [
+    'id',
+    'created_by_user_id',
+    'email',
+    'phone',
+    'type',
+    'address',
+    'image',
+    'is_active',
+    'created_at',
+    'updated_at',
+  ],
+  Client_Individual: ['client_id', 'last_name', 'first_name'],
+  Client_Company: ['client_id', 'company_name', 'contact_name'],
+  Template: ['id', 'template_name', 'created_at', 'updated_at'],
+  Invoice: [
+    'id',
+    'invoice_number',
+    'client_id',
+    'created_by_user_id',
+    'template_id',
+    'creation_date',
+    'expiration_date',
+    'state',
+    'total_amount',
+    'currency',
+    'notes',
+    'invoice_subject',
+    'subtotal',
+    'created_at',
+    'updated_at',
+  ],
+  Item: [
+    'id',
+    'created_by_user_id',
+    'name',
+    'description',
+    'default_price',
+    'type',
+    'image',
+    'is_active',
+    'created_at',
+    'updated_at',
+  ],
+  Invoice_Line: [
+    'id',
+    'invoice_id',
+    'item_id',
+    'quantity',
+    'price',
+    'description',
+    'created_at',
+  ],
+  Tax: [
+    'id',
+    'created_by_user_id',
+    'name',
+    'type',
+    'value',
+    'apply_by_default',
+    'created_at',
+    'updated_at',
+  ],
+  Discount: [
+    'id',
+    'created_by_user_id',
+    'name',
+    'type',
+    'value',
+    'is_active',
+    'created_at',
+    'updated_at',
+  ],
+  Invoice_Tax: ['invoice_id', 'tax_id'],
+  Invoice_Discount: ['invoice_id', 'discount_id'],
+  Invoice_History: [
+    'id',
+    'invoice_id',
+    'previous_state',
+    'new_state',
+    'state_change_timestamp',
+    'changed_by_user_id',
+  ],
+  Invoice_Log: [
+    'id',
+    'invoice_id',
+    'modification_type',
+    'tax_id',
+    'tax_name',
+    'tax_type',
+    'tax_value',
+    'discount_id',
+    'discount_name',
+    'discount_type',
+    'discount_value',
+    'line_item_id',
+    'item_id',
+    'previous_quantity',
+    'new_quantity',
+    'previous_price',
+    'new_price',
+    'item_description',
+    'previous_state',
+    'new_state',
+    'previous_subtotal',
+    'new_subtotal',
+    'previous_total',
+    'new_total',
+    'previous_subject',
+    'new_subject',
+    'previous_notes',
+    'new_notes',
+    'previous_expiration_date',
+    'new_expiration_date',
+    'modification_timestamp',
+    'changed_by_user_id',
+    'details',
+  ],
+  Attachment: [
+    'id',
+    'invoice_id',
+    'file_name',
+    'file_data',
+    'extension',
+    'created_at',
+  ],
+};
+
 /**
  * Executes a CREATE operation for any entity with user association
  * @async
@@ -234,21 +376,46 @@ async function listEntities({
     return res.status(401).json({ error: 'User authentication required' });
   }
 
+  if (!allowedTables.hasOwnProperty(tableName)) {
+    return res.status(400).json({ error: 'Invalid table name' });
+  }
+
+  const allowedColumns = allowedTables[tableName];
+  if (selectFields.includes('*')) {
+    selectFields = allowedColumns;
+  } else {
+    const invalidFields = selectFields.filter(
+      (field) => !allowedColumns.includes(field)
+    );
+    if (invalidFields.length > 0) {
+      return res
+        .status(400)
+        .json({ error: `Invalid select fields: ${invalidFields.join(', ')}` });
+    }
+  }
+
+  const orderByParts = orderBy.split(' ');
+  const orderByField = orderByParts[0];
+  const orderByDirection = orderByParts[1]?.toUpperCase() || 'ASC';
+  if (
+    !allowedColumns.includes(orderByField) ||
+    !['ASC', 'DESC'].includes(orderByDirection)
+  ) {
+    return res.status(400).json({ error: 'Invalid order by clause' });
+  }
+
   try {
-    let query = `SELECT ${selectFields.join(', ')} FROM ${tableName} WHERE ${userIdField} = ?`;
+    let query = `SELECT ${selectFields.join(', ')} FROM \`${tableName}\` WHERE \`${userIdField}\` = ?`;
     const params = [user.id];
 
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query += ` AND ${key} = ?`;
+      if (value !== undefined && allowedColumns.includes(key)) {
+        query += ` AND \`${key}\` = ?`;
         params.push(value);
       }
     });
 
-    if (orderBy) {
-      const validOrderBy = orderBy.replace(/[^a-zA-Z_, ]/g, '');
-      query += ` ORDER BY ${validOrderBy}`;
-    }
+    query += ` ORDER BY \`${orderByField}\` ${orderByDirection}`;
 
     const [rows] = await pool.execute(query, params);
 
