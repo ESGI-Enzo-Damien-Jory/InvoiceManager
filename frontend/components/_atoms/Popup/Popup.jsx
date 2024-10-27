@@ -39,17 +39,20 @@ export default function Popup({ isOpened, setIsOpened, title, children }) {
       <div
         className={`${styles.popup_container} ${isOpened ? styles.visible : styles.hidden}`}
       >
-        <button
-          type="button"
-          className={styles.close_button}
-          onClick={handleClose}
-        >
-          <IoIosClose className={styles.close_icon} />
-        </button>
+        <div className={styles.popup_header}>
+          <button
+            type="button"
+            className={styles.close_button}
+            onClick={handleClose}
+          >
+            <IoIosClose className={styles.close_icon} />
+          </button>
+          {title && <h2 className={styles.popup_title}>{title}</h2>}
+        </div>
+
         <div
           className={`${styles.popup_content_wrapper} ${isOpened ? styles.content_visible : ''}`}
         >
-          {title && <h2 className={styles.popup_title}>{title}</h2>}
           <div className={styles.popup_content}>{children}</div>
         </div>
       </div>

@@ -12,6 +12,8 @@ import Placeholder from '@/components/_atoms/Placeholder/Placeholder';
 import Loader from '@/components/_atoms/Loader/Loader';
 import { useUser } from '@clerk/nextjs';
 import ClientFilterBar from '@/components/_molecules/ClientFilterBar/ClientFilterBar';
+import Popup from '@/components/_atoms/Popup/Popup';
+import CreateForm from '@/components/_molecules/ClientCreateForm/CreateForm';
 
 export default function Clients() {
   const { user, isLoaded, isSignedIn } = useUser();
@@ -22,6 +24,7 @@ export default function Clients() {
   const [error, setError] = useState(null);
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -91,7 +94,11 @@ export default function Clients() {
         selectedOption={selectedOption}
         setSelectedOption={setSelectedOption}
       />
-      <ClientFilterBar clients={clients} onSearch={handleSearch} />
+      <ClientFilterBar
+        clients={clients}
+        onSearch={handleSearch}
+        setAddClient={setIsPopupOpen}
+      />
 
       <div className={styles.content}>
         {loading && <Loader />}
@@ -183,6 +190,13 @@ export default function Clients() {
           </div>
         )}
       </div>
+      <Popup
+        isOpened={isPopupOpen}
+        setIsOpened={setIsPopupOpen}
+        title={`${selectedOption === 'Individuals' ? 'Client' : 'Company'}`}
+      >
+        <CreateForm selectedOption={selectedOption} />
+      </Popup>
     </div>
   );
 }

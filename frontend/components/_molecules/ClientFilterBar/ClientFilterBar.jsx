@@ -4,7 +4,7 @@ import { BsFilter } from 'react-icons/bs';
 import styles from './ClientFilterBar.module.scss';
 import SearchBar from '@/components/_atoms/Searchbar/SearchBar';
 
-export default function ClientFilterBar({ clients, onSearch }) {
+export default function ClientFilterBar({ clients, onSearch, setAddClient }) {
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const counts = {
@@ -133,7 +133,12 @@ export default function ClientFilterBar({ clients, onSearch }) {
           <SearchBar onSearch={handleSearch} />
         </div>
 
-        <button className={styles.add_button}>Add client</button>
+        <button
+          className={styles.add_button}
+          onClick={() => setAddClient(true)}
+        >
+          Add client
+        </button>
       </div>
     </div>
   );
@@ -148,4 +153,5 @@ ClientFilterBar.propTypes = {
     })
   ).isRequired,
   onSearch: PropTypes.func.isRequired,
+  setAddClient: PropTypes.func.isRequired,
 };
