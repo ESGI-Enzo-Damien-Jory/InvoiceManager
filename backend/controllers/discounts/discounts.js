@@ -8,9 +8,9 @@ const {
   createEntity,
   getEntityById,
   updateEntity,
-  deleteEntity,
   listEntities,
 } = require('../utils/utils');
+const pool = require('../../config/database');
 
 const TABLE_NAME = 'Discount';
 
@@ -22,6 +22,11 @@ const TABLE_NAME = 'Discount';
  */
 async function createDiscount(req, res) {
   const { name, type, value, is_active } = req.body;
+
+  if (!validateTypeAndValue(type, value, res)) {
+    return;
+  }
+
   await createEntity({
     tableName: TABLE_NAME,
     data: { name, type, value, is_active },
@@ -53,6 +58,11 @@ async function getDiscountById(req, res) {
  */
 async function updateDiscount(req, res) {
   const { name, type, value, is_active } = req.body;
+
+  if (type && value !== undefined && !validateTypeAndValue(type, value, res)) {
+    return;
+  }
+
   await updateEntity({
     tableName: TABLE_NAME,
     id: req.params.id,
@@ -63,13 +73,13 @@ async function updateDiscount(req, res) {
 }
 
 /**
- * Deletes a discount by ID
+ * Deletes a discount and preserves its information in associated invoices
  * @async
  * @param {Object} req - Request object containing discount ID
  * @param {Object} res - Response object
  */
 async function deleteDiscount(req, res) {
-  await deleteEntity({
+  await deleteEntityWithTransaction({
     tableName: TABLE_NAME,
     id: req.params.id,
     res,

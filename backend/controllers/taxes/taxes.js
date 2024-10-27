@@ -8,9 +8,9 @@ const {
   createEntity,
   getEntityById,
   updateEntity,
-  deleteEntity,
   listEntities,
 } = require('../utils/utils');
+const pool = require('../../config/database');
 
 const TABLE_NAME = 'Tax';
 
@@ -21,10 +21,15 @@ const TABLE_NAME = 'Tax';
  * @param {Object} res - Response object
  */
 async function createTax(req, res) {
-  const { name, rate, apply_by_default } = req.body;
+  const { name, type, value, apply_by_default } = req.body;
+
+  if (!validateTypeAndValue(type, value, res)) {
+    return;
+  }
+
   await createEntity({
     tableName: TABLE_NAME,
-    data: { name, rate, apply_by_default },
+    data: { name, type, value, apply_by_default },
     res,
     user: req.user,
   });
@@ -44,6 +49,7 @@ async function getTaxById(req, res) {
     user: req.user,
   });
 }
+
 /**
  * Updates a tax's details
  * @async
@@ -51,23 +57,30 @@ async function getTaxById(req, res) {
  * @param {Object} res - Response object
  */
 async function updateTax(req, res) {
-  const { name, rate, apply_by_default } = req.body;
+  const { name, type, value, apply_by_default } = req.body;
+
+  if (type && value !== undefined && !validateTypeAndValue(type, value, res)) {
+    return;
+  }
+
   await updateEntity({
     tableName: TABLE_NAME,
     id: req.params.id,
-    data: { name, rate, apply_by_default },
+    data: { name, type, value, apply_by_default },
     res,
     user: req.user,
   });
 }
+
 /**
- * Deletes a tax by ID
+ * Deletes a tax and preserves its information in associated invoices
  * @async
  * @param {Object} req - Request object containing tax ID
  * @param {Object} res - Response object
  */
+
 async function deleteTax(req, res) {
-  await deleteEntity({
+  await deleteEntityWithTransaction({
     tableName: TABLE_NAME,
     id: req.params.id,
     res,

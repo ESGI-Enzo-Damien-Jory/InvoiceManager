@@ -4,7 +4,6 @@
  * @description Handles client-related operations including CRUD
  */
 
-const { deleteEntity } = require('../utils/utils');
 const pool = require('../../config/database');
 
 const TABLE_NAME = 'Client';
@@ -26,6 +25,7 @@ async function createClient(req, res) {
       first_name,
       last_name,
       company_name,
+      contact_name,
     } = req.body;
 
     if (!req.user?.id) {
@@ -52,9 +52,9 @@ async function createClient(req, res) {
         );
       } else if (type === 'company') {
         await connection.execute(
-          `INSERT INTO Client_Company (client_id, company_name)
-           VALUES (?, ?)`,
-          [client_id, company_name]
+          `INSERT INTO Client_Company (client_id, company_name, contact_name)
+           VALUES (?, ?, ?)`,
+          [client_id, company_name, contact_name]
         );
       } else {
         throw new Error('Invalid client type');
@@ -104,7 +104,8 @@ async function getClientById(req, res) {
             'last_name', ci.last_name
           )
           WHEN c.type = 'company' THEN JSON_OBJECT(
-            'company_name', cc.company_name
+            'company_name', cc.company_name,
+            'contact_name', cc.contact_name
           )
           ELSE NULL
         END as details
@@ -182,6 +183,7 @@ async function updateClient(req, res) {
       first_name,
       last_name,
       company_name,
+      contact_name,
     } = req.body;
 
     await connection.beginTransaction();
@@ -225,8 +227,11 @@ async function updateClient(req, res) {
       if (individualParams.length > 0) {
         await connection.execute(individualQuery, individualParams);
       }
-    } else if (clientType === 'company' && company_name !== undefined) {
-      const companyData = { company_name };
+    } else if (
+      clientType === 'company' &&
+      (company_name !== undefined || contact_name !== undefined)
+    ) {
+      const companyData = { company_name, contact_name };
       const { updateQuery: companyQuery, updateParams: companyParams } =
         buildUpdateQuery('Client_Company', companyData, id);
 
@@ -304,9 +309,24 @@ async function listClients(req, res) {
         c.*,
         CASE 
           WHEN c.type = 'individual' THEN CONCAT(ci.first_name, ' ', ci.last_name)
-          WHEN c.type = 'company' THEN cc.company_name
+          WHEN c.type = 'company' THEN CONCAT(cc.company_name, 
+            CASE 
+              WHEN cc.contact_name IS NOT NULL THEN CONCAT(' (Contact: ', cc.contact_name, ')')
+              ELSE ''
+            END)
           ELSE NULL
-        END as client_name
+        END as client_name,
+        CASE 
+          WHEN c.type = 'individual' THEN JSON_OBJECT(
+            'first_name', ci.first_name,
+            'last_name', ci.last_name
+          )
+          WHEN c.type = 'company' THEN JSON_OBJECT(
+            'company_name', cc.company_name,
+            'contact_name', cc.contact_name
+          )
+          ELSE NULL
+        END as details
       FROM Client c
       LEFT JOIN Client_Individual ci ON c.id = ci.client_id
       LEFT JOIN Client_Company cc ON c.id = cc.client_id
@@ -331,10 +351,12 @@ async function listClients(req, res) {
         c.address LIKE ? OR
         ci.first_name LIKE ? OR
         ci.last_name LIKE ? OR
-        cc.company_name LIKE ?
+        cc.company_name LIKE ? OR
+        cc.contact_name LIKE ?
       )`;
       const searchParam = `%${search}%`;
       params.push(
+        searchParam,
         searchParam,
         searchParam,
         searchParam,

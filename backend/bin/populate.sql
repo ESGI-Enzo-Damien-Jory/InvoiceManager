@@ -28,13 +28,13 @@ INSERT INTO `Client` (created_by_user_id, email, phone, type, address, is_active
 (3, 'diana.prince@example.com', '555-0111', 'individual', '444 Hero Lane', true);
 
 -- Insert Client Companies
-INSERT INTO `Client_Company` (client_id, company_name) VALUES
-(1, 'Acme Corporation'),
-(3, 'Mega Industries Ltd'),
-(5, 'Tech Solutions Inc.'),
-(7, 'Startup Co'),
-(9, 'Global Corp'),
-(11, 'Local Business LLC');
+INSERT INTO `Client_Company` (client_id, company_name, contact_name) VALUES
+(1, 'Acme Corporation', 'Robert Smith'),
+(3, 'Mega Industries Ltd', NULL),
+(5, 'Tech Solutions Inc.', 'Michael Chang'),
+(7, 'Startup Co', 'Emma Johnson'),
+(9, 'Global Corp', 'James Anderson'),
+(11, 'Local Business LLC', NULL);
 
 -- Insert Client Individuals
 INSERT INTO `Client_Individual` (client_id, first_name, last_name) VALUES
@@ -78,21 +78,21 @@ INSERT INTO `Item` (created_by_user_id, name, description, default_price, type, 
 (3, 'Security Audit', 'Comprehensive security audit', 750.00, 'service', true);
 
 -- Insert Taxes with user ownership
-INSERT INTO `Tax` (created_by_user_id, name, rate, apply_by_default) VALUES
+INSERT INTO `Tax` (created_by_user_id, name, type, value, apply_by_default) VALUES
 -- John's taxes
-(1, 'Standard VAT', 20.00, true),
-(1, 'Reduced Rate', 10.00, false),
-(1, 'Special Rate', 15.00, false),
-(1, 'Export Rate', 0.00, false),
+(1, 'Standard VAT', 'percentage', 20.00, true),
+(1, 'Reduced Rate', 'percentage', 10.00, false),
+(1, 'Fixed Service Tax', 'fixed', 25.00, false),
+(1, 'Handling Fee', 'fixed', 15.00, false),
 -- Sarah's taxes
-(2, 'Standard VAT', 20.00, true), -- Same name, different user
-(2, 'Zero Rate', 0.00, false),
-(2, 'Service Tax', 12.50, false),
-(2, 'Digital Tax', 5.00, false),
+(2, 'Standard VAT', 'percentage', 20.00, true),
+(2, 'Zero Rate', 'percentage', 0.00, false),
+(2, 'Processing Fee', 'fixed', 30.00, false),
+(2, 'Digital Service Tax', 'fixed', 45.00, false),
 -- Mike's taxes
-(3, 'Standard Rate', 21.00, true),
-(3, 'Reduced VAT', 5.00, false),
-(3, 'Premium Rate', 25.00, false);
+(3, 'Standard Rate', 'percentage', 21.00, true),
+(3, 'Fixed Admin Fee', 'fixed', 20.00, false),
+(3, 'Premium Service Tax', 'fixed', 50.00, false);
 
 -- Insert Discounts with user ownership
 INSERT INTO `Discount` (created_by_user_id, name, type, value, is_active) VALUES
@@ -103,7 +103,7 @@ INSERT INTO `Discount` (created_by_user_id, name, type, value, is_active) VALUES
 (1, 'Holiday Special', 'percentage', 15.00, false),
 -- Sarah's discounts
 (2, 'Loyalty Discount', 'percentage', 10.00, true),
-(2, 'Early Payment', 'percentage', 5.00, true), -- Same name as John's discount
+(2, 'Early Payment', 'percentage', 5.00, true),
 (2, 'Volume Discount', 'fixed', 250.00, true),
 (2, 'Seasonal Offer', 'percentage', 20.00, false),
 -- Mike's discounts
@@ -111,7 +111,7 @@ INSERT INTO `Discount` (created_by_user_id, name, type, value, is_active) VALUES
 (3, 'Referral Bonus', 'fixed', 50.00, true),
 (3, 'Long Term Client', 'percentage', 12.00, true);
 
--- Insert Invoices with more varied states and amounts
+-- Insert Invoices
 INSERT INTO `Invoice` (
     invoice_number, client_id, created_by_user_id, template_id, 
     creation_date, expiration_date, state, 
@@ -158,7 +158,7 @@ INSERT INTO `Invoice` (
  'EUR', 'Security audit completed', 'Security Audit', 
  1500.00, 1500.00);
 
--- Insert Invoice Lines with more varied quantities and prices
+-- Insert Invoice Lines
 INSERT INTO `Invoice_Line` (invoice_id, item_id, quantity, price, description) VALUES
 -- Lines for John's invoices
 (1, 1, 10, 150.00, 'Web Development - 10 hours'),
@@ -176,36 +176,39 @@ INSERT INTO `Invoice_Line` (invoice_id, item_id, quantity, price, description) V
 (8, 13, 10, 225.00, 'Data Analysis - 10 hours'),
 (9, 16, 2, 750.00, 'Security Audit - Two locations');
 
--- Insert Invoice Taxes (matching user ownership)
+-- Insert Invoice Taxes
 INSERT INTO `Invoice_Tax` (invoice_id, tax_id) VALUES
 -- Taxes for John's invoices
-(1, 1), -- Standard VAT
-(1, 3), -- Special Rate
-(2, 1), -- Standard VAT
-(3, 2), -- Reduced Rate
-(4, 4), -- Export Rate
+(1, 1),
+(1, 4),
+(2, 1),
+(3, 2),
+(3, 3),
+(4, 3),
 -- Taxes for Sarah's invoices
-(5, 5), -- Standard VAT
-(6, 7), -- Service Tax
-(7, 6), -- Zero Rate
+(5, 5),
+(5, 7),
+(6, 8),
+(7, 6),
 -- Taxes for Mike's invoices
-(8, 9), -- Standard Rate
-(9, 10); -- Reduced VAT
+(8, 9),
+(8, 10),
+(9, 11);
 
--- Insert Invoice Discounts (matching user ownership)
+-- Insert Invoice Discounts
 INSERT INTO `Invoice_Discount` (invoice_id, discount_id) VALUES
 -- Discounts for John's invoices
-(1, 1), -- Early Payment
-(2, 3), -- New Client
-(3, 2), -- Bulk Purchase
+(1, 1),
+(2, 3),
+(3, 2),
 -- Discounts for Sarah's invoices
-(5, 5), -- Loyalty Discount
-(6, 7), -- Volume Discount
+(5, 5),
+(6, 7),
 -- Discounts for Mike's invoices
-(8, 9), -- First Time
+(8, 9),
 (9, 11); -- Long Term Client
 
--- Insert more detailed Invoice History
+-- Insert Invoice History
 INSERT INTO `Invoice_History` (
     invoice_id, 
     previous_state, 
@@ -225,7 +228,7 @@ INSERT INTO `Invoice_History` (
 (9, 'draft', 'sent', 3),
 (9, 'sent', 'paid', 3);
 
--- Insert more attachments with placeholder file data
+-- Insert Attachments
 INSERT INTO `Attachment` (
     invoice_id, 
     file_name, 
