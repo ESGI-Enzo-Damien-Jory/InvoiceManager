@@ -28,13 +28,13 @@ INSERT INTO `Client` (created_by_user_id, email, phone, type, address, is_active
 (3, 'diana.prince@example.com', '555-0111', 'individual', '444 Hero Lane', true);
 
 -- Insert Client Companies
-INSERT INTO `Client_Company` (client_id, company_name) VALUES
-(1, 'Acme Corporation'),
-(3, 'Mega Industries Ltd'),
-(5, 'Tech Solutions Inc.'),
-(7, 'Startup Co'),
-(9, 'Global Corp'),
-(11, 'Local Business LLC');
+INSERT INTO `Client_Company` (client_id, company_name, contact_name) VALUES
+(1, 'Acme Corporation', 'Robert Smith'),
+(3, 'Mega Industries Ltd', NULL),
+(5, 'Tech Solutions Inc.', 'Michael Chang'),
+(7, 'Startup Co', 'Emma Johnson'),
+(9, 'Global Corp', 'James Anderson'),
+(11, 'Local Business LLC', NULL);
 
 -- Insert Client Individuals
 INSERT INTO `Client_Individual` (client_id, first_name, last_name) VALUES
