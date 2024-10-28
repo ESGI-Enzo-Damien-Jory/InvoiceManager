@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FiUser,
   FiMail,
@@ -71,10 +71,50 @@ const initialFormData = {
   zip: '',
 };
 
-export default function CreateForm({ selectedOption, rawQueryMethod }) {
+export default function CreateForm({
+  client,
+  selectedOption,
+  rawQueryMethod,
+  onSuccess,
+}) {
   const isIndividual = selectedOption === 'Individuals';
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState(initialFormData);
+  let is_edit = client ? true : false;
+
+  useEffect(() => {
+    if (client) {
+      console.log(client);
+      let value1, value2;
+
+      if (client.type === 'individual') {
+        value1 = client.details.first_name;
+        value2 = client.details.last_name;
+      } else {
+        value1 = client.details.company_name;
+        value2 = client.details.contact_name;
+      }
+      console.log(value1, value2);
+
+      let parsedAddress = client.address.split(', ');
+
+      setFormData({
+        first_name: client.type === 'individual' ? value1 : '',
+        last_name: client.type === 'individual' ? value2 : '',
+        company_name: client.type === 'company' ? value1 : '',
+        contact_name: client.type === 'company' ? value2 : '',
+        email: client.email,
+        phone: client.phone,
+        address: parsedAddress[0],
+        city: parsedAddress[2],
+        country: parsedAddress[4],
+        state: parsedAddress[3],
+        zip: parsedAddress[1],
+      });
+    } else {
+      setFormData(initialFormData);
+    }
+  }, [client]);
 
   const resetFormData = () => {
     setFormData(initialFormData);
@@ -111,14 +151,20 @@ export default function CreateForm({ selectedOption, rawQueryMethod }) {
 
     try {
       const submissionData = validateForm.getData();
+      const id = client ? client.id : null;
+      if (is_edit) {
+        await rawQueryMethod(id, submissionData);
+      } else {
+        await rawQueryMethod(submissionData);
+      }
 
-      await rawQueryMethod(submissionData);
       toast.update(toastId, {
         render: 'Client Created!',
         type: 'success',
         isLoading: false,
       });
       resetFormData();
+      onSuccess();
     } catch (error) {
       toast.update(toastId, {
         render: error.message,
@@ -293,6 +339,7 @@ export default function CreateForm({ selectedOption, rawQueryMethod }) {
 CreateForm.propTypes = {
   selectedOption: PropTypes.string.isRequired,
   rawQueryMethod: PropTypes.func.isRequired,
+  onSuccess: PropTypes.func,
 };
 
 const OptionSection = ({ isIndividual }) => (
@@ -343,6 +390,7 @@ const OptionItem = ({ icon: Icon, title, description }) => (
 
 OptionItem.propTypes = {
   icon: PropTypes.elementType,
+  client: PropTypes.object,
   title: PropTypes.string.isRequired,
   description: PropTypes.string.isRequired,
 };
