@@ -25,7 +25,39 @@ export default function Clients() {
   const [fetchError, setFetchError] = useState(null);
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+  const [addClient, setAddClient] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
+
+  useEffect(() => {
+    setSelectedClient(null);
+  }, [addClient]);
+
+  const toggleDropdown = (clientId) => {
+    setIsDropdownOpen(isDropdownOpen === clientId ? null : clientId);
+  };
+
+  const handleEdit = (client) => {
+    setSelectedClient(client);
+    setIsPopupOpen(true);
+  };
+
+  const handleDelete = async (clientId) => {
+    try {
+      await fetch(`/api/clients/${clientId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user?.id,
+        },
+      });
+      fetchClients();
+    } catch (err) {
+      console.error('Error deleting client:', err);
+    }
+  };
 
   const fetchClients = useCallback(async () => {
     if (!isLoaded || !isSignedIn) {
@@ -100,6 +132,47 @@ export default function Clients() {
     }
   };
 
+  const updateClient = async (clientId, clientData) => {
+    if (!isSignedIn) {
+      return Promise.reject(new Error('User not signed in'));
+    }
+
+    if (!clientData) {
+      return Promise.reject(new Error('No client data provided'));
+    }
+
+    clientData.image = clientData.image || null;
+    const type = selectedOption === 'Individuals' ? 'individual' : 'company';
+    clientData.type = type;
+
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user?.id,
+        },
+        body: JSON.stringify(clientData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Error: ${response.statusText}`);
+      }
+
+      try {
+        await fetchClients();
+      } catch (err) {
+        setFetchError(err.message);
+      }
+
+      setIsPopupOpen(false);
+    } catch (err) {
+      setCreateError(err.message);
+      throw err;
+    }
+  };
+
   useEffect(() => {
     fetchClients();
   }, [isLoaded, isSignedIn, selectedOption, user, fetchClients]);
@@ -139,7 +212,7 @@ export default function Clients() {
       <ClientFilterBar
         clients={clients}
         onSearch={handleSearch}
-        setAddClient={setIsPopupOpen}
+        setAddClient={setAddClient}
       />
 
       <div className={styles.content}>
@@ -217,11 +290,24 @@ export default function Clients() {
                         </label>
                       </td>
                       <td>
-                        <button className={styles.three_dots_btn}>
+                        <button
+                          onClick={() => toggleDropdown(client.id)}
+                          className={styles.three_dots_btn}
+                        >
                           <IoEllipsisHorizontal
                             className={styles.ellipsis_icon}
                           />
                         </button>
+                        {isDropdownOpen === client.id && (
+                          <div className={styles.dropdown_menu}>
+                            <button onClick={() => handleEdit(client)}>
+                              Edit
+                            </button>
+                            <button onClick={() => handleDelete(client.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -232,14 +318,18 @@ export default function Clients() {
         )}
       </div>
       <Popup
-        isOpened={isPopupOpen}
-        setIsOpened={setIsPopupOpen}
+        isOpened={isPopupOpen || addClient}
+        setIsOpened={isPopupOpen ? setIsPopupOpen : setAddClient}
         title={`${selectedOption === 'Individuals' ? 'Client' : 'Company'}`}
       >
         <CreateForm
+          client={addClient ? null : selectedClient}
           selectedOption={selectedOption}
-          rawQueryMethod={createClient}
-          onSuccess={() => fetchClients()}
+          rawQueryMethod={isPopupOpen ? updateClient : createClient}
+          onSuccess={() => {
+            setIsPopupOpen(false);
+            setAddClient(false);
+          }}
         />
       </Popup>
     </div>
