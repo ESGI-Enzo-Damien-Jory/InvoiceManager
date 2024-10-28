@@ -55,7 +55,7 @@ async function createItem(req, res) {
     return res.status(400).json({ error: validation.error });
   }
 
-  const { name, description, default_price, type, image } = req.body;
+  const { name, description, default_price, type, image, is_active } = req.body;
 
   try {
     await createEntity({
@@ -66,6 +66,7 @@ async function createItem(req, res) {
         default_price: Number(default_price),
         type,
         image: image || null,
+        is_active: is_active === 'false' || is_active === false ? 0 : 1,
       },
       res,
       user: req.user,
@@ -95,7 +96,9 @@ async function updateItem(req, res) {
   if (default_price !== undefined) updateData.default_price = default_price;
   if (type !== undefined) updateData.type = type;
   if (image !== undefined) updateData.image = image;
-  if (is_active !== undefined) updateData.is_active = is_active;
+  if (is_active !== undefined) {
+    updateData.is_active = is_active === 'false' || is_active === false ? 0 : 1;
+  }
 
   if (Object.keys(updateData).length > 0) {
     const validation = validateItemData({

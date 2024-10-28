@@ -82,7 +82,7 @@ CREATE TABLE `Item` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `created_by_user_id` INT UNSIGNED NOT NULL,
     `name` VARCHAR(255) NOT NULL,
-    `description` VARCHAR(255) NULL,
+    `description` TEXT NULL,
     `default_price` DECIMAL(10, 2) NOT NULL,
     `type` ENUM('product', 'service') NOT NULL,
     `image` MEDIUMBLOB NULL,

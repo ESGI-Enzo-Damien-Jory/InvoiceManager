@@ -8,6 +8,7 @@ import TopBar from '../../_organisms/TopBar/TopBar';
 import NavBar from '../../_organisms/NavBar/NavBar';
 
 import Clients from '../Clients/Clients';
+import Items from '../Items/Items';
 
 export default function HomePage() {
   const [selectedComponent, setSelectedComponent] = useState('Billing');
@@ -17,6 +18,7 @@ export default function HomePage() {
       <NavBar setSelectedComponent={setSelectedComponent} />
       {/* {selectedComponent === 'Billing' && <Billing />} */}
       {selectedComponent === 'Clients' && <Clients />}
+      {selectedComponent === 'Items' && <Items />}
       {/* {selectedComponent === 'Reporting' && <Reporting />} */}
     </div>
   );

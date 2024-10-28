@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styles from './NavBar.module.scss';
 import PropTypes from 'prop-types';
 import NavBarButton from '../../_atoms/NavBarButton/NavBarButton';
-import { AiFillDollarCircle } from 'react-icons/ai';
+import { AiFillDollarCircle, AiOutlineInbox } from 'react-icons/ai';
 import { IoIosPerson } from 'react-icons/io';
 import { BiSolidReport } from 'react-icons/bi';
 import HorizontalSeparatorLine from '../../_atoms/HoriontalSeparatorLine/HorizontalSeparatorLine';
@@ -29,6 +29,12 @@ export default function NavBar({ setSelectedComponent }) {
           icon={<IoIosPerson />}
           isActive={activeButton === 'Clients'}
           onClick={() => handleButtonClick('Clients')}
+        />
+        <NavBarButton
+          text="Items"
+          icon={<AiOutlineInbox />}
+          isActive={activeButton === 'Items'}
+          onClick={() => handleButtonClick('Items')}
         />
         <NavBarButton
           text="Reporting"
