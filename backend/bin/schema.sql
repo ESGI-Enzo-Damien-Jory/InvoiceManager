@@ -252,7 +252,7 @@ CREATE INDEX idx_invoice_log_tax ON Invoice_Log(tax_id);
 CREATE INDEX idx_invoice_log_discount ON Invoice_Log(discount_id);
 CREATE INDEX idx_invoice_log_item ON Invoice_Log(item_id);
 
--- Stored Procedures and Triggers
+-- Stored Procedures, Triggers and Events
 DELIMITER //
 
 -- Stored Procedure to update the total_amount
@@ -294,6 +294,66 @@ BEGIN
     UPDATE Invoice
     SET total_amount = var_final_amount
     WHERE id = invoiceId;
+END//
+
+-- Procedure to automatically mark invoices as overdue
+CREATE PROCEDURE check_and_update_overdue_invoices()
+BEGIN
+    UPDATE Invoice
+    SET state = 'overdue'
+    WHERE state = 'sent'
+    AND expiration_date < CURRENT_TIMESTAMP;
+END//
+
+-- Procedure to generate invoice statistics for a user
+CREATE PROCEDURE get_user_invoice_statistics(
+    IN p_user_id INT UNSIGNED,
+    IN p_start_date TIMESTAMP,
+    IN p_end_date TIMESTAMP
+)
+BEGIN
+    SELECT
+        COUNT(*) as total_invoices,
+        SUM(CASE WHEN state = 'draft' THEN 1 ELSE 0 END) as draft_count,
+        SUM(CASE WHEN state = 'sent' THEN 1 ELSE 0 END) as sent_count,
+        SUM(CASE WHEN state = 'paid' THEN 1 ELSE 0 END) as paid_count,
+        SUM(CASE WHEN state = 'overdue' THEN 1 ELSE 0 END) as overdue_count,
+        SUM(CASE WHEN state = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
+        SUM(CASE WHEN state = 'paid' THEN total_amount ELSE 0 END) as total_paid_amount,
+        SUM(CASE WHEN state = 'overdue' THEN total_amount ELSE 0 END) as total_overdue_amount,
+        AVG(CASE WHEN state = 'paid' THEN total_amount ELSE NULL END) as average_invoice_amount,
+        currency
+    FROM Invoice
+    WHERE created_by_user_id = p_user_id
+    AND creation_date BETWEEN p_start_date AND p_end_date
+    GROUP BY currency;
+END//
+
+-- Procedure to calculate revenue by client
+CREATE PROCEDURE calculate_client_revenue(
+    IN p_user_id INT UNSIGNED,
+    IN p_start_date TIMESTAMP,
+    IN p_end_date TIMESTAMP
+)
+BEGIN
+    SELECT 
+        c.id as client_id,
+        CASE 
+            WHEN c.type = 'individual' THEN CONCAT(ci.first_name, ' ', ci.last_name)
+            ELSE cc.company_name
+        END as client_name,
+        COUNT(i.id) as total_invoices,
+        SUM(CASE WHEN i.state = 'paid' THEN i.total_amount ELSE 0 END) as total_paid,
+        SUM(CASE WHEN i.state = 'overdue' THEN i.total_amount ELSE 0 END) as total_overdue,
+        i.currency
+    FROM Client c
+    LEFT JOIN Client_Individual ci ON c.id = ci.client_id
+    LEFT JOIN Client_Company cc ON c.id = cc.client_id
+    JOIN Invoice i ON c.id = i.client_id
+    WHERE c.created_by_user_id = p_user_id
+    AND i.creation_date BETWEEN p_start_date AND p_end_date
+    GROUP BY c.id, i.currency
+    ORDER BY total_paid DESC;
 END//
 
 -- Trigger for checking expiration_date is not earlier than creation_date
@@ -732,6 +792,17 @@ BEGIN
     );
     
     CALL update_total_amount(OLD.invoice_id);
+END//
+
+-- Create an Event that runs periodically to check for overdue invoices
+SET GLOBAL event_scheduler = ON//
+CREATE EVENT check_overdue_invoices_event
+ON SCHEDULE EVERY 1 HOUR
+DO
+BEGIN
+    SET @current_user_id = NULL;
+    
+    CALL check_and_update_overdue_invoices();
 END//
 
 DELIMITER ;
