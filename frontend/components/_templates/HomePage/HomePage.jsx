@@ -7,6 +7,7 @@ import styles from './HomePage.module.scss';
 import TopBar from '../../_organisms/TopBar/TopBar';
 import NavBar from '../../_organisms/NavBar/NavBar';
 
+import Billing from '../Billing/Billing';
 import Clients from '../Clients/Clients';
 
 export default function HomePage() {
@@ -15,7 +16,7 @@ export default function HomePage() {
     <div className={styles.home_page}>
       <TopBar />
       <NavBar setSelectedComponent={setSelectedComponent} />
-      {/* {selectedComponent === 'Billing' && <Billing />} */}
+      {selectedComponent === 'Billing' && <Billing />}
       {selectedComponent === 'Clients' && <Clients />}
       {/* {selectedComponent === 'Reporting' && <Reporting />} */}
     </div>

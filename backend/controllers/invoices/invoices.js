@@ -299,7 +299,6 @@ async function getInvoiceById(req, res) {
 
     const invoice = invoices[0];
 
-    // Fix JSON parsing by ensuring we have valid JSON strings
     const result = {
       ...invoice,
       client:
