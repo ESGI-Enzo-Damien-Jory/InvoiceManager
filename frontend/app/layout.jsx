@@ -2,6 +2,7 @@ import { ClerkProvider, RedirectToSignIn, SignedOut } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
 import PropTypes from 'prop-types';
 import '../styles/globals.scss';
+import 'react-toastify/dist/ReactToastify.css';
 
 export const metadata = {
   title: 'Invoice Manager',

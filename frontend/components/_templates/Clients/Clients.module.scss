@@ -39,13 +39,39 @@
 }
 
 .table_container {
-  width: 100%;
-  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.table_container::-webkit-scrollbar {
+  width: 10px;
+}
+
+.table_container::-webkit-scrollbar-track {
+  background: #222222;
+  border-radius: 6px;
+}
+
+.table_container::-webkit-scrollbar-thumb {
+  background-color: #696969;
+  border-radius: 6px;
+  border: 2px solid #222222;
+  transition: background-color 0.3s;
+}
+
+.table_container::-webkit-scrollbar-thumb:hover {
+  background-color: #8a8a8a;
+}
+
+.table_container::-webkit-scrollbar-corner {
+  background-color: #222222;
 }
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 
   th,
   td {
@@ -64,7 +90,11 @@
 }
 
 .header_row {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background-color: #26262a;
+  overflow: hidden;
   color: #48484e;
 
   &:first-child {
@@ -89,15 +119,16 @@
 }
 
 .checkbox_container {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 60px;
+  height: 100%;
 }
 
 .custom_checkbox {
-  position: absolute;
-  margin-top: 1%;
+  position: relative;
   display: inline-block;
   width: 18px;
   height: 18px;
@@ -194,4 +225,29 @@
     transform 0.3s ease,
     opacity 0.3s ease;
   opacity: 1;
+}
+
+.dropdown_menu {
+  position: absolute;
+  margin-left: -1%;
+  background-color: #26262a;
+  border: 1px solid #2e2e32;
+  border-radius: 4px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  button {
+    padding: 6px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    &:hover {
+      background-color: #37373e;
+    }
+  }
+
+  * {
+    color: #dadada;
+  }
 }

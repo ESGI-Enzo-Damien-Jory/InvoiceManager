@@ -32,6 +32,17 @@ async function createClient(req, res) {
       return res.status(401).json({ error: 'User authentication required' });
     }
 
+    let new_address =
+      address +
+      ', ' +
+      req.body.zip +
+      ', ' +
+      req.body.city +
+      ', ' +
+      req.body.state +
+      ', ' +
+      req.body.country;
+
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -39,7 +50,7 @@ async function createClient(req, res) {
       const [clientResult] = await connection.execute(
         `INSERT INTO Client (email, phone, type, address, image, created_by_user_id)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [email, phone, type, address, image, req.user.id]
+        [email, phone, type, new_address, image, req.user.id]
       );
 
       const client_id = clientResult.insertId;
@@ -73,7 +84,29 @@ async function createClient(req, res) {
     }
   } catch (error) {
     console.error('Error creating client:', error);
-    res.status(500).json({ error: 'Internal server error' });
+
+    let status = 500;
+    let message = 'Internal server error';
+
+    switch (error.errno) {
+      case 1062:
+        status = 409;
+        message = 'The email is already in use';
+        break;
+      case 1452:
+        status = 400;
+        message = 'Invalid foreign key reference';
+        break;
+      case 1048:
+        status = 400;
+        message = 'Required fields are missing';
+        break;
+      default:
+        console.error('Unhandled MySQL error:', error);
+        break;
+    }
+
+    res.status(status).json({ error: message });
   }
 }
 
