@@ -20,6 +20,20 @@ import { validateForm } from './validation';
 import styles from './CreateForm.module.scss';
 import { toast } from 'react-toastify';
 
+const ClientPropType = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  type: PropTypes.oneOf(['individual', 'company']).isRequired,
+  details: PropTypes.shape({
+    first_name: PropTypes.string,
+    last_name: PropTypes.string,
+    company_name: PropTypes.string,
+    contact_name: PropTypes.string,
+  }).isRequired,
+  email: PropTypes.string.isRequired,
+  phone: PropTypes.string.isRequired,
+  address: PropTypes.string.isRequired,
+});
+
 const InputField = ({
   id,
   name,
@@ -71,16 +85,11 @@ const initialFormData = {
   zip: '',
 };
 
-export default function CreateForm({
-  client,
-  selectedOption,
-  rawQueryMethod,
-  onSuccess,
-}) {
+function CreateForm({ client, selectedOption, rawQueryMethod, onSuccess }) {
   const isIndividual = selectedOption === 'Individuals';
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState(initialFormData);
-  let is_edit = client ? true : false;
+  const is_edit = Boolean(client);
 
   useEffect(() => {
     if (client) {
@@ -164,7 +173,7 @@ export default function CreateForm({
         isLoading: false,
       });
       resetFormData();
-      onSuccess();
+      onSuccess?.();
     } catch (error) {
       toast.update(toastId, {
         render: error.message,
@@ -323,11 +332,7 @@ export default function CreateForm({
         <OptionSection isIndividual={isIndividual} />
         <div className={styles.button_group}>
           <button>Cancel</button>
-          <button
-            onClick={() => {
-              handleExecution();
-            }}
-          >
+          <button onClick={handleExecution}>
             Save {isIndividual ? 'Client' : 'Company'}
           </button>
         </div>
@@ -337,7 +342,8 @@ export default function CreateForm({
 }
 
 CreateForm.propTypes = {
-  selectedOption: PropTypes.string.isRequired,
+  client: ClientPropType,
+  selectedOption: PropTypes.oneOf(['Individuals', 'Companies']).isRequired,
   rawQueryMethod: PropTypes.func.isRequired,
   onSuccess: PropTypes.func,
 };
@@ -390,7 +396,8 @@ const OptionItem = ({ icon: Icon, title, description }) => (
 
 OptionItem.propTypes = {
   icon: PropTypes.elementType,
-  client: PropTypes.object,
   title: PropTypes.string.isRequired,
   description: PropTypes.string.isRequired,
 };
+
+export default CreateForm;
