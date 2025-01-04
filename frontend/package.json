@@ -29,7 +29,7 @@
     "fuse.js": "^7.0.0",
     "html-to-docx": "^1.8.0",
     "libphonenumber-js": "^1.11.12",
-    "next": "14.2.13",
+    "next": "14.2.22",
     "pdfkit": "^0.15.0",
     "pizzip": "^3.1.7",
     "puppeteer": "^23.6.0",
