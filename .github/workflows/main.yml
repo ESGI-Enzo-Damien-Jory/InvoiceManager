@@ -34,7 +34,7 @@ jobs:
 
       # Save frontend unit test report
       - name: Upload frontend unit test report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-unit-test-report
           path: ./frontend/coverage/lcov-report/**
@@ -50,7 +50,7 @@ jobs:
 
       # Save backend unit test report
       - name: Upload backend unit test report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backend-unit-test-report
           path: ./backend/coverage/lcov-report/**
@@ -91,7 +91,7 @@ jobs:
 
       # Save frontend integration test report
       - name: Upload frontend integration test report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-integration-test-report
           path: ./frontend/coverage/lcov-report/**
@@ -107,7 +107,7 @@ jobs:
 
       # Save backend integration test report
       - name: Upload backend integration test report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backend-integration-test-report
           path: ./backend/coverage/lcov-report/**
@@ -192,7 +192,7 @@ jobs:
       # Upload Playwright report as artifact if E2E tests exist
       - name: Upload Playwright report as artifact
         if: env.tests_exist == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: ./frontend/playwright-report/
@@ -232,7 +232,7 @@ jobs:
 
       # Upload Backend Documentation
       - name: Upload Documentation
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docs
           path: docs/**
@@ -280,7 +280,7 @@ jobs:
 
       # Download Documentation if exists
       - name: Download Documentation
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         if: steps.unit-tests.outputs.docs_exists == 'true'
         with:
           name: docs
@@ -288,35 +288,35 @@ jobs:
 
       # Download Playwright report if exists
       - name: Download Playwright report
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         if: steps.unit-tests.outputs.playwright_exists == 'true'
         with:
           name: playwright-report
           path: e2e-tests/playwright-report/
 
       - name: Download frontend unit test report if exists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         if: steps.unit-tests.outputs.frontend_unit_exists == 'true'
         with:
           name: frontend-unit-test-report
           path: unit-tests/frontend
 
       - name: Download backend unit test report if exists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         if: steps.unit-tests.outputs.backend_unit_exists == 'true'
         with:
           name: backend-unit-test-report
           path: unit-tests/backend
 
       - name: Download frontend integration test report if exists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         if: steps.unit-tests.outputs.frontend_integration_exists == 'true'
         with:
           name: frontend-integration-test-report
           path: integration-tests/frontend
 
       - name: Download backend integration test report if exists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         if: steps.unit-tests.outputs.backend_integration_exists == 'true'
         with:
           name: backend-integration-test-report
