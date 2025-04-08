@@ -30,14 +30,10 @@
             ],
             "outputs": []
         },
-        "test": {
-            "dependsOn": [
-                "^test"
-            ],
-            "outputs": [
-                "coverage/**"
-            ]
-        },
+        "test": {},
+        "test:ci": {},
+        "test:ci:unit": {},
+        "test:ci:e2e": {},
         "dev": {
             "cache": false,
             "persistent": true
