@@ -8,14 +8,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
-  },
-  "dependencies": {
-    "@babel/eslint-parser": "^7.27.0",
-    "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.24.0",
-    "react-toastify": "^11.0.5",
-    "sass": "^1.86.3"
+    "check-types": "turbo run check-types",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "eslint": "^9.24.0",
