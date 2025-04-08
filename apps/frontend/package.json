@@ -9,10 +9,11 @@
     "lint": "next lint",
     "test": "jest",
     "test:ci": "jest --coverage",
+    "test:ci:unit": "jest --coverage",
+    "test:ci:e2e": "playwright test",
+    "test:ci:e2e:headed": "playwright test --headed",
+    "test:ci:e2e:report": "playwright show-report",
     "cucumber": "cucumber-js",
-    "end:to:end": "playwright test",
-    "end:to:end:headed": "playwright test --headed",
-    "end:to:end:report": "playwright show-report",
     "generate-docs": "jsdoc -c jsdoc.json"
   },
   "dependencies": {

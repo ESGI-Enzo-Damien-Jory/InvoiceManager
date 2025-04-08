@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "jest --coverage --testPathIgnorePatterns=__tests__",
+    "test": "jest",
+    "test:ci": "jest --coverage",
+    "test:ci:unit": "jest --coverage",
     "generate-docs": "jsdoc -c jsdoc.json"
   },
   "dependencies": {
