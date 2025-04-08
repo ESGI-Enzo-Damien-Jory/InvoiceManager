@@ -4,28 +4,14 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "test": "jest",
-    "test:ci": "jest --coverage",
-    "test:ci:unit": "jest --coverage",
-    "generate-docs": "jsdoc -c jsdoc.json"
+    "dev": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
-    "jsdoc-express-with-swagger": "^0.0.0",
     "mysql2": "^3.14.0",
-    "pg": "^8.14.1",
-    "taffydb": "^2.7.3"
-  },
-  "devDependencies": {
-    "@testcontainers/mysql": "^10.24.0",
-    "@testcontainers/postgresql": "^10.24.0",
-    "coveralls": "^3.1.1",
-    "jest": "^29.7.0",
-    "supertest": "^7.1.0",
-    "testcontainers": "^10.24.0"
+    "pg": "^8.14.1"
   }
 }
