@@ -1,7 +1,10 @@
 {
+  "name": "backend",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
     "start": "node server.js",
+    "dev": "node server.js",
     "test": "jest --coverage --testPathIgnorePatterns=__tests__",
     "test:ci:unit": "jest --coverage --testPathIgnorePatterns=__tests__",
     "test:ci:integration": "jest --coverage --testPathPattern=__tests__ --testPathIgnorePatterns=__tests__/utils/",

@@ -1,11 +1,14 @@
 {
-  "lint-staged": {
-    "**/*.{js,json,jsx}": [
-      "prettier --write"
-    ],
-    "**/*.{scss,css}": [
-      "prettier --write"
-    ]
+  "name": "invoice-manager",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "check-types": "turbo run check-types"
   },
   "dependencies": {
     "@babel/eslint-parser": "^7.27.0",
@@ -19,5 +22,9 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
     "prettier": "^3.5.3"
-  }
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }
