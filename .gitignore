@@ -47,3 +47,5 @@
 # playwright
 **/playwright-report/
 **/test-results/
+
+.turbo

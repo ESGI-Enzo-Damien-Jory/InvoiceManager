@@ -1,23 +1,28 @@
 {
-  "lint-staged": {
-    "**/*.{js,json,jsx}": [
-      "prettier --write"
-    ],
-    "**/*.{scss,css}": [
-      "prettier --write"
-    ]
-  },
-  "dependencies": {
-    "@babel/eslint-parser": "^7.27.0",
-    "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.24.0",
-    "react-toastify": "^11.0.5",
-    "sass": "^1.86.3"
+  "name": "invoice-manager",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test",
+    "test:ci": "turbo run test:ci",
+    "test:ci:unit": "turbo run test:ci:unit",
+    "test:ci:e2e": "turbo run test:ci:e2e"
   },
   "devDependencies": {
     "eslint": "^9.24.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
-    "prettier": "^3.5.3"
-  }
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }
