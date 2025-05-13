@@ -41,7 +41,6 @@
     "@japa/plugin-adonisjs": "^4.0.0",
     "@japa/runner": "^4.2.0",
     "@swc/core": "1.10.7",
-    "@types/luxon": "^3.6.2",
     "@types/node": "^22.13.2",
     "eslint": "^9.20.1",
     "hot-hook": "^0.4.0",
@@ -54,10 +53,9 @@
     "@adonisjs/auth": "^9.3.1",
     "@adonisjs/core": "^6.17.2",
     "@adonisjs/cors": "^2.2.1",
-    "@adonisjs/lucid": "^21.6.1",
+    "@adonisjs/lucid": "^21.6.0",
+    "@supabase/supabase-js": "^2.49.4",
     "@vinejs/vine": "^3.0.0",
-    "luxon": "^3.6.1",
-    "pg": "^8.16.0",
     "reflect-metadata": "^0.2.2"
   },
   "hotHook": {
