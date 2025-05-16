@@ -86,4 +86,24 @@ export default class InvoicesController {
     logger.warn(`[INVOICES] Soft-deleted invoice ${params.id}`)
     return { deleted: true }
   }
+
+  public async show({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+
+    logger.info(`[INVOICES] Fetching invoice ${params.id} for ${user.email}`)
+
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .match({ id: params.id, owner_id: user.id })
+      .single()
+
+    if (error) {
+      logger.error(`[INVOICES] Error fetching invoice ${params.id}: ${error.message}`)
+      return response.notFound({ error: 'Invoice not found' })
+    }
+
+    logger.info(`[INVOICES] Invoice ${params.id} fetched successfully`)
+    return data
+  }
 }

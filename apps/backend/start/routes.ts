@@ -69,6 +69,7 @@ router
 router
   .group(() => {
     router.get('/', [InvoicesController, 'index'])
+    router.get('/:id', [InvoicesController, 'show'])
     router.post('/', [InvoicesController, 'store'])
     router.put('/:id', [InvoicesController, 'update'])
     router.delete('/:id', [InvoicesController, 'destroy'])
