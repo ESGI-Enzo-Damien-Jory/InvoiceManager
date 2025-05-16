@@ -14,6 +14,7 @@ import { middleware } from '#start/kernel'
 const ClientsController = () => import('#controllers/clients_controller')
 const ItemsController = () => import('#controllers/items_controller')
 const InvoicesController = () => import('#controllers/invoices_controller')
+const InvoiceItemsController = () => import('#controllers/invoice_items_controller')
 
 /*
 |--------------------------------------------------------------------------
@@ -56,6 +57,21 @@ router
     router.post('/', [InvoicesController, 'store'])
     router.put('/:id', [InvoicesController, 'update'])
     router.delete('/:id', [InvoicesController, 'destroy'])
+  })
+  .prefix('/api/invoices')
+  .use(middleware.supabaseAuth())
+
+/*
+|--------------------------------------------------------------------------
+| Invoice Items Routes
+|--------------------------------------------------------------------------
+*/
+router
+  .group(() => {
+    router.get('/:invoice_id/items', [InvoiceItemsController, 'index'])
+    router.post('/items', [InvoiceItemsController, 'store'])
+    router.put('/:invoice_id/items/:item_id', [InvoiceItemsController, 'update'])
+    router.delete('/:invoice_id/items/:item_id', [InvoiceItemsController, 'destroy'])
   })
   .prefix('/api/invoices')
   .use(middleware.supabaseAuth())
