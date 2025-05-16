@@ -27,7 +27,7 @@ export default class ClientsController {
       throw new Error(error.message)
     }
 
-    logger.info(`[CLIENTS] Found ${data?.length || 0} active clients`)
+    logger.info(`[CLIENTS] Found ${data?.length ?? 0} active clients`)
     return data
   }
 

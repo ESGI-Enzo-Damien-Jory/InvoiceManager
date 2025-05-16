@@ -2,8 +2,8 @@ import { BaseCommand } from '@adonisjs/core/ace'
 import { supabase } from '#start/supabase'
 
 export default class SeedTestData extends BaseCommand {
-  static commandName = 'seed:test'
-  static description = 'Insert test user, client, and invoice for dev/testing'
+  static readonly commandName = 'seed:test'
+  static readonly description = 'Insert test user, client, and invoice for dev/testing'
 
   async run() {
     const userId = '81ac2d5b-0965-4456-a5da-088a1179011a'
