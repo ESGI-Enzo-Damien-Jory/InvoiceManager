@@ -3,8 +3,8 @@ import { supabase } from '#start/supabase'
 import env from '#start/env'
 
 export default class SupabaseLogin extends BaseCommand {
-  static commandName = 'supabase:login'
-  static description = 'Login a Supabase user and print the access token'
+  static readonly commandName = 'supabase:login'
+  static readonly description = 'Login a Supabase user and print the access token'
 
   async run() {
     const email = env.get('SUPABASE_TEST_EMAIL')

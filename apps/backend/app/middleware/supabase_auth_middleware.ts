@@ -16,7 +16,7 @@ export default class SupabaseAuthMiddleware {
 
     if (error || !data?.user) {
       logger.warn(
-        `[AUTH] Invalid or expired token. Reason: ${error?.message || 'No user returned'}`
+        `[AUTH] Invalid or expired token. Reason: ${error?.message ?? 'No user returned'}`
       )
       return response.unauthorized({ error: 'Invalid or expired token' })
     }
