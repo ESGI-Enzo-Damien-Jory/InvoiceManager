@@ -43,6 +43,7 @@
 **/settings.json
 
 .vscode
+.idea
 
 # playwright
 **/playwright-report/
