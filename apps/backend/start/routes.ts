@@ -10,24 +10,14 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 
-router.get('/', async () => {
-  return { hello: 'world' }
-})
+const ClientsController = () => import('#controllers/clients_controller')
 
 router
   .group(() => {
-    router.get('/', 'UsersController.show')
-    router.put('/', 'UsersController.update')
-  })
-  .prefix('/api/user')
-  .use(middleware.supabaseAuth)
-
-router
-  .group(() => {
-    router.get('/', 'ClientsController.index')
-    router.post('/', 'ClientsController.store')
-    router.put('/:id', 'ClientsController.update')
-    router.delete('/:id', 'ClientsController.destroy')
+    router.get('/', [ClientsController, 'index'])
+    router.post('/', [ClientsController, 'store'])
+    router.put('/:id', [ClientsController, 'update'])
+    router.delete('/:id', [ClientsController, 'destroy'])
   })
   .prefix('/api/clients')
-  .use(middleware.supabaseAuth)
+  .use(middleware.supabaseAuth())
