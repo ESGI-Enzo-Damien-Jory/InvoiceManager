@@ -41,20 +41,26 @@ export default class ItemsController {
     return data
   }
 
-  public async update({ request, params, logger }: HttpContext) {
+  public async update({ request, params, response, logger }: HttpContext) {
     const user = request.user
     const body = request.only(['name', 'price'])
 
-    logger.info(`[ITEMS] Updating item ${params.id} for user ${user.email}`)
+    logger.info(`[ITEMS] Attempting to update item ${params.id} for ${user.email}`)
 
     const { data, error } = await supabase
       .from('items')
       .update(body)
       .match({ id: params.id, owner_id: user.id })
+      .select()
 
     if (error) {
-      logger.error(`[ITEMS] Failed to update item ${params.id}: ${error.message}`)
+      logger.error(`[ITEMS] Update failed for ${params.id}: ${error.message}`)
       throw new Error(error.message)
+    }
+
+    if (!data || data.length === 0) {
+      logger.warn(`[ITEMS] No item found to update with ID: ${params.id}`)
+      return response.notFound({ error: 'Item not found' })
     }
 
     logger.info(`[ITEMS] Item ${params.id} updated`)

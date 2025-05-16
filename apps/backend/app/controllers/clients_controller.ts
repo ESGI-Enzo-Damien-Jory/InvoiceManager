@@ -48,7 +48,7 @@ export default class ClientsController {
     return data
   }
 
-  public async update({ request, params, logger }: HttpContext) {
+  public async update({ request, params, response, logger }: HttpContext) {
     const user = request.user
     const body = request.only(['first_name', 'last_name', 'email', 'phone_number', 'address'])
 
@@ -58,10 +58,16 @@ export default class ClientsController {
       .from('clients')
       .update(body)
       .match({ id: params.id, user_id: user.id })
+      .select()
 
     if (error) {
       logger.error(`[CLIENTS] Failed to update client ${params.id}: ${error.message}`)
       throw new Error(error.message)
+    }
+
+    if (!data || data.length === 0) {
+      logger.warn(`[CLIENTS] No client found to update with ID: ${params.id}`)
+      return response.notFound({ error: 'Client not found' })
     }
 
     logger.info(`[CLIENTS] Client ${params.id} updated`)
