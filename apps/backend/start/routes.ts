@@ -13,6 +13,7 @@ import { middleware } from '#start/kernel'
 // Lazy-loaded controllers
 const ClientsController = () => import('#controllers/clients_controller')
 const ItemsController = () => import('#controllers/items_controller')
+const InvoicesController = () => import('#controllers/invoices_controller')
 
 /*
 |--------------------------------------------------------------------------
@@ -42,4 +43,19 @@ router
     router.delete('/:id', [ItemsController, 'destroy'])
   })
   .prefix('/api/items')
+  .use(middleware.supabaseAuth())
+
+/*
+|--------------------------------------------------------------------------
+| Invoices Routes
+|--------------------------------------------------------------------------
+*/
+router
+  .group(() => {
+    router.get('/', [InvoicesController, 'index'])
+    router.post('/', [InvoicesController, 'store'])
+    router.put('/:id', [InvoicesController, 'update'])
+    router.delete('/:id', [InvoicesController, 'destroy'])
+  })
+  .prefix('/api/invoices')
   .use(middleware.supabaseAuth())
