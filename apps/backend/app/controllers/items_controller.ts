@@ -85,4 +85,24 @@ export default class ItemsController {
     logger.info(`[ITEMS] Item ${params.id} soft-deleted`)
     return { deleted: true }
   }
+
+  public async show({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+
+    logger.info(`[ITEMS] Fetching item ${params.id} for user ${user.email}`)
+
+    const { data, error } = await supabase
+      .from('items')
+      .select('*')
+      .match({ id: params.id, owner_id: user.id })
+      .single()
+
+    if (error) {
+      logger.error(`[ITEMS] Error fetching item ${params.id}: ${error.message}`)
+      return response.notFound({ error: 'Item not found' })
+    }
+
+    logger.info(`[ITEMS] Item ${params.id} fetched successfully`)
+    return data
+  }
 }
