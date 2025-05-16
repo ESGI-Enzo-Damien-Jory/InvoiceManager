@@ -11,11 +11,24 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 
 // Lazy-loaded controllers
+const UsersController = () => import('#controllers/users_controller')
 const ClientsController = () => import('#controllers/clients_controller')
 const ItemsController = () => import('#controllers/items_controller')
 const InvoicesController = () => import('#controllers/invoices_controller')
 const InvoiceItemsController = () => import('#controllers/invoice_items_controller')
 
+/*
+|--------------------------------------------------------------------------
+| Users Routes
+|--------------------------------------------------------------------------
+*/
+router
+  .group(() => {
+    router.get('/', [UsersController, 'show'])
+    router.put('/', [UsersController, 'update'])
+  })
+  .prefix('/api/user')
+  .use(middleware.supabaseAuth())
 /*
 |--------------------------------------------------------------------------
 | Clients Routes
