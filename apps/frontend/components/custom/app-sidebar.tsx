@@ -83,7 +83,11 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupLabel>Invoices</SidebarGroupLabel>
                     <SidebarGroupAction title="Create Invoice">
-                        <Plus className="h-4 w-4" />
+                        <Link href="/invoices/new" passHref>
+                            <span className="cursor-pointer">
+                                <Plus className="h-4 w-4" />
+                            </span>
+                        </Link>
                     </SidebarGroupAction>
                     <SidebarGroupContent>
                         <SidebarMenu>
@@ -131,7 +135,11 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupLabel>Clients</SidebarGroupLabel>
                     <SidebarGroupAction title="Add Client">
-                        <Plus className="h-4 w-4" />
+                        <Link href="/clients/new" passHref>
+                            <span className="cursor-pointer">
+                                <Plus className="h-4 w-4" />
+                            </span>
+                        </Link>
                     </SidebarGroupAction>
                     <SidebarGroupContent>
                         <SidebarMenu>
@@ -159,7 +167,9 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupLabel>Items</SidebarGroupLabel>
                     <SidebarGroupAction title="Add Item">
-                        <Plus className="h-4 w-4" />
+                        <Link className="cursor-pointer" href="/items/new">
+                            <Plus className="h-4 w-4" />
+                        </Link>
                     </SidebarGroupAction>
                     <SidebarGroupContent>
                         <SidebarMenu>
