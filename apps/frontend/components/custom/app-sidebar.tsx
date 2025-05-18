@@ -1,5 +1,7 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import {
     Sidebar,
     SidebarHeader,
@@ -14,29 +16,29 @@ import {
     SidebarMenuButton,
     SidebarMenuAction,
     useSidebar,
+    SidebarMenuAction,
 } from '@/components/ui/sidebar'
-
 import {
     DropdownMenu,
     DropdownMenuTrigger,
     DropdownMenuContent,
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
-
 import {
     Home,
     FileText,
     Users,
-    Settings,
-    ChevronUp,
-    User2,
-    Plus,
-    MoreHorizontal,
     Box,
+    Settings,
+    Plus,
+    User2,
+    ChevronUp,
+    MoreHorizontal,
 } from 'lucide-react'
 import Link from 'next/link'
 
 export function AppSidebar() {
+    const pathname = usePathname()
     const { state } = useSidebar()
     const isCollapsed = state === 'collapsed'
 
@@ -48,7 +50,7 @@ export function AppSidebar() {
             className="h-screen"
         >
             <SidebarHeader className="flex justify-center items-center">
-                <div className="font-bold text-lg ">
+                <div className="font-bold text-lg">
                     {isCollapsed ? 'IM' : 'InMa'}
                 </div>
             </SidebarHeader>
@@ -60,21 +62,16 @@ export function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild isActive>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname === '/'}
+                                >
                                     <Link
                                         href="/"
                                         className="flex items-center gap-2 w-full"
                                     >
                                         <Home className="h-5 w-5" />
-                                        <span
-                                            className={
-                                                isCollapsed
-                                                    ? 'sr-only'
-                                                    : 'truncate'
-                                            }
-                                        >
-                                            Home
-                                        </span>
+                                        {!isCollapsed && <span>Home</span>}
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -91,22 +88,19 @@ export function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <a
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname.startsWith('/invoices')}
+                                >
+                                    <Link
                                         href="/invoices"
                                         className="flex items-center gap-2 w-full"
                                     >
                                         <FileText className="h-5 w-5" />
-                                        <span
-                                            className={
-                                                isCollapsed
-                                                    ? 'sr-only'
-                                                    : 'truncate'
-                                            }
-                                        >
-                                            All Invoices
-                                        </span>
-                                    </a>
+                                        {!isCollapsed && (
+                                            <span>All Invoices</span>
+                                        )}
+                                    </Link>
                                 </SidebarMenuButton>
                                 {!isCollapsed && (
                                     <DropdownMenu>
@@ -142,22 +136,19 @@ export function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <a
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname.startsWith('/clients')}
+                                >
+                                    <Link
                                         href="/clients"
                                         className="flex items-center gap-2 w-full"
                                     >
                                         <Users className="h-5 w-5" />
-                                        <span
-                                            className={
-                                                isCollapsed
-                                                    ? 'sr-only'
-                                                    : 'truncate'
-                                            }
-                                        >
-                                            All Clients
-                                        </span>
-                                    </a>
+                                        {!isCollapsed && (
+                                            <span>All Clients</span>
+                                        )}
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>
@@ -173,22 +164,17 @@ export function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <a
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname.startsWith('/items')}
+                                >
+                                    <Link
                                         href="/items"
                                         className="flex items-center gap-2 w-full"
                                     >
                                         <Box className="h-5 w-5" />
-                                        <span
-                                            className={
-                                                isCollapsed
-                                                    ? 'sr-only'
-                                                    : 'truncate'
-                                            }
-                                        >
-                                            All Items
-                                        </span>
-                                    </a>
+                                        {!isCollapsed && <span>All Items</span>}
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>
@@ -201,22 +187,19 @@ export function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <a
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname.startsWith('/settings')}
+                                >
+                                    <Link
                                         href="/settings"
                                         className="flex items-center gap-2 w-full"
                                     >
                                         <Settings className="h-5 w-5" />
-                                        <span
-                                            className={
-                                                isCollapsed
-                                                    ? 'sr-only'
-                                                    : 'truncate'
-                                            }
-                                        >
-                                            Preferences
-                                        </span>
-                                    </a>
+                                        {!isCollapsed && (
+                                            <span>Preferences</span>
+                                        )}
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>
@@ -230,18 +213,12 @@ export function AppSidebar() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <SidebarMenuButton className="w-full justify-between">
-                                    <span className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2">
                                         <User2 className="h-4 w-4" />
-                                        <span
-                                            className={
-                                                isCollapsed
-                                                    ? 'sr-only'
-                                                    : 'truncate'
-                                            }
-                                        >
-                                            Enzo Hugonnier
-                                        </span>
-                                    </span>
+                                        {!isCollapsed && (
+                                            <span>Enzo Hugonnier</span>
+                                        )}
+                                    </div>
                                     {!isCollapsed && (
                                         <ChevronUp className="h-4 w-4" />
                                     )}
@@ -249,6 +226,7 @@ export function AppSidebar() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                                 side="top"
+                                align="end"
                                 className="min-w-[200px]"
                             >
                                 <DropdownMenuItem>

@@ -7,7 +7,7 @@ interface CommonCenterLayoutProps {
 export default function CommonCenterLayout({ children }: CommonCenterLayoutProps)
 {
     return(
-        <div className="">
+        <div className="h-full p-8 flex flex-col gap-8">
             {children}
         </div>
     )
