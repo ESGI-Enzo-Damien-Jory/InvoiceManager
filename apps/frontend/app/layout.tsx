@@ -15,12 +15,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <div className="flex h-screen">
                     <SidebarProvider defaultOpen={true}>
                         <AppSidebar />
-                        <main className="flex-1 overflow-auto">
-                            <div className="flex items-center p-4 h-1/12">
-                                <SidebarTrigger />
-                            </div>
                             {children}
-                        </main>
                     </SidebarProvider>
                 </div>
             </body>
