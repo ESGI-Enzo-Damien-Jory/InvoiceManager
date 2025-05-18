@@ -22,7 +22,7 @@ export default function Pagination({
     totalEntries,
 }: PaginationProps) {
     return (
-        <div className="flex items-center justify-between border-t px-4 py-3 mt-4">
+        <div className="flex items-center justify-between border-t px-4 py-3 mt-4 bg-[#fafafa]">
             <div className="text-sm text-gray-500">
                 Showing {startIndex} to {endIndex} of {totalEntries} entries
             </div>
