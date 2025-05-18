@@ -91,4 +91,23 @@ export default class ClientsController {
     logger.info(`[CLIENTS] Client ${params.id} soft-deleted`)
     return { deleted: true }
   }
+
+  public async show({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+    logger.info(`[CLIENTS] Fetching client ${params.id} for ${user.email}`)
+
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .match({ id: params.id, user_id: user.id })
+      .single()
+
+    if (error) {
+      logger.error(`[CLIENTS] Error fetching client ${params.id}: ${error.message}`)
+      return response.notFound({ error: 'Client not found' })
+    }
+
+    logger.info(`[CLIENTS] Client ${params.id} fetched successfully`)
+    return data
+  }
 }

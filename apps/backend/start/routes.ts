@@ -37,6 +37,7 @@ router
 router
   .group(() => {
     router.get('/', [ClientsController, 'index'])
+    router.get('/:id', [ClientsController, 'show'])
     router.post('/', [ClientsController, 'store'])
     router.put('/:id', [ClientsController, 'update'])
     router.delete('/:id', [ClientsController, 'destroy'])
@@ -52,6 +53,7 @@ router
 router
   .group(() => {
     router.get('/', [ItemsController, 'index'])
+    router.get('/:id', [ItemsController, 'show'])
     router.post('/', [ItemsController, 'store'])
     router.put('/:id', [ItemsController, 'update'])
     router.delete('/:id', [ItemsController, 'destroy'])
@@ -67,6 +69,7 @@ router
 router
   .group(() => {
     router.get('/', [InvoicesController, 'index'])
+    router.get('/:id', [InvoicesController, 'show'])
     router.post('/', [InvoicesController, 'store'])
     router.put('/:id', [InvoicesController, 'update'])
     router.delete('/:id', [InvoicesController, 'destroy'])
