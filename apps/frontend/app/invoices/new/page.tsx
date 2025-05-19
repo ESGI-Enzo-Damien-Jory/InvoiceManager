@@ -1,7 +1,7 @@
 'use client'
 
 import { z } from 'zod'
-import InvoiceForm from '@/components/custom/specialized/new-invoice-form'
+import InvoiceForm from '@/components/custom/specialized/invoice-form'
 import Topbar from '@/components/custom/top-bar'
 
 const formSchema = z.object({
