@@ -1,8 +1,9 @@
 'use client'
 
-import React from 'react'
-import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns'
+import React, { useState } from 'react'
+import { format } from 'date-fns'
 import { DateRange } from 'react-day-picker'
+import { matchSorter } from 'match-sorter'
 import { Button } from '@/components/ui/button'
 import {
     Popover,
@@ -13,26 +14,60 @@ import { Calendar } from '@/components/ui/calendar'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface ListFiltersProps {
+interface ListFiltersProps<T> {
     subtitle: string
+    items: T[]
+    searchKeys: Array<keyof T>
+    onFiltered: (filtered: T[]) => void
+
     dateRange?: DateRange
     setDateRange: (range: DateRange | undefined) => void
 }
 
-export default function ListFilters({
+export default function ListFilters<T extends Record<string, any>>({
     subtitle,
+    items,
+    searchKeys,
+    onFiltered,
     dateRange,
     setDateRange,
-}: ListFiltersProps) {
+}: ListFiltersProps<T>) {
+    const [searchTerm, setSearchTerm] = useState('')
     const from = dateRange?.from
     const to = dateRange?.to
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newSearchTerm = e.target.value
+        setSearchTerm(newSearchTerm)
+
+        if (newSearchTerm.trim()) {
+            const result = matchSorter(items, newSearchTerm, {
+                keys: searchKeys as string[],
+            })
+            onFiltered(result)
+        } else {
+            onFiltered(items)
+        }
+    }
 
     const applyRange = (fromDate: Date, toDate: Date) =>
         setDateRange({ from: fromDate, to: toDate })
 
     return (
-        <div className="flex justify-between items-center">
-            <p className="text-gray-500">{subtitle}</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center space-x-4">
+                <p className="text-gray-500">{subtitle}</p>
+
+                {/* Fuzzy Search Input */}
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    placeholder="Search..."
+                    className="border px-3 py-1 rounded-md focus:ring focus:ring-offset-1 focus:ring-blue-300"
+                />
+            </div>
+
             <div className="flex items-center gap-2">
                 {/* Preset Period */}
                 <Popover>
