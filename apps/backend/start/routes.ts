@@ -11,11 +11,27 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 
 // Lazy-loaded controllers
+const AuthController = () => import('#controllers/auth_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ClientsController = () => import('#controllers/clients_controller')
 const ItemsController = () => import('#controllers/items_controller')
 const InvoicesController = () => import('#controllers/invoices_controller')
 const InvoiceItemsController = () => import('#controllers/invoice_items_controller')
+
+/*
+|--------------------------------------------------------------------------
+| Auth Routes
+|--------------------------------------------------------------------------
+*/
+router
+  .group(() => {
+    router.post('login', [AuthController, 'login'])
+    router.post('register', [AuthController, 'register'])
+    router.post('logout', [AuthController, 'logout']).use(middleware.supabaseAuth())
+    router.post('reset', [AuthController, 'reset'])
+    router.put('update', [AuthController, 'update']).use(middleware.supabaseAuth())
+  })
+  .prefix('/api/auth')
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +45,7 @@ router
   })
   .prefix('/api/user')
   .use(middleware.supabaseAuth())
+  
 /*
 |--------------------------------------------------------------------------
 | Clients Routes
