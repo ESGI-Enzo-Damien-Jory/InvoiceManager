@@ -1,8 +1,3 @@
-export default function Home()
-{
-  return(
-    <>
-    Hello
-    </>
-  )
+export default function Home() {
+    return <>Hello</>
 }
