@@ -42,14 +42,12 @@ import {
     TableRow,
 } from '@/components/ui/table'
 
-// Define the item interface
 interface Item {
     itemId: string
     quantity: number
     price: number
 }
 
-// Define form schema with zod
 const formSchema = z.object({
     title: z.string().min(5, {
         message: 'Title must be at least 5 characters.',
