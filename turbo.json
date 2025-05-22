@@ -30,10 +30,6 @@
             ],
             "outputs": []
         },
-        "test": {},
-        "test:ci": {},
-        "test:ci:unit": {},
-        "test:ci:e2e": {},
         "dev": {
             "cache": false,
             "persistent": true
