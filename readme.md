@@ -194,5 +194,4 @@ This software is provided "as is", without warranty of any kind.
 - **Website**: [Under Construction]
 - **GitHub Repository**: [Darleanow/InvoiceManager](https://github.com/Darleanow/InvoiceManager)
 - **Test Reports**: [View Test Reports](https://darleanow.github.io/InvoiceManager/index.html)
-
 ---
