@@ -1,30 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import Link from 'next/link'
-import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns'
+import { isAfter, isBefore, startOfDay, endOfDay } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Calendar } from '@/components/ui/calendar'
-import {
-    Popover,
-    PopoverTrigger,
-    PopoverContent,
-} from '@/components/ui/popover'
-import {
-    Table,
-    TableHeader,
-    TableRow,
-    TableHead,
-    TableBody,
-    TableCell,
-} from '@/components/ui/table'
-import { CalendarIcon, Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import Topbar from '@/components/custom/top-bar'
 import CommonPageLayout from '@/components/custom/common-page-layout'
 import Pagination from '@/components/custom/pagination'
-import { cn } from '@/lib/utils'
 import CardStatsList from '@/components/custom/specialized/card-stats-list'
 import ListFilters from '@/components/custom/specialized/list-filters'
 import CommonCenterLayout from '@/components/custom/common-center-layout'
@@ -159,34 +143,51 @@ const statusColors: Record<Invoice['status'], string> = {
 }
 
 export default function InvoicesPage() {
-    const invoices: Invoice[] = sampleInvoices
-    const [dateRange, setDateRange] = useState<DateRange | undefined>()
+    const allInvoices = useRef(sampleInvoices).current
+
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
+    const [searchResults, setSearchResults] = useState<Invoice[]>(allInvoices)
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
 
+    const handleSearch = (results: Invoice[]) => {
+        setSearchResults(results)
+        setCurrentPage(1)
+    }
+
+    let displayedInvoices = [...searchResults]
     const from = dateRange?.from
     const to = dateRange?.to
 
-    const filtered =
-        from && to
-            ? invoices.filter((inv) => {
-                  const d = inv.date
-                  return (
-                      (isAfter(d, startOfDay(from)) ||
-                          d.getTime() === startOfDay(from).getTime()) &&
-                      (isBefore(d, endOfDay(to)) ||
-                          d.getTime() === endOfDay(to).getTime())
-                  )
-              })
-            : invoices
+    if (from && to) {
+        displayedInvoices = displayedInvoices.filter((inv) => {
+            const d = inv.date
+            return (
+                (isAfter(d, startOfDay(from)) ||
+                    d.getTime() === startOfDay(from).getTime()) &&
+                (isBefore(d, endOfDay(to)) ||
+                    d.getTime() === endOfDay(to).getTime())
+            )
+        })
+    }
 
-    const totalPages = Math.ceil(filtered.length / itemsPerPage)
+    const handleDateRangeChange = (range: DateRange | undefined) => {
+        setDateRange(range)
+        setCurrentPage(1)
+    }
+
+    const totalPages = Math.ceil(displayedInvoices.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = Math.min(startIndex + itemsPerPage, filtered.length)
-    const currentInvoices = filtered.slice(startIndex, endIndex)
+    const endIndex = Math.min(
+        startIndex + itemsPerPage,
+        displayedInvoices.length
+    )
+    const currentInvoices = displayedInvoices.slice(startIndex, endIndex)
 
     const handlePageChange = (page: number) => {
-        if (page >= 1 && page <= totalPages) setCurrentPage(page)
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page)
+        }
     }
 
     return (
@@ -204,10 +205,13 @@ export default function InvoicesPage() {
             <CommonCenterLayout>
                 <CardStatsList />
 
-                <ListFilters
+                <ListFilters<Invoice>
                     subtitle="Invoice List"
+                    items={allInvoices}
+                    searchKeys={['id', 'title', 'client', 'status']}
+                    onFiltered={handleSearch}
                     dateRange={dateRange}
-                    setDateRange={setDateRange}
+                    setDateRange={handleDateRangeChange}
                 />
 
                 <InvoiceTable
@@ -224,7 +228,7 @@ export default function InvoicesPage() {
                 onPageChange={handlePageChange}
                 startIndex={startIndex + 1}
                 endIndex={endIndex}
-                totalEntries={filtered.length}
+                totalEntries={displayedInvoices.length}
             />
         </CommonPageLayout>
     )
