@@ -63,12 +63,11 @@ export default class AuthController {
 
   public async update({ request, response }: HttpContext) {
     const user = request.user
-    const { display_name, phone_number } = request.only(['display_name', 'phone_number'])
+    const { display_name } = request.only(['display_name'])
 
     const { error: authError } = await supabase.auth.updateUser({
       data: {
         ...(display_name && { display_name }),
-        ...(phone_number && { phone: phone_number }),
       },
     })
 
@@ -80,7 +79,6 @@ export default class AuthController {
       .from('users')
       .update({
         ...(display_name && { display_name }),
-        ...(phone_number && { phone_number }),
       })
       .eq('id', user.id)
 
