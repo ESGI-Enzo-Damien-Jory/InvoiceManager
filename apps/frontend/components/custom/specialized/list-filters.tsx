@@ -11,7 +11,7 @@ import {
     PopoverContent,
 } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ListFiltersProps<T> {
@@ -50,6 +50,11 @@ export default function ListFilters<T extends Record<string, any>>({
         }
     }
 
+    const clearSearch = () => {
+        setSearchTerm('')
+        onFiltered(items)
+    }
+
     const applyRange = (fromDate: Date, toDate: Date) =>
         setDateRange({ from: fromDate, to: toDate })
 
@@ -57,19 +62,29 @@ export default function ListFilters<T extends Record<string, any>>({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center space-x-4">
                 <p className="text-gray-500">{subtitle}</p>
-
-                {/* Fuzzy Search Input */}
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    placeholder="Search..."
-                    className="border px-3 py-1 rounded-md focus:ring focus:ring-offset-1 focus:ring-blue-300"
-                />
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                        placeholder="Search invoices..."
+                        className="block w-64 pl-10 pr-10 py-2 border border-gray-300 rounded-lg bg-white text-sm placeholder-gray-400 shadow"
+                    />
+                    {searchTerm && (
+                        <button
+                            onClick={clearSearch}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="flex items-center gap-2">
-                {/* Preset Period */}
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button variant="outline">Preset Period</Button>
@@ -145,7 +160,6 @@ export default function ListFilters<T extends Record<string, any>>({
                     </PopoverContent>
                 </Popover>
 
-                {/* Date Range Picker */}
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
