@@ -14,7 +14,6 @@ import {
     SidebarMenu,
     SidebarMenuItem,
     SidebarMenuButton,
-    SidebarMenuAction,
     useSidebar,
     SidebarMenuAction,
 } from '@/components/ui/sidebar'
@@ -35,7 +34,6 @@ import {
     ChevronUp,
     MoreHorizontal,
 } from 'lucide-react'
-import Link from 'next/link'
 
 export function AppSidebar() {
     const pathname = usePathname()
