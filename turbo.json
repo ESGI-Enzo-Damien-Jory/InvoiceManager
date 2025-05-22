@@ -3,31 +3,29 @@
     "ui": "tui",
     "tasks": {
         "build": {
-            "dependsOn": [
-                "^build"
-            ],
+            "dependsOn": ["^build"],
             "outputs": [
                 ".next/**",
                 "dist/**",
                 "build/**",
                 "!**/.next/cache/**"
             ],
-            "inputs": [
-                "$TURBO_DEFAULT$",
-                ".env*",
-                "tsconfig.json"
-            ]
+            "inputs": ["$TURBO_DEFAULT$", ".env*", "tsconfig.json"]
         },
         "lint": {
-            "dependsOn": [
-                "^lint"
-            ],
+            "dependsOn": ["^lint"],
+            "outputs": []
+        },
+        "format:check": {
+            "dependsOn": ["^format:check"],
+            "outputs": []
+        },
+        "format:apply": {
+            "dependsOn": ["^format:apply"],
             "outputs": []
         },
         "check-types": {
-            "dependsOn": [
-                "^check-types"
-            ],
+            "dependsOn": ["^check-types"],
             "outputs": []
         },
         "dev": {
