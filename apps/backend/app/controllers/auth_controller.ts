@@ -19,6 +19,7 @@ export default class AuthController {
   }
 
   public async register({ request, response, logger }: HttpContext) {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { email, password, display_name } = request.only(['email', 'password', 'display_name'])
     logger.info(`[AUTH] Registration attempt for ${email}`)
 
@@ -74,6 +75,7 @@ export default class AuthController {
 
   public async update({ request, response }: HttpContext) {
     const user = request.user
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { display_name, phone_number } = request.only(['display_name', 'phone_number'])
 
     if (display_name) {

@@ -10,7 +10,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover'
 import * as React from 'react'
-import { format, setDate } from 'date-fns'
+import { format } from 'date-fns'
 
 import {
     Plus,
@@ -22,7 +22,6 @@ import {
 import { DateRange } from 'react-day-picker'
 import {
     Table,
-    TableCaption,
     TableHeader,
     TableRow,
     TableHead,
