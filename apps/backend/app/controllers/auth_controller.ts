@@ -19,10 +19,16 @@ export default class AuthController {
   }
 
   public async register({ request, response, logger }: HttpContext) {
-    const { email, password } = request.only(['email', 'password'])
+    const { email, password, display_name } = request.only(['email', 'password', 'display_name'])
     logger.info(`[AUTH] Registration attempt for ${email}`)
 
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name },
+      },
+    })
 
     if (error) {
       logger.warn(`[AUTH] Registration failed for ${email}: ${error.message}`)
@@ -30,6 +36,11 @@ export default class AuthController {
     }
 
     logger.info(`[AUTH] Registration successful for ${email}`)
+
+    if (data.user) {
+      await supabase.from('users').update({ display_name }).eq('id', data.user.id)
+    }
+
     return { message: 'Check your email for verification', user: data.user }
   }
 
@@ -63,22 +74,23 @@ export default class AuthController {
 
   public async update({ request, response }: HttpContext) {
     const user = request.user
-    const { display_name } = request.only(['display_name'])
+    const { display_name, phone_number } = request.only(['display_name', 'phone_number'])
 
-    const { error: authError } = await supabase.auth.updateUser({
-      data: {
-        ...(display_name && { display_name }),
-      },
-    })
+    if (display_name) {
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { display_name },
+      })
 
-    if (authError) {
-      return response.badRequest({ error: authError.message })
+      if (authError) {
+        return response.badRequest({ error: authError.message })
+      }
     }
 
     const { error: dbError } = await supabase
       .from('users')
       .update({
         ...(display_name && { display_name }),
+        ...(phone_number && { phone_number }),
       })
       .eq('id', user.id)
 
