@@ -16,8 +16,8 @@ jobs:
         with:
           node-version: '20'
 
-      - run: npm ci --force
-
+      - run: pnpm i
+      
       - name: Lint
         run: npx turbo run lint
 
