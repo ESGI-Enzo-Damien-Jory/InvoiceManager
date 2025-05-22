@@ -45,7 +45,6 @@ router
   })
   .prefix('/api/user')
   .use(middleware.supabaseAuth())
-  
 /*
 |--------------------------------------------------------------------------
 | Clients Routes

@@ -13,7 +13,6 @@ import {
     SidebarMenuItem,
     SidebarMenuButton,
     SidebarMenuAction,
-    SidebarSeparator,
     useSidebar,
 } from '@/components/ui/sidebar'
 
@@ -35,6 +34,7 @@ import {
     MoreHorizontal,
     Box,
 } from 'lucide-react'
+import Link from 'next/link'
 
 export function AppSidebar() {
     const { state } = useSidebar()
@@ -61,7 +61,7 @@ export function AppSidebar() {
                         <SidebarMenu>
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild isActive>
-                                    <a
+                                    <Link
                                         href="/"
                                         className="flex items-center gap-2 w-full"
                                     >
@@ -75,7 +75,7 @@ export function AppSidebar() {
                                         >
                                             Home
                                         </span>
-                                    </a>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>

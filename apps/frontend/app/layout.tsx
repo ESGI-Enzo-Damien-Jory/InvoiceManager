@@ -4,16 +4,6 @@ import './globals.css'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/custom/app-sidebar'
 
-const geistSans = Geist({
-    variable: '--font-geist-sans',
-    subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-    variable: '--font-geist-mono',
-    subsets: ['latin'],
-})
-
 export const metadata: Metadata = {
     title: 'Invoice Manager',
     description: 'Manage and send invoices.',
