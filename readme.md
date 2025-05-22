@@ -4,37 +4,23 @@ An application to generate customized invoices in various formats, with dynamic 
 
 ---
 
-## CI/CD & Test Status
+## CI/CD
 
-<div align="center">
-  <table>
-    <tr>
-      <td><img src="https://github.com/Darleanow/InvoiceManager/actions/workflows/main.yml/badge.svg" alt="Unit Tests"></td>
-      <td><img src="https://coveralls.io/repos/github/Darleanow/InvoiceManager/badge.svg?branch=develop" alt="Coverage Status"></td>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=alert_status" alt="Quality Gate Status"></td>
-    </tr>
-  </table>
-</div>
-
----
-
-## Test Reports
-
-**[View Test Reports](https://darleanow.github.io/InvoiceManager/index.html)**
+[![CI - Static Analysis & Formatting](https://github.com/ESGI-Enzo-Damien-Jory/InvoiceManager/actions/workflows/ci-code-quality.yml/badge.svg?branch=develop)](https://github.com/ESGI-Enzo-Damien-Jory/InvoiceManager/actions/workflows/ci-code-quality.yml)
+[![CodeQL](https://github.com/ESGI-Enzo-Damien-Jory/InvoiceManager/actions/workflows/github-code-scanning/codeql/badge.svg?branch=develop)](https://github.com/ESGI-Enzo-Damien-Jory/InvoiceManager/actions/workflows/github-code-scanning/codeql)
+[![Dependabot Updates](https://github.com/ESGI-Enzo-Damien-Jory/InvoiceManager/actions/workflows/dependabot/dependabot-updates/badge.svg?branch=develop)](https://github.com/ESGI-Enzo-Damien-Jory/InvoiceManager/actions/workflows/dependabot/dependabot-updates)
+[![Dependency review](https://github.com/ESGI-Enzo-Damien-Jory/InvoiceManager/actions/workflows/dependency-review.yml/badge.svg?branch=develop)](https://github.com/ESGI-Enzo-Damien-Jory/InvoiceManager/actions/workflows/dependency-review.yml)
 
 ---
 
 ## Table of Contents
 
 - [Invoice Manager](#invoice-manager)
-  - [CI/CD \& Test Status](#cicd--test-status)
-  - [Test Reports](#test-reports)
+  - [CI/CD](#cicd)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Quick Start](#quick-start)
   - [Documentation](#documentation)
-  - [Project Metrics](#project-metrics)
-  - [Security \& Maintainability](#security--maintainability)
   - [Technologies Used](#technologies-used)
   - [Project Structure](#project-structure)
   - [Acknowledgments](#acknowledgments)
@@ -61,7 +47,7 @@ To quickly start using the Invoice Manager application, follow these steps:
 1. **Clone the Repository**:
 
    ```bash
-   git clone https://github.com/Darleanow/InvoiceManager.git
+   git clone git@github.com:ESGI-Enzo-Damien-Jory/InvoiceManager.git
    ```
 
 2. **Navigate to the Project Directory**:
@@ -70,51 +56,16 @@ To quickly start using the Invoice Manager application, follow these steps:
    cd InvoiceManager
    ```
 
-3. **Install Dependencies**:
+3. **Getting Started**
 
-   - **Backend**:
+    ```bash
+    pnpm i
+    turbo dev
+    ```
 
-     ```bash
-     cd backend
-     npm install
-     ```
-
-   - **Frontend**:
-
-     ```bash
-     cd ../frontend
-     npm install
-     ```
-
-4. **Set Up the Database**:
-
-   - Ensure you have MySQL installed.
-   - Create a new database for the application.
-   - Update the database configuration in the backend's `config` file.
-
-5. **Run the Application**:
-
-   - **Backend**:
-
-     ```bash
-     cd ../backend
-     npm start
-     ```
-
-   - **Frontend**:
-
-     ```bash
-     cd ../frontend
-     npm start
-     ```
-
-6. **Access the Application**:
+4. **Access the Application**:
 
    Open your web browser and navigate to `http://localhost:3000`.
-
-> Under Construction
-
-For detailed installation and configuration instructions, please refer to the **[Installation Guide]**.
 
 ---
 
@@ -124,55 +75,19 @@ For detailed installation and configuration instructions, please refer to the **
 
 For comprehensive information on installation, configuration, usage, and more, please refer to our **[Documentation]**
 
----
-
-## Project Metrics
-
-<div align="center">
-  <table>
-    <tr>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=bugs" alt="Bugs"></td>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=code_smells" alt="Code Smells"></td>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=duplicated_lines_density" alt="Duplicated Lines (%)"></td>
-    </tr>
-    <tr>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=ncloc" alt="Lines of Code"></td>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=reliability_rating" alt="Reliability Rating"></td>
-    </tr>
-  </table>
-</div>
-
----
-
-## Security & Maintainability
-
-<div align="center">
-  <table>
-    <tr>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=security_rating" alt="Security Rating"></td>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=sqale_index" alt="Technical Debt"></td>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=sqale_rating" alt="Maintainability Rating"></td>
-      <td><img src="https://sonarcloud.io/api/project_badges/measure?project=Darleanow_InvoiceManager&metric=vulnerabilities" alt="Vulnerabilities"></td>
-    </tr>
-  </table>
-</div>
-
----
-
 ## Technologies Used
 
-- **Frontend**: HTML, CSS, JavaScript (Next.js)
-- **Backend**: Node.js, Express.js
-- **Database**: MySQL
-- **Testing**: Jest, Playwright
+- **Frontend**: React with Shadcn
+- **Backend**: Node.js with Adonis
+- **Database**: Postgres (Supabase)
 - **CI/CD**: GitHub Actions
 
 ---
 
 ## Project Structure
 
-- **/frontend**: Frontend source code
-- **/backend**: Backend source code
+- **/apps/frontend**: Frontend source code
+- **/apps/backend**: Backend source code
 
 ---
 
@@ -185,13 +100,3 @@ A big thank you to all the contributors who helped develop this project.
 ## Disclaimer
 
 This software is provided "as is", without warranty of any kind.
-
----
-
-**Useful Links**:
-
-- **Documentation**: [Under Construction]
-- **Website**: [Under Construction]
-- **GitHub Repository**: [Darleanow/InvoiceManager](https://github.com/Darleanow/InvoiceManager)
-- **Test Reports**: [View Test Reports](https://darleanow.github.io/InvoiceManager/index.html)
----
