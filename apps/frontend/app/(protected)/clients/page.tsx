@@ -6,23 +6,17 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
     Plus,
-    Mail,
-    Phone,
-    MapPin,
     Users,
     AlertCircle,
     UserCheck,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { cn } from '@/lib/utils'
 import Topbar from '@/components/custom/top-bar'
 import CommonPageLayout from '@/components/custom/common-page-layout'
 import Pagination from '@/components/custom/pagination'
 import ListHeader from '@/components/custom/list-header'
 import CommonCenterLayout from '@/components/custom/common-center-layout'
 import ClientGrid from '@/components/custom/specialized/client-grid'
-import ClientTable from '@/components/custom/specialized/client-grid'
 
 interface Client {
     id: string
@@ -339,7 +333,7 @@ export default function Clients() {
                     onSearchChange={setSearchTerm}
                     placeholder="Search clients..."
                 />
-                <ClientTable
+                <ClientGrid
                     clients={currentClients}
                     statusColors={statusColors}
                     linkPrefix="/clients"
