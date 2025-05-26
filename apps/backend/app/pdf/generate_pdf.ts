@@ -20,15 +20,18 @@ interface InvoiceData {
   client_phone?: string
 
   items?: Array<{
-    name: string
+    name?: string
+    item_id?: string
     quantity: number
     unit_price: number
-    total: number
+    total?: number
   }>
 }
 
 export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
   try {
+    console.log('PDF Generation - Input data:', JSON.stringify(data, null, 2))
+
     const issueDate = data.created_at.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -43,33 +46,68 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
         })
       : 'No due date'
 
+    let calculatedTotal = 0
+    if (data.items && data.items.length > 0) {
+      calculatedTotal = data.items.reduce((sum, item) => {
+        const quantity = Number(item.quantity) || 0
+        const unitPrice = Number(item.unit_price) || 0
+        const itemTotal = item.total !== undefined ? Number(item.total) : quantity * unitPrice
+        return sum + itemTotal
+      }, 0)
+      console.log('Calculated total from items:', calculatedTotal)
+    }
+
+    const finalTotal = calculatedTotal > 0 ? calculatedTotal : Number(data.total_amount) || 0
+    console.log('Final total amount:', finalTotal)
+
     const formattedAmount = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(data.total_amount)
+    }).format(finalTotal)
 
     const clientName = `${data.client_first_name} ${data.client_last_name}`
     const clientAddress = data.client_address || ''
     const clientPhone = data.client_phone ? `Phone: ${data.client_phone}` : ''
     const fullAddress = [clientAddress, clientPhone].filter(Boolean).join('\n')
 
-    const tableData =
-      data.items && data.items.length > 0
-        ? data.items.map((item) => [
-            item.name || 'Unnamed Item',
-            String(item.quantity || 0),
-            `$${(item.unit_price || 0).toFixed(2)}`,
-            `$${(item.total || 0).toFixed(2)}`,
-          ])
-        : [['No items', '0', '$0.00', '$0.00']]
+    let tableData: string[][]
+
+    if (data.items && data.items.length > 0) {
+      console.log('Processing items for table:', data.items)
+
+      tableData = data.items.map((item, index) => {
+        console.log(`Processing item ${index}:`, item)
+
+        const itemName = item.name || `Item ${index + 1}`
+        const quantity = Number(item.quantity) || 0
+        const unitPrice = Number(item.unit_price) || 0
+
+        const itemTotal = item.total !== undefined ? Number(item.total) : quantity * unitPrice
+
+        const row = [
+          itemName,
+          String(quantity),
+          `$${unitPrice.toFixed(2)}`,
+          `$${itemTotal.toFixed(2)}`,
+        ]
+
+        console.log(`Generated row:`, row)
+        return row
+      })
+    } else {
+      console.log('No items provided, using default row')
+      tableData = [['No items', '0', '$0.00', '$0.00']]
+    }
+
+    console.log('Final table data:', tableData)
 
     const input = {
       invoice_title: 'INVOICE',
       invoice_id: `#${data.invoice_id.substring(0, 8).toUpperCase()}`,
 
       from_label: 'FROM:',
-      from_name: data.owner_name,
-      from_email: data.owner_email,
+      from_name: data.owner_name || 'N/A',
+      from_email: data.owner_email || 'N/A',
 
       to_label: 'BILL TO:',
       client_name: clientName,
@@ -86,7 +124,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
       description_label: 'Description:',
       description: data.title,
 
-      items_table: tableData, // 2D array without headers
+      items_table: tableData,
 
       total_label: 'TOTAL:',
       total_amount: formattedAmount,
@@ -95,14 +133,17 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
         'Thank you for your business! Please contact us if you have any questions about this invoice.',
     }
 
+    console.log('PDF input data:', JSON.stringify(input, null, 2))
+
     const pdf = await generate({
       template: invoiceTemplate,
       inputs: [input],
-      plugins: { text, table }, // Both plugins needed
+      plugins: { text, table },
     })
 
     return Buffer.from(pdf instanceof Uint8Array ? pdf.buffer : pdf)
   } catch (error: any) {
+    console.error('PDF generation error:', error)
     throw new Error(`PDF generation failed: ${error.message}`)
   }
 }

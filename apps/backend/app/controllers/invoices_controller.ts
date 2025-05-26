@@ -2,7 +2,11 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { supabase } from '#start/supabase'
 import { generateInvoicePdf } from '../pdf/generate_pdf.js'
 import { randomUUID } from 'node:crypto'
-import { insertInvoiceItems, uploadInvoicePdfToStorage } from '#services/invoice_service'
+import {
+  insertInvoiceItems,
+  uploadInvoicePdfToStorage,
+  processInvoiceItems,
+} from '#services/invoice_service'
 import { Readable } from 'node:stream'
 
 export default class InvoicesController {
@@ -50,7 +54,6 @@ export default class InvoicesController {
 
     logger.info(`[INVOICES] Creating invoice for user ${user.email}`)
 
-    // Step 1: Validate client
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('*')
@@ -63,23 +66,23 @@ export default class InvoicesController {
       return response.status(422).send({ error: 'Invalid or unauthorized client ID' })
     }
 
-    // Step 2: Validate item ownership
-    if (body.items && body.items.length > 0) {
-      const itemIds = body.items.map((i: any) => i.item_id)
-      const { data: foundItems, error: itemError } = await supabase
-        .from('items')
-        .select('id')
-        .in('id', itemIds)
-        .eq('owner_id', user.id)
+    let itemsWithDetails: any[] = []
+    let calculatedTotal = 0
 
-      if (itemError || foundItems.length !== itemIds.length) {
-        return response.status(422).send({ error: 'Invalid item(s) provided' })
+    if (body.items && body.items.length > 0) {
+      try {
+        const result = await processInvoiceItems(user.id, body.items)
+        itemsWithDetails = result.itemsWithDetails
+        calculatedTotal = result.totalAmount
+        body.total_amount = calculatedTotal
+        logger.info(`[INVOICES] Calculated total: ${calculatedTotal}`)
+      } catch (err: any) {
+        return response.status(422).send({ error: err.message })
       }
     }
 
     let pdfUrl: string | null = null
 
-    // Step 3: Generate PDF and Upload (if not Draft)
     if (body.state !== 'Draft') {
       try {
         const { data: owner } = await supabase
@@ -102,11 +105,11 @@ export default class InvoicesController {
           client_email: client.email,
           client_address: client.address || undefined,
           client_phone: client.phone_number || undefined,
-          items: body.items || [],
+          items: itemsWithDetails,
         })
 
         pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
-      } catch (err) {
+      } catch (err: any) {
         logger.error(`[INVOICES] PDF generation/upload failed: ${err.message}`)
         return response
           .status(422)
@@ -114,7 +117,6 @@ export default class InvoicesController {
       }
     }
 
-    // Step 4: Insert invoice AFTER PDF is uploaded
     const { data: invoiceData, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
@@ -135,11 +137,10 @@ export default class InvoicesController {
       return response.status(500).send({ error: 'Failed to create invoice' })
     }
 
-    // Step 5: Insert items (optional)
     if (body.items && body.items.length > 0) {
       try {
         await insertInvoiceItems(user.id, invoiceId, body.items)
-      } catch (err) {
+      } catch (err: any) {
         logger.error(`[INVOICES] Item insert failed: ${err.message}`)
         return response.status(422).send({ error: 'Invoice created, but item insertion failed' })
       }
@@ -186,16 +187,18 @@ export default class InvoicesController {
       return response.badRequest({ error: 'Client not found' })
     }
 
-    if (body.items && body.items.length > 0) {
-      const itemIds = body.items.map((i: any) => i.item_id)
-      const { data: foundItems, error: itemError } = await supabase
-        .from('items')
-        .select('id')
-        .in('id', itemIds)
-        .eq('owner_id', user.id)
+    let itemsWithDetails: any[] = []
+    let calculatedTotal = 0
 
-      if (itemError || foundItems.length !== itemIds.length) {
-        return response.badRequest({ error: 'Invalid item(s) in invoice' })
+    if (body.items && body.items.length > 0) {
+      try {
+        const result = await processInvoiceItems(user.id, body.items)
+        itemsWithDetails = result.itemsWithDetails
+        calculatedTotal = result.totalAmount
+        body.total_amount = calculatedTotal
+        logger.info(`[INVOICES] Calculated total: ${calculatedTotal}`)
+      } catch (err: any) {
+        return response.badRequest({ error: err.message })
       }
     }
 
@@ -235,31 +238,30 @@ export default class InvoicesController {
 
     let pdfUrl: string | null = null
     if (body.state !== 'Draft') {
-      const pdfBuffer = await generateInvoicePdf({
-        title: body.title,
-        invoice_id: invoiceId,
-        total_amount: body.total_amount,
-        state: body.state,
-        created_at: new Date(updatedInvoice.created_at),
-        expiration_date: body.expiration_date,
-
-        owner_name: fullUser.display_name,
-        owner_email: fullUser.email,
-
-        client_first_name: client.first_name,
-        client_last_name: client.last_name,
-        client_email: client.email,
-        client_address: client.address,
-        client_phone: client.phone_number,
-        items: body.items || [],
-      })
-
       try {
+        const pdfBuffer = await generateInvoicePdf({
+          title: body.title,
+          invoice_id: invoiceId,
+          total_amount: body.total_amount,
+          state: body.state,
+          created_at: new Date(updatedInvoice.created_at),
+          expiration_date: body.expiration_date,
+
+          owner_name: fullUser.display_name,
+          owner_email: fullUser.email,
+
+          client_first_name: client.first_name,
+          client_last_name: client.last_name,
+          client_email: client.email,
+          client_address: client.address,
+          client_phone: client.phone_number,
+          items: itemsWithDetails,
+        })
+
         pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
         await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoiceId)
-      } catch (uploadErr) {
+      } catch (uploadErr: any) {
         logger.error(`[INVOICES] Failed to upload PDF: ${uploadErr.message}`)
-        await supabase.from('invoices').delete().eq('id', invoiceId)
         return response.status(422).send({ error: `Failed to upload PDF: ${uploadErr.message}` })
       }
     }
