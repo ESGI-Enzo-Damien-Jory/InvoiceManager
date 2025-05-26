@@ -23,6 +23,22 @@ export default class AuthController {
     const { email, password, display_name } = request.only(['email', 'password', 'display_name'])
     logger.info(`[AUTH] Registration attempt for ${email}`)
 
+    const { data: existingUsers, error: fetchError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .limit(1)
+
+    if (fetchError) {
+      logger.error(`[AUTH] Error checking existing user for ${email}: ${fetchError.message}`)
+      return response.internalServerError({ error: fetchError.message })
+    }
+
+    if (existingUsers && existingUsers.length > 0) {
+      logger.warn(`[AUTH] Registration conflict for ${email}: User already exists`)
+      return response.conflict({ error: 'User with this email already exists' })
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
