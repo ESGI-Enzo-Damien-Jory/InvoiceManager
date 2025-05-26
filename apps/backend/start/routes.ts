@@ -89,6 +89,8 @@ router
     router.post('/', [InvoicesController, 'store'])
     router.put('/:id', [InvoicesController, 'update'])
     router.delete('/:id', [InvoicesController, 'destroy'])
+    router.get('/pdf/:id', [InvoicesController, 'download'])
+    router.get('/preview/:id', [InvoicesController, 'preview'])
   })
   .prefix('/api/invoices')
   .use(middleware.supabaseAuth())
