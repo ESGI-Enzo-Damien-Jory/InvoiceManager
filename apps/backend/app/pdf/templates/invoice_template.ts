@@ -1,7 +1,11 @@
-import { Template, BLANK_A4_PDF } from '@pdfme/common'
+import { Template } from '@pdfme/common'
 
 export const invoiceTemplate: Template = {
-  basePdf: BLANK_A4_PDF,
+  basePdf: {
+    width: 210,
+    height: 297,
+    padding: [20, 20, 20, 20],
+  },
   schemas: [
     [
       {
@@ -189,17 +193,80 @@ export const invoiceTemplate: Template = {
         type: 'text',
         position: { x: 20, y: 162 },
         width: 170,
-        height: 30,
+        height: 15,
         fontSize: 11,
         fontName: 'NotoSerifJP-Regular',
         alignment: 'left',
         fontColor: '#111827',
       },
 
+      // Properly configured table following PDFme documentation
+      {
+        name: 'items_table',
+        type: 'table',
+        position: { x: 20, y: 180 },
+        width: 170,
+        height: 60,
+        showHead: true,
+        head: ['Item', 'Qty', 'Price', 'Total'],
+        headWidthPercentages: [40, 20, 20, 20],
+        tableStyles: {
+          borderWidth: 0.3,
+          borderColor: '#000000',
+        },
+        headStyles: {
+          fontName: 'NotoSerifJP-Regular',
+          fontSize: 10,
+          characterSpacing: 0,
+          alignment: 'left',
+          verticalAlignment: 'middle',
+          lineHeight: 1,
+          fontColor: '#ffffff',
+          backgroundColor: '#374151',
+          borderWidth: {
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+          },
+          padding: {
+            top: 3,
+            right: 3,
+            bottom: 3,
+            left: 3,
+          },
+        },
+        bodyStyles: {
+          fontName: 'NotoSerifJP-Regular',
+          fontSize: 9,
+          characterSpacing: 0,
+          alignment: 'left',
+          verticalAlignment: 'middle',
+          lineHeight: 1,
+          fontColor: '#000000',
+          borderColor: '#888888',
+          backgroundColor: '',
+          alternateBackgroundColor: '#f9f9f9',
+          borderWidth: {
+            top: 0.1,
+            right: 0.1,
+            bottom: 0.1,
+            left: 0.1,
+          },
+          padding: {
+            top: 2,
+            right: 3,
+            bottom: 2,
+            left: 3,
+          },
+        },
+        columnStyles: {},
+      },
+
       {
         name: 'total_label',
         type: 'text',
-        position: { x: 130, y: 210 },
+        position: { x: 130, y: 250 },
         width: 35,
         height: 12,
         fontSize: 14,
@@ -210,7 +277,7 @@ export const invoiceTemplate: Template = {
       {
         name: 'total_amount',
         type: 'text',
-        position: { x: 130, y: 225 },
+        position: { x: 130, y: 265 },
         width: 60,
         height: 15,
         fontSize: 18,
@@ -222,7 +289,7 @@ export const invoiceTemplate: Template = {
       {
         name: 'footer_note',
         type: 'text',
-        position: { x: 20, y: 270 },
+        position: { x: 20, y: 285 },
         width: 170,
         height: 20,
         fontSize: 9,

@@ -1,4 +1,5 @@
 import { generate } from '@pdfme/generator'
+import { text, table } from '@pdfme/schemas'
 import { invoiceTemplate } from './templates/invoice_template.js'
 
 interface InvoiceData {
@@ -48,12 +49,21 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
     }).format(data.total_amount)
 
     const clientName = `${data.client_first_name} ${data.client_last_name}`
-
     const clientAddress = data.client_address || ''
     const clientPhone = data.client_phone ? `Phone: ${data.client_phone}` : ''
     const fullAddress = [clientAddress, clientPhone].filter(Boolean).join('\n')
 
-    const pdfData = {
+    const tableData =
+      data.items && data.items.length > 0
+        ? data.items.map((item) => [
+            item.name || 'Unnamed Item',
+            String(item.quantity || 0),
+            `$${(item.unit_price || 0).toFixed(2)}`,
+            `$${(item.total || 0).toFixed(2)}`,
+          ])
+        : [['No items', '0', '$0.00', '$0.00']]
+
+    const input = {
       invoice_title: 'INVOICE',
       invoice_id: `#${data.invoice_id.substring(0, 8).toUpperCase()}`,
 
@@ -76,6 +86,8 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
       description_label: 'Description:',
       description: data.title,
 
+      items_table: tableData, // 2D array without headers
+
       total_label: 'TOTAL:',
       total_amount: formattedAmount,
 
@@ -85,11 +97,12 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
 
     const pdf = await generate({
       template: invoiceTemplate,
-      inputs: [pdfData],
+      inputs: [input],
+      plugins: { text, table }, // Both plugins needed
     })
 
-    return pdf instanceof Uint8Array ? Buffer.from(pdf.buffer) : Buffer.from(pdf)
-  } catch (error) {
+    return Buffer.from(pdf instanceof Uint8Array ? pdf.buffer : pdf)
+  } catch (error: any) {
     throw new Error(`PDF generation failed: ${error.message}`)
   }
 }
