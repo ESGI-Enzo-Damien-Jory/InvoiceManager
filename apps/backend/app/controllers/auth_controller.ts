@@ -42,6 +42,12 @@ export default class AuthController {
     if (!display_name) {
       return response.badRequest({ error: 'Display name is required' })
     }
+    if (!email) {
+      return response.badRequest({ error: 'Email is required' })
+    }
+    if (!password) {
+      return response.badRequest({ error: 'Password is required' })
+    }
 
     logger.info(`[AUTH] Registration attempt for ${email}`)
 
