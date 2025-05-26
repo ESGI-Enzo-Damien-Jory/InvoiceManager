@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react"
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
 interface CardStatsProps {
     title: string
