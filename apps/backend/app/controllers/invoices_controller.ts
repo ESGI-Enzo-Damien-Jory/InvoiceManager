@@ -50,6 +50,7 @@ export default class InvoicesController {
 
     logger.info(`[INVOICES] Creating invoice for user ${user.email}`)
 
+    // Step 1: Validate client
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('*')
@@ -62,6 +63,7 @@ export default class InvoicesController {
       return response.status(422).send({ error: 'Invalid or unauthorized client ID' })
     }
 
+    // Step 2: Validate item ownership
     if (body.items && body.items.length > 0) {
       const itemIds = body.items.map((i: any) => i.item_id)
       const { data: foundItems, error: itemError } = await supabase
@@ -75,6 +77,44 @@ export default class InvoicesController {
       }
     }
 
+    let pdfUrl: string | null = null
+
+    // Step 3: Generate PDF and Upload (if not Draft)
+    if (body.state !== 'Draft') {
+      try {
+        const { data: owner } = await supabase
+          .from('users')
+          .select('display_name, email')
+          .eq('id', user.id)
+          .single()
+
+        const pdfBuffer = await generateInvoicePdf({
+          title: body.title,
+          invoice_id: invoiceId,
+          total_amount: body.total_amount,
+          state: body.state,
+          created_at: new Date(),
+          expiration_date: body.expiration_date ? new Date(body.expiration_date) : undefined,
+          owner_name: owner!.display_name,
+          owner_email: owner!.email,
+          client_first_name: client.first_name,
+          client_last_name: client.last_name,
+          client_email: client.email,
+          client_address: client.address || undefined,
+          client_phone: client.phone_number || undefined,
+          items: body.items || [],
+        })
+
+        pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
+      } catch (err) {
+        logger.error(`[INVOICES] PDF generation/upload failed: ${err.message}`)
+        return response
+          .status(422)
+          .send({ error: `Failed to generate or upload PDF: ${err.message}` })
+      }
+    }
+
+    // Step 4: Insert invoice AFTER PDF is uploaded
     const { data: invoiceData, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
@@ -85,55 +125,27 @@ export default class InvoicesController {
         expiration_date: body.expiration_date,
         state: body.state ?? 'Draft',
         owner_id: user.id,
+        pdf_url: pdfUrl,
       })
       .select()
       .single()
 
     if (invoiceError || !invoiceData) {
-      logger.error(`[INVOICES] Insert failed: ${invoiceError?.message}`)
-      throw new Error(invoiceError?.message)
+      logger.error(`[INVOICES] Invoice insert failed: ${invoiceError?.message}`)
+      return response.status(500).send({ error: 'Failed to create invoice' })
     }
 
+    // Step 5: Insert items (optional)
     if (body.items && body.items.length > 0) {
       try {
         await insertInvoiceItems(user.id, invoiceId, body.items)
       } catch (err) {
-        await supabase.from('invoices').delete().eq('id', invoiceId)
-        return response.status(422).send({ error: err.message })
+        logger.error(`[INVOICES] Item insert failed: ${err.message}`)
+        return response.status(422).send({ error: 'Invoice created, but item insertion failed' })
       }
     }
 
-    let pdfUrl: string | null = null
-
-    if (body.state !== 'Draft') {
-      const { data: owner } = await supabase
-        .from('users')
-        .select('display_name, email')
-        .eq('id', user.id)
-        .single()
-
-      const pdfBuffer = await generateInvoicePdf({
-        title: body.title,
-        invoice_id: invoiceId,
-        total_amount: body.total_amount,
-        state: body.state,
-        created_at: new Date(),
-        expiration_date: body.expiration_date ? new Date(body.expiration_date) : undefined,
-        owner_name: owner!.display_name,
-        owner_email: owner!.email,
-        client_first_name: client.first_name,
-        client_last_name: client.last_name,
-        client_email: client.email,
-        client_address: client.address || undefined,
-        client_phone: client.phone_number || undefined,
-        items: body.items || [],
-      })
-
-      pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
-      await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoiceId)
-    }
-
-    logger.info(`[INVOICES] Invoice created with ID: ${invoiceId}`)
+    logger.info(`[INVOICES] Invoice ${invoiceId} created successfully`)
     return { ...invoiceData, pdf_url: pdfUrl }
   }
 
@@ -242,8 +254,14 @@ export default class InvoicesController {
         items: body.items || [],
       })
 
-      pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
-      await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoiceId)
+      try {
+        pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
+        await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoiceId)
+      } catch (uploadErr) {
+        logger.error(`[INVOICES] Failed to upload PDF: ${uploadErr.message}`)
+        await supabase.from('invoices').delete().eq('id', invoiceId)
+        return response.status(422).send({ error: `Failed to upload PDF: ${uploadErr.message}` })
+      }
     }
 
     logger.info(`[INVOICES] Invoice ${invoiceId} updated successfully`)
