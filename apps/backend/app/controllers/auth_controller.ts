@@ -14,13 +14,41 @@ export default class AuthController {
       return response.unauthorized({ error: error.message })
     }
 
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('display_name')
+      .eq('id', data.user.id)
+      .single()
+
+    if (profileError) {
+      logger.error(`[AUTH] Failed to fetch profile for ${email}: ${profileError.message}`)
+      return response.internalServerError({ error: 'Failed to retrieve user profile' })
+    }
+
     logger.info(`[AUTH] Login successful for ${email}`)
-    return { token: data.session?.access_token, user: data.user }
+    return {
+      token: data.session?.access_token,
+      user: {
+        ...data.user,
+        display_name: profile.display_name,
+      },
+    }
   }
 
   public async register({ request, response, logger }: HttpContext) {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { email, password, display_name } = request.only(['email', 'password', 'display_name'])
+
+    if (!display_name) {
+      return response.badRequest({ error: 'Display name is required' })
+    }
+    if (!email) {
+      return response.badRequest({ error: 'Email is required' })
+    }
+    if (!password) {
+      return response.badRequest({ error: 'Password is required' })
+    }
+
     logger.info(`[AUTH] Registration attempt for ${email}`)
 
     const { data: existingUsers, error: fetchError } = await supabase
