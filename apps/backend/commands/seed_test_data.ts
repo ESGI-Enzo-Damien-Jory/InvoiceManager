@@ -10,7 +10,6 @@ export default class SeedTestData extends BaseCommand {
     const clientId = '22222222-2222-2222-2222-222222222222'
     const invoiceId = '33333333-3333-3333-3333-333333333333'
 
-    // Insert client
     const { error: clientError } = await supabase.from('clients').upsert([
       {
         id: clientId,
@@ -28,7 +27,6 @@ export default class SeedTestData extends BaseCommand {
       return
     }
 
-    // Insert invoice
     const { error: invoiceError } = await supabase.from('invoices').upsert([
       {
         id: invoiceId,
@@ -37,7 +35,7 @@ export default class SeedTestData extends BaseCommand {
         title: 'Test Invoice',
         state: 'Draft',
         total_amount: 100.0,
-        expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 days
+        expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       },
     ])
 

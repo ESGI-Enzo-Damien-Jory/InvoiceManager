@@ -200,7 +200,6 @@ export const invoiceTemplate: Template = {
         fontColor: '#111827',
       },
 
-      // Properly configured table following PDFme documentation
       {
         name: 'items_table',
         type: 'table',

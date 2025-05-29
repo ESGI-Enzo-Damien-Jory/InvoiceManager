@@ -72,7 +72,6 @@ export default class AuthController {
 
     logger.info(`[AUTH] Registration attempt for ${email}`)
 
-    // Check if user already exists using service role client
     const { data: existingUsers, error: fetchError } = await supabase
       .from('users')
       .select('id')
@@ -112,7 +111,6 @@ export default class AuthController {
   }
 
   public async logout({ response, logger }: HttpContext) {
-    // Clear the session cookie
     response.clearCookie('supabase-session')
 
     logger.info('[AUTH] Logout successful')
