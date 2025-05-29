@@ -7,6 +7,11 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import axios from 'axios'
+
+interface LoginResponse {
+    token: string
+}
 
 export function LoginForm({
     className,
@@ -18,24 +23,36 @@ export function LoginForm({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (
+        e: React.FormEvent<HTMLFormElement>
+    ): Promise<void> => {
         e.preventDefault()
         setLoading(true)
         setError(null)
 
         try {
-            const { data } = await api.post('/api/auth/login', {
+            const response = await api.post<LoginResponse>('/api/auth/login', {
                 email,
                 password,
             })
+            const { token } = response.data
 
-            if (data.token) {
-                localStorage.setItem('token', data.token)
+            if (token) {
+                localStorage.setItem('token', token)
             }
 
             router.push('/dashboard')
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message)
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                const backendMessage = (
+                    error.response?.data as { error?: string }
+                )?.error
+                setError(backendMessage ?? error.message)
+            } else if (error instanceof Error) {
+                setError(error.message)
+            } else {
+                setError(String(error))
+            }
         } finally {
             setLoading(false)
         }
