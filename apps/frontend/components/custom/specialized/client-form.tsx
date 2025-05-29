@@ -1,12 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { User, Mail, Phone, MapPin, Save, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
     Form,
     FormControl,
@@ -16,30 +18,23 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Textarea } from '@/components/ui/textarea'
+import { User, Mail, Phone, MapPin, Save, X, Loader2 } from 'lucide-react'
 
 const formSchema = z.object({
-    first_name: z.string().min(2, {
-        message: 'First name must be at least 2 characters.',
-    }),
-    last_name: z.string().min(2, {
-        message: 'Last name must be at least 2 characters.',
-    }),
-    email: z.string().email({
-        message: 'Please enter a valid email address.',
-    }),
+    first_name: z.string().min(2),
+    last_name: z.string().min(2),
+    email: z.string().email(),
     phone_number: z.string().optional(),
     address: z.string().optional(),
     avatar: z.string().optional(),
 })
 
-type FormData = z.infer<typeof formSchema>
+export type FormData = z.infer<typeof formSchema>
 
-interface ClientFormProps {
-    onSubmit: (values: FormData) => void
+export interface ClientFormProps {
+    onSubmit: (values: FormData) => Promise<void>
     initialValues?: FormData
     cancelHref?: string
     submitButtonText?: string
@@ -49,8 +44,11 @@ export default function ClientForm({
     onSubmit,
     initialValues,
     cancelHref = '/clients',
-    submitButtonText = 'Create Client',
+    submitButtonText = 'Submit',
 }: ClientFormProps) {
+    const router = useRouter()
+    const [submitError, setSubmitError] = React.useState<string | null>(null)
+
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: initialValues || {
@@ -65,10 +63,9 @@ export default function ClientForm({
 
     const watchFields = form.watch()
 
-    const getInitials = (firstName: string, lastName: string) => {
-        return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
-    }
-
+    /** two helpers for initials fallback */
+    const getInitials = (first: string, last: string) =>
+        `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
     const getRandomColor = () => {
         const colors = [
             'bg-red-500',
@@ -82,17 +79,18 @@ export default function ClientForm({
         ]
         return colors[Math.floor(Math.random() * colors.length)]
     }
+    const [avatarBg] = React.useState(getRandomColor())
 
-    const [avatarBgColor] = React.useState(getRandomColor())
-
-    const handleFormSubmit = (values: FormData) => {
-        if (onSubmit) {
-            onSubmit(values)
-        } else {
-            console.log(values)
-            alert('Client created successfully!')
+    const handleFormSubmit = async (values: FormData) => {
+        setSubmitError(null)
+        try {
+            await onSubmit(values)
+        } catch (err: any) {
+            setSubmitError(err.message || 'An unexpected error occurred.')
         }
     }
+
+    const isSubmitting = form.formState.isSubmitting
 
     return (
         <div className="p-4 grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -102,48 +100,41 @@ export default function ClientForm({
                         onSubmit={form.handleSubmit(handleFormSubmit)}
                         className="space-y-6"
                     >
+                        {/* names row */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
-                                control={form.control}
-                                name="first_name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>First Name</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="John"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Client's first name
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="last_name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Last Name</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Doe"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Client's last name
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {['first_name', 'last_name'].map((field) => (
+                                <FormField
+                                    key={field}
+                                    control={form.control}
+                                    name={field as 'first_name' | 'last_name'}
+                                    render={({ field: f }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                {field === 'first_name'
+                                                    ? 'First Name'
+                                                    : 'Last Name'}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder={
+                                                        field === 'first_name'
+                                                            ? 'John'
+                                                            : 'Doe'
+                                                    }
+                                                    {...f}
+                                                />
+                                            </FormControl>
+                                            <FormDescription>
+                                                {`Client's ${field.replace('_', ' ')}.`}
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            ))}
                         </div>
 
+                        {/* email */}
                         <FormField
                             control={form.control}
                             name="email"
@@ -158,13 +149,14 @@ export default function ClientForm({
                                         />
                                     </FormControl>
                                     <FormDescription>
-                                        Client's email address for communication
+                                        Client's email address.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
+                        {/* phone */}
                         <FormField
                             control={form.control}
                             name="phone_number"
@@ -177,14 +169,13 @@ export default function ClientForm({
                                             {...field}
                                         />
                                     </FormControl>
-                                    <FormDescription>
-                                        Client's phone number (optional)
-                                    </FormDescription>
+                                    <FormDescription>Optional</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
+                        {/* address */}
                         <FormField
                             control={form.control}
                             name="address"
@@ -193,19 +184,18 @@ export default function ClientForm({
                                     <FormLabel>Address</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            placeholder="123 Main St, City, Country"
-                                            className="resize-none"
+                                            placeholder="123 Main St, City"
                                             {...field}
+                                            className="resize-none"
                                         />
                                     </FormControl>
-                                    <FormDescription>
-                                        Client's physical address (optional)
-                                    </FormDescription>
+                                    <FormDescription>Optional</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
+                        {/* avatar URL */}
                         <FormField
                             control={form.control}
                             name="avatar"
@@ -214,34 +204,48 @@ export default function ClientForm({
                                     <FormLabel>Avatar URL</FormLabel>
                                     <FormControl>
                                         <Input
-                                            placeholder="https://example.com/avatar.jpg"
+                                            placeholder="https://..."
                                             {...field}
                                         />
                                     </FormControl>
-                                    <FormDescription>
-                                        URL to client's avatar image (optional)
-                                    </FormDescription>
+                                    <FormDescription>Optional</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
+                        {/* actions */}
                         <div className="flex justify-end space-x-4">
-                            <Button variant="outline" type="button" asChild>
+                            <Button
+                                variant="outline"
+                                type="button"
+                                asChild
+                                disabled={isSubmitting}
+                            >
                                 <Link href={cancelHref}>
-                                    <X className="mr-2 h-4 w-4" />
-                                    Cancel
+                                    <X className="mr-2 h-4 w-4" /> Cancel
                                 </Link>
                             </Button>
-                            <Button type="submit">
-                                <Save className="mr-2 h-4 w-4" />
-                                {submitButtonText}
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Save className="mr-2 h-4 w-4" />
+                                )}
+                                {isSubmitting ? 'Saving...' : submitButtonText}
                             </Button>
                         </div>
+
+                        {submitError && (
+                            <p className="text-sm text-destructive mt-2">
+                                {submitError}
+                            </p>
+                        )}
                     </form>
                 </Form>
             </div>
 
+            {/** live preview **/}
             <div className="lg:col-span-2">
                 <Card>
                     <CardHeader>
@@ -251,7 +255,7 @@ export default function ClientForm({
                         <div className="flex flex-col items-center space-y-4">
                             <Avatar className="h-24 w-24">
                                 <AvatarImage src={watchFields.avatar || ''} />
-                                <AvatarFallback className={avatarBgColor}>
+                                <AvatarFallback className={avatarBg}>
                                     {getInitials(
                                         watchFields.first_name || '',
                                         watchFields.last_name || ''
