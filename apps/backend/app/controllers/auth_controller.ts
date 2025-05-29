@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { supabase } from '#start/supabase'
+import { createCookieClient } from '../utils/cookie_utils.js'
 import env from '#start/env'
 
 export default class AuthController {
@@ -7,7 +8,12 @@ export default class AuthController {
     const { email, password } = request.only(['email', 'password'])
     logger.info(`[AUTH] Login attempt for ${email}`)
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const cookieClient = createCookieClient(request, response)
+
+    const { data, error } = await cookieClient.auth.signInWithPassword({
+      email,
+      password,
+    })
 
     if (error) {
       logger.warn(`[AUTH] Login failed for ${email}: ${error.message}`)
@@ -26,12 +32,13 @@ export default class AuthController {
     }
 
     logger.info(`[AUTH] Login successful for ${email}`)
+
     return {
-      token: data.session?.access_token,
       user: {
         ...data.user,
         display_name: profile.display_name,
       },
+      message: 'Logged in successfully',
     }
   }
 
@@ -51,6 +58,7 @@ export default class AuthController {
 
     logger.info(`[AUTH] Registration attempt for ${email}`)
 
+    // Check if user already exists using service role client
     const { data: existingUsers, error: fetchError } = await supabase
       .from('users')
       .select('id')
@@ -89,8 +97,10 @@ export default class AuthController {
     return { message: 'Check your email for verification', user: data.user }
   }
 
-  public async logout({ response, logger }: HttpContext) {
-    const { error } = await supabase.auth.signOut()
+  public async logout({ request, response, logger }: HttpContext) {
+    const cookieClient = createCookieClient(request, response)
+
+    const { error } = await cookieClient.auth.signOut()
 
     if (error) {
       logger.error(`[AUTH] Logout failed: ${error.message}`)
