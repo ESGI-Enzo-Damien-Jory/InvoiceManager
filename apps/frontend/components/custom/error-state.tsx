@@ -1,7 +1,6 @@
 'use client'
 
 import { FC } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle } from 'lucide-react'
 

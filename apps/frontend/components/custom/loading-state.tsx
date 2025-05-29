@@ -1,6 +1,5 @@
 'use client'
 import { FC } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 
 interface LoadingStateProps {
