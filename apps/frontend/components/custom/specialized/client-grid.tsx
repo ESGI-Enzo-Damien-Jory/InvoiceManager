@@ -2,8 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Card } from '@/components/ui/card'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Mail, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +23,8 @@ export interface ClientGridProps {
     linkPrefix?: string
 }
 
+const formatNumber = (value: number) => value.toLocaleString('en-US')
+
 export default function ClientGrid({
     clients,
     statusColors,
@@ -37,7 +38,7 @@ export default function ClientGrid({
                     href={`${linkPrefix}/${client.id}`}
                     className="block"
                 >
-                    <div className="bg-white rounded-xl overflow-hidden shadow transition-all duration-200 hover:shadow-md hover:translate-y-[-2px]">
+                    <div className="bg-white rounded-xl overflow-hidden shadow transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
                         <div className="flex justify-between items-center p-4 border-b">
                             <div className="flex items-center gap-3">
                                 <Avatar className="h-10 w-10">
@@ -76,12 +77,12 @@ export default function ClientGrid({
                                     Total Revenue
                                 </div>
                                 <div className="font-semibold text-slate-900">
-                                    ${client.total_revenue.toLocaleString()}
+                                    ${formatNumber(client.total_revenue)}
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-between mb-3">
-                                <div className="text-slate-500 text-sm flex items-center">
+                                <div className="text-slate-500 text-sm">
                                     Invoices
                                 </div>
                                 <div className="font-semibold text-slate-900">
@@ -104,7 +105,7 @@ export default function ClientGrid({
                                             : 'text-slate-900'
                                     )}
                                 >
-                                    ${client.unpaid_amount.toLocaleString()}
+                                    ${formatNumber(client.unpaid_amount)}
                                 </div>
                             </div>
                         </div>
