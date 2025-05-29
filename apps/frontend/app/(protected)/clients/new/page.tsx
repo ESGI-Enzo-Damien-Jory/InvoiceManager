@@ -8,33 +8,56 @@ import ClientForm from '@/components/custom/specialized/client-form'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
+interface CreateClientDTO {
+    first_name: string
+    last_name: string
+    email: string
+    phone_number?: string
+    address?: string
+    avatar?: string
+}
+
 export default function NewClient() {
     const router = useRouter()
     const [error, setError] = React.useState<string | null>(null)
 
-    const handleCreateClient = async (values: any) => {
+    const handleCreateClient = async (
+        values: CreateClientDTO
+    ): Promise<void> => {
         setError(null)
 
-        const token = localStorage.getItem('token')
-        if (!token) {
-            throw new Error('Authentication token missing')
+        try {
+            const token = localStorage.getItem('token')
+            if (!token) {
+                throw new Error('Authentication token missing')
+            }
+
+            const res = await fetch(`${API_URL}/api/clients`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(values),
+            })
+
+            if (!res.ok) {
+                const data = await res
+                    .json()
+                    .catch(() => ({}) as { message?: string })
+                throw new Error(
+                    data.message || `Failed to create client: ${res.status}`
+                )
+            }
+
+            router.push('/clients')
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                setError(error.message)
+            } else {
+                setError(String(error))
+            }
         }
-
-        const res = await fetch(`${API_URL}/api/clients`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(values),
-        })
-
-        if (!res.ok) {
-            const data = await res.json().catch(() => ({}))
-            throw new Error(data.message || 'Failed to create client')
-        }
-
-        router.push('/clients')
     }
 
     return (
