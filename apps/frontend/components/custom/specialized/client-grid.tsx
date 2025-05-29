@@ -7,7 +7,7 @@ import { Mail, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface Client {
-    id: string
+    uuid: string
     first_name: string
     last_name: string
     email: string
@@ -19,7 +19,6 @@ export interface Client {
 
 export interface ClientGridProps {
     clients: Client[]
-    statusColors: Record<Client['status'], string>
     linkPrefix?: string
 }
 
@@ -27,15 +26,14 @@ const formatNumber = (value: number) => value.toLocaleString('en-US')
 
 export default function ClientGrid({
     clients,
-    statusColors,
     linkPrefix = '/clients',
 }: ClientGridProps) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {clients.map((client) => (
                 <Link
-                    key={client.id}
-                    href={`${linkPrefix}/${client.id}`}
+                    key={client.uuid}
+                    href={`${linkPrefix}/${client.uuid}`}
                     className="block"
                 >
                     <div className="bg-white rounded-xl overflow-hidden shadow transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
