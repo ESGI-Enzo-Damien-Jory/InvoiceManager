@@ -5,16 +5,25 @@ export function createCookieClient(request: Request, response: Response) {
   return createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
     cookies: {
       getAll() {
-        return getAllCookies(request)
+        const cookieHeader = request.header('cookie') || ''
+        const cookies = parseCookies(cookieHeader)
+
+        // Convert to the format Supabase expects
+        return Object.entries(cookies).map(([name, value]) => ({
+          name,
+          value,
+        }))
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookie(name, value, {
-            ...options,
-            maxAge: 24 * 60 * 60 * 1000,
-            httpOnly: true,
+          // Use AdonisJS plainCookie to avoid signing - this is key!
+          response.plainCookie(name, value, {
+            path: options?.path || '/',
+            domain: options?.domain,
+            maxAge: options?.maxAge ? `${options.maxAge}s` : undefined,
+            httpOnly: options?.httpOnly ?? false, // Important: let Supabase control this
             secure: options?.secure ?? process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: (options?.sameSite as 'strict' | 'lax' | 'none' | undefined) || 'lax',
           })
         })
       },
@@ -22,29 +31,20 @@ export function createCookieClient(request: Request, response: Response) {
   })
 }
 
-export function parseCookies(cookieHeader: string): Array<{ name: string; value: string }> {
+export function parseCookies(cookieHeader: string): Record<string, string> {
   if (!cookieHeader) {
-    return []
+    return {}
   }
 
-  return cookieHeader
-    .split(';')
-    .map((cookie) => {
-      const [name, ...rest] = cookie.trim().split('=')
-      if (!name) return null
+  const cookies: Record<string, string> = {}
 
+  cookieHeader.split(';').forEach((cookie) => {
+    const [name, ...rest] = cookie.trim().split('=')
+    if (name) {
       const value = rest.join('=')
-      return {
-        name: name.trim(),
-        value: decodeURIComponent(value || ''),
-      }
-    })
-    .filter(
-      (cookie): cookie is { name: string; value: string } => cookie !== null && cookie.name !== ''
-    )
-}
+      cookies[name.trim()] = decodeURIComponent(value || '')
+    }
+  })
 
-export function getAllCookies(request: Request): Array<{ name: string; value: string }> {
-  const cookieHeader = request.header('cookie') || request.request?.headers?.cookie
-  return parseCookies(cookieHeader || '')
+  return cookies
 }

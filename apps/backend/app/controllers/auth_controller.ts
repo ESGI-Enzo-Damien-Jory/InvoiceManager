@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { supabase } from '#start/supabase'
-import { createCookieClient } from '../utils/cookie_utils.js'
 import env from '#start/env'
 
 export default class AuthController {
@@ -8,9 +7,7 @@ export default class AuthController {
     const { email, password } = request.only(['email', 'password'])
     logger.info(`[AUTH] Login attempt for ${email}`)
 
-    const cookieClient = createCookieClient(request, response)
-
-    const { data, error } = await cookieClient.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -18,6 +15,23 @@ export default class AuthController {
     if (error) {
       logger.warn(`[AUTH] Login failed for ${email}: ${error.message}`)
       return response.unauthorized({ error: error.message })
+    }
+
+    if (data.session) {
+      const sessionData = {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_at: data.session.expires_at,
+        user_id: data.user.id,
+      }
+
+      response.plainCookie('supabase-session', JSON.stringify(sessionData), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: '24h',
+        path: '/',
+      })
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -97,15 +111,9 @@ export default class AuthController {
     return { message: 'Check your email for verification', user: data.user }
   }
 
-  public async logout({ request, response, logger }: HttpContext) {
-    const cookieClient = createCookieClient(request, response)
-
-    const { error } = await cookieClient.auth.signOut()
-
-    if (error) {
-      logger.error(`[AUTH] Logout failed: ${error.message}`)
-      return response.internalServerError({ error: error.message })
-    }
+  public async logout({ response, logger }: HttpContext) {
+    // Clear the session cookie
+    response.clearCookie('supabase-session')
 
     logger.info('[AUTH] Logout successful')
     return { message: 'Logged out' }
