@@ -10,6 +10,7 @@ import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import axios from 'axios'
 
 const formSchema = z
     .object({
@@ -40,19 +41,28 @@ export function RegisterForm({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const onSubmit = async (data: RegisterFormValues) => {
+    const onSubmit = async (data: RegisterFormValues): Promise<void> => {
         setLoading(true)
         setError(null)
 
         try {
-            await api.post('/api/auth/register', {
+            await api.post<void>('/api/auth/register', {
                 display_name: data.display_name,
                 email: data.email,
                 password: data.password,
             })
             router.push('/login')
-        } catch (err: any) {
-            setError(err.response?.data?.error ?? 'Something went wrong')
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                const backendMessage = (
+                    error.response?.data as { error?: string }
+                )?.error
+                setError(backendMessage ?? 'Something went wrong')
+            } else if (error instanceof Error) {
+                setError(error.message)
+            } else {
+                setError('Something went wrong')
+            }
         } finally {
             setLoading(false)
         }
