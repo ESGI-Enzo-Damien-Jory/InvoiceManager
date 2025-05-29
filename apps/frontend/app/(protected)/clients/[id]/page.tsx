@@ -18,7 +18,6 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Progress } from '@/components/ui/progress'
 import {
     Mail,
     Phone,
@@ -34,9 +33,7 @@ import {
     DollarSign,
     Clock,
     CheckCircle,
-    Building,
     Globe,
-    Star,
     TrendingUp,
     Activity,
 } from 'lucide-react'
@@ -55,45 +52,81 @@ export default function ClientPage() {
     const [actionError, setActionError] = useState<string | null>(null)
 
     useEffect(() => {
-        async function load() {
+        async function load(): Promise<void> {
             if (!id) {
                 setError('No client selected.')
                 setLoading(false)
                 return
             }
+
             setLoading(true)
             try {
                 const token = localStorage.getItem('token')
-                if (!token) throw new Error('Authentication required')
+                if (!token) {
+                    throw new Error('Authentication required')
+                }
+
                 const res = await fetch(`${API_URL}/api/clients/${id}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 })
-                if (!res.ok) throw new Error('Failed to load client')
-                setClient(await res.json())
-            } catch (err: any) {
-                setError(err.message)
+
+                if (!res.ok) {
+                    throw new Error(
+                        `Failed to load client: ${res.status} ${res.statusText}`
+                    )
+                }
+
+                const data: Client = await res.json()
+                setClient(data)
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    setError(error.message)
+                } else {
+                    setError(String(error))
+                }
             } finally {
                 setLoading(false)
             }
         }
-        load()
-    }, [id])
 
-    const handleDelete = async () => {
-        if (!client) return
+        load()
+    }, [id, setClient, setLoading, setError])
+
+    const handleDelete = async (): Promise<void> => {
+        if (!client) {
+            return
+        }
+
         setActionLoading(true)
         setActionError(null)
+
         try {
             const token = localStorage.getItem('token')
-            if (!token) throw new Error('Authentication required')
-            const res = await fetch(`${API_URL}/api/clients/${client.id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            if (!res.ok) throw new Error('Delete operation failed')
+            if (!token) {
+                throw new Error('Authentication required')
+            }
+
+            const res = await fetch(
+                `${API_URL}/api/clients/${encodeURIComponent(client.id)}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            )
+
+            if (!res.ok) {
+                throw new Error(`Delete operation failed: ${res.status}`)
+            }
+
             router.push('/clients')
-        } catch (err: any) {
-            setActionError(err.message)
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                setActionError(error.message)
+            } else {
+                setActionError(String(error))
+            }
         } finally {
             setActionLoading(false)
         }
