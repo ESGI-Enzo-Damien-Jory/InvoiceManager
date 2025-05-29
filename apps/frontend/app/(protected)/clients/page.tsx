@@ -51,21 +51,33 @@ export default function ClientsPage() {
     const loadClients = async () => {
         setLoading(true)
         setError(null)
+
         const token = getToken()
         if (!token) {
             setError('Auth token missing. Please log in.')
             setLoading(false)
             return
         }
+
         try {
             const res = await fetch(`${API_URL}/api/clients`, {
                 headers: { Authorization: `Bearer ${token}` },
             })
-            if (!res.ok) throw new Error('Failed to fetch clients')
+
+            if (!res.ok) {
+                throw new Error(
+                    `Failed to fetch clients: ${res.status} ${res.statusText}`
+                )
+            }
+
             const data: Client[] = await res.json()
             setClients(data)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                setError(error.message)
+            } else {
+                setError(String(error))
+            }
         } finally {
             setLoading(false)
         }
@@ -73,7 +85,7 @@ export default function ClientsPage() {
 
     useEffect(() => {
         loadClients()
-    }, [])
+    }, [loadClients])
 
     const filtered = useMemo(() => {
         const term = searchTerm.toLowerCase()
