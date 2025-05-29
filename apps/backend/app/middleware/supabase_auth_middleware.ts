@@ -1,28 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { createServerClient } from '@supabase/ssr'
-import { getAllCookies } from '../utils/cookie_utils.js'
+import { createCookieClient } from '../utils/cookie_utils.js'
 
 export default class SupabaseAuthMiddleware {
   async handle({ request, response, logger }: HttpContext, next: NextFn) {
-    const supabase = createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
-      cookies: {
-        getAll() {
-          return getAllCookies(request)
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookie(name, value, {
-              ...options,
-              maxAge: 24 * 60 * 60 * 1000,
-              httpOnly: true,
-              secure: options?.secure ?? process.env.NODE_ENV === 'production',
-              sameSite: 'strict',
-            })
-          })
-        },
-      },
-    })
+    const supabase = createCookieClient(request, response)
 
     try {
       const {
