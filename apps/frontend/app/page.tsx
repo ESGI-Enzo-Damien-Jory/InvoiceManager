@@ -1,3 +1,3 @@
-export default function Hello() {
+export default function HomePage() {
     return <>Hello</>
 }
