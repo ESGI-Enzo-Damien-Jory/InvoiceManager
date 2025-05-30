@@ -25,7 +25,6 @@ export interface Invoice {
 
 export interface InvoiceTableProps {
     invoices: Invoice[]
-    statusColors: Record<Invoice['status'], string>
     invoiceLinkPrefix?: string
     clientLinkPrefix?: string
 }
@@ -53,7 +52,6 @@ const getStatusStyle = (status: Invoice['status']) => {
 
 export default function InvoiceTable({
     invoices,
-    statusColors,
     invoiceLinkPrefix = '/invoices',
     clientLinkPrefix = '/clients',
 }: InvoiceTableProps) {

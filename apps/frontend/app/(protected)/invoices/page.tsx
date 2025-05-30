@@ -135,13 +135,6 @@ const sampleInvoices: Invoice[] = [
     },
 ]
 
-const statusColors: Record<Invoice['status'], string> = {
-    Paid: 'bg-green-100 text-green-800',
-    Sent: 'bg-blue-100 text-blue-800',
-    Pending: 'bg-yellow-100 text-yellow-800',
-    Overdue: 'bg-red-100 text-red-800',
-}
-
 export default function InvoicesPage() {
     const allInvoices = useRef(sampleInvoices).current
 
@@ -216,7 +209,6 @@ export default function InvoicesPage() {
 
                 <InvoiceTable
                     invoices={currentInvoices}
-                    statusColors={statusColors}
                     invoiceLinkPrefix="/invoices"
                     clientLinkPrefix="/clients"
                 />

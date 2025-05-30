@@ -4,6 +4,7 @@ import { z } from 'zod'
 import InvoiceForm from '@/components/custom/specialized/invoice-form'
 import Topbar from '@/components/custom/top-bar'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formSchema = z.object({
     title: z.string().min(5),
     clientId: z.string().min(1),
