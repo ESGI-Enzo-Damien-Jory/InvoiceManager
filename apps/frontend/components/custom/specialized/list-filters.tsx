@@ -24,7 +24,7 @@ interface ListFiltersProps<T> {
     setDateRange: (range: DateRange | undefined) => void
 }
 
-export default function ListFilters<T extends Record<string, any>>({
+export default function ListFilters<T extends Record<string, unknown>>({
     subtitle,
     items,
     searchKeys,
@@ -42,7 +42,7 @@ export default function ListFilters<T extends Record<string, any>>({
 
         if (newSearchTerm.trim()) {
             const result = matchSorter(items, newSearchTerm, {
-                keys: searchKeys as string[],
+                keys: searchKeys.map((k) => k as string),
             })
             onFiltered(result)
         } else {

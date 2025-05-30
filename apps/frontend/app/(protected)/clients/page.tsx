@@ -1,5 +1,10 @@
 'use client'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, {
+    useState,
+    useEffect,
+    useMemo,
+    useCallback, // ← on importe useCallback
+} from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Users, UserPlus, UserCheck, DollarSign } from 'lucide-react'
@@ -40,15 +45,16 @@ export default function ClientsPage() {
 
     const itemsPerPage = 6
 
-    const getToken = () => {
+    // on peut directement lire le token ici
+    const getToken = useCallback((): string | null => {
         try {
             return localStorage.getItem('token')
         } catch {
             return null
         }
-    }
+    }, [])
 
-    const loadClients = async () => {
+    const loadClients = useCallback(async (): Promise<void> => {
         setLoading(true)
         setError(null)
 
@@ -72,16 +78,16 @@ export default function ClientsPage() {
 
             const data: Client[] = await res.json()
             setClients(data)
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                setError(error.message)
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message)
             } else {
-                setError(String(error))
+                setError(String(err))
             }
         } finally {
             setLoading(false)
         }
-    }
+    }, [getToken])
 
     useEffect(() => {
         loadClients()
@@ -167,7 +173,12 @@ export default function ClientsPage() {
                                 <DollarSign className="h-5 w-5 text-yellow-500" />
                             ),
                             label: 'Total Unpaid',
-                            value: `$${numFmt.format(clients.reduce((sum, c) => sum + c.unpaid_amount, 0))}`,
+                            value: `$${numFmt.format(
+                                clients.reduce(
+                                    (sum, c) => sum + c.unpaid_amount,
+                                    0
+                                )
+                            )}`,
                         },
                     ].map(({ icon, label, value }) => (
                         <Card key={label}>

@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -46,7 +45,6 @@ export default function ClientForm({
     cancelHref = '/clients',
     submitButtonText = 'Submit',
 }: ClientFormProps) {
-    const router = useRouter()
     const [submitError, setSubmitError] = React.useState<string | null>(null)
 
     const form = useForm<FormData>({
@@ -63,7 +61,6 @@ export default function ClientForm({
 
     const watchFields = form.watch()
 
-    /** two helpers for initials fallback */
     const getInitials = (first: string, last: string) =>
         `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
     const getRandomColor = () => {
@@ -81,12 +78,16 @@ export default function ClientForm({
     }
     const [avatarBg] = React.useState(getRandomColor())
 
-    const handleFormSubmit = async (values: FormData) => {
+    const handleFormSubmit = async (values: FormData): Promise<void> => {
         setSubmitError(null)
         try {
             await onSubmit(values)
-        } catch (err: any) {
-            setSubmitError(err.message || 'An unexpected error occurred.')
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                setSubmitError(error.message)
+            } else {
+                setSubmitError('An unexpected error occurred.')
+            }
         }
     }
 
@@ -149,7 +150,7 @@ export default function ClientForm({
                                         />
                                     </FormControl>
                                     <FormDescription>
-                                        Client's email address.
+                                        Client&apos;s email address.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
