@@ -2,60 +2,60 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import api from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { useQueryClient } from '@tanstack/react-query'
+import { useLogin, useUser } from '@/hooks/use-auth'
+import { getUser } from '@/services/auth' // for prefetching
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import axios from 'axios'
-
-interface LoginResponse {
-    token: string
-}
+import { cn } from '@/lib/utils'
 
 export function LoginForm({
     className,
     ...props
 }: React.ComponentProps<'form'>) {
     const router = useRouter()
+    const queryClient = useQueryClient()
+
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const handleSubmit = async (
-        e: React.FormEvent<HTMLFormElement>
-    ): Promise<void> => {
+    const { loginMutate, status } = useLogin()
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        setLoading(true)
         setError(null)
 
-        try {
-            const response = await api.post<LoginResponse>('/api/auth/login', {
-                email,
-                password,
-            })
-            const { token } = response.data
+        loginMutate(
+            { email, password },
+            {
+                onSuccess: async () => {
+                    try {
+                        await queryClient.fetchQuery({
+                            queryKey: ['currentUserProfile'],
+                            queryFn: getUser,
+                        })
+                    } catch (fetchError) {
+                        console.error('Prefetch /users failed:', fetchError)
+                    }
 
-            if (token) {
-                localStorage.setItem('token', token)
+                    router.push('/dashboard')
+                },
+                onError: (err: unknown) => {
+                    if (axios.isAxiosError(err)) {
+                        const payload =
+                            (err.response?.data as { error?: string }) || {}
+                        setError(payload.error ?? err.message)
+                    } else if (err instanceof Error) {
+                        setError(err.message)
+                    } else {
+                        setError(String(err))
+                    }
+                },
             }
-
-            router.push('/dashboard')
-        } catch (error: unknown) {
-            if (axios.isAxiosError(error)) {
-                const backendMessage = (
-                    error.response?.data as { error?: string }
-                )?.error
-                setError(backendMessage ?? error.message)
-            } else if (error instanceof Error) {
-                setError(error.message)
-            } else {
-                setError(String(error))
-            }
-        } finally {
-            setLoading(false)
-        }
+        )
     }
 
     return (
@@ -112,8 +112,12 @@ export function LoginForm({
                     />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Logging in...' : 'Login'}
+                <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={status === 'pending'}
+                >
+                    {status === 'pending' ? 'Logging in...' : 'Login'}
                 </Button>
 
                 <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
@@ -122,7 +126,11 @@ export function LoginForm({
                     </span>
                 </div>
 
-                <Button variant="outline" className="w-full" disabled={loading}>
+                <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={status === 'pending'}
+                >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         height="24"
@@ -151,7 +159,6 @@ export function LoginForm({
                 </Button>
             </div>
 
-            {/* Signup link */}
             <div className="text-center text-sm">
                 Don&apos;t have an account?{' '}
                 <a href="/register" className="underline underline-offset-4">
