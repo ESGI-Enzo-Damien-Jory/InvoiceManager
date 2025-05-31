@@ -129,6 +129,7 @@ export default function ClientsPage() {
                 </Topbar>
                 <CommonCenterLayout>
                     <EmptyState
+                        icon={<Users className="h-12 w-12 text-muted-foreground" />}
                         title="No clients yet"
                         description="Start by adding your first client to track invoices and revenue."
                         linkText="Add a client"
