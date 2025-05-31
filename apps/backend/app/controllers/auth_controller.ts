@@ -34,26 +34,8 @@ export default class AuthController {
       })
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .select('display_name')
-      .eq('id', data.user.id)
-      .single()
-
-    if (profileError) {
-      logger.error(`[AUTH] Failed to fetch profile for ${email}: ${profileError.message}`)
-      return response.internalServerError({ error: 'Failed to retrieve user profile' })
-    }
-
     logger.info(`[AUTH] Login successful for ${email}`)
-
-    return {
-      user: {
-        ...data.user,
-        display_name: profile.display_name,
-      },
-      message: 'Logged in successfully',
-    }
+    return { message: 'Logged in successfully' }
   }
 
   public async register({ request, response, logger }: HttpContext) {
