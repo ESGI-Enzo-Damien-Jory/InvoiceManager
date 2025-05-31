@@ -120,13 +120,6 @@ export default function ClientsPage() {
     if (filtered.length === 0)
         return (
             <CommonPageLayout>
-                <Topbar subtitle="Overview" title="Clients">
-                    <Link href="/clients/new">
-                        <Button>
-                            <UserPlus className="mr-2 h-5 w-5" /> New Client
-                        </Button>
-                    </Link>
-                </Topbar>
                 <CommonCenterLayout>
                     <EmptyState
                         icon={<Users className="h-12 w-12 text-muted-foreground" />}

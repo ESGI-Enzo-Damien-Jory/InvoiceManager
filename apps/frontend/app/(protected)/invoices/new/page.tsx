@@ -30,7 +30,6 @@ export default function NewInvoice() {
 
     return (
         <div className="h-screen w-full">
-            <Topbar subtitle="Create" title="New Invoice" />
             <div className="flex">
                 <InvoiceForm
                     onSubmit={handleSubmit}

@@ -62,8 +62,6 @@ export default function NewClient() {
 
     return (
         <div className="h-screen w-full flex flex-col">
-            <Topbar subtitle="Create" title="New Client" />
-
             {error && (
                 <ErrorState message={error} onRetry={() => setError(null)} />
             )}

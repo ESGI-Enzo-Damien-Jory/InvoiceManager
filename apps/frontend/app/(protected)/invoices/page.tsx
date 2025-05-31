@@ -185,16 +185,6 @@ export default function InvoicesPage() {
 
     return (
         <CommonPageLayout>
-            <Topbar subtitle="Overview" title="Invoices">
-                <Button>Send Statements</Button>
-                <Button>Import</Button>
-                <Link href="/invoices/new">
-                    <Button>
-                        <Plus className="mr-2" /> New Invoice
-                    </Button>
-                </Link>
-            </Topbar>
-
             <CommonCenterLayout>
                 <CardStatsList />
 
