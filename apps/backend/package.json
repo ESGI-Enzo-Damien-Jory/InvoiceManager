@@ -60,6 +60,7 @@
     "@pdfme/common": "^5.3.19",
     "@pdfme/generator": "^5.3.19",
     "@pdfme/schemas": "^5.3.19",
+    "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
     "@vinejs/vine": "^3.0.0",
     "dotenv": "^16.5.0",

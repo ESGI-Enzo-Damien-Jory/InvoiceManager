@@ -7,11 +7,31 @@ export default class AuthController {
     const { email, password } = request.only(['email', 'password'])
     logger.info(`[AUTH] Login attempt for ${email}`)
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
     if (error) {
       logger.warn(`[AUTH] Login failed for ${email}: ${error.message}`)
       return response.unauthorized({ error: error.message })
+    }
+
+    if (data.session) {
+      const sessionData = {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_at: data.session.expires_at,
+        user_id: data.user.id,
+      }
+
+      response.plainCookie('supabase-session', JSON.stringify(sessionData), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: '24h',
+        path: '/',
+      })
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -26,12 +46,13 @@ export default class AuthController {
     }
 
     logger.info(`[AUTH] Login successful for ${email}`)
+
     return {
-      token: data.session?.access_token,
       user: {
         ...data.user,
         display_name: profile.display_name,
       },
+      message: 'Logged in successfully',
     }
   }
 
@@ -90,12 +111,7 @@ export default class AuthController {
   }
 
   public async logout({ response, logger }: HttpContext) {
-    const { error } = await supabase.auth.signOut()
-
-    if (error) {
-      logger.error(`[AUTH] Logout failed: ${error.message}`)
-      return response.internalServerError({ error: error.message })
-    }
+    response.clearCookie('supabase-session')
 
     logger.info('[AUTH] Logout successful')
     return { message: 'Logged out' }
