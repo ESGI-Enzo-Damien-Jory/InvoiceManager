@@ -4,14 +4,9 @@ import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import { isAfter, isBefore, startOfDay, endOfDay } from 'date-fns'
 import { DateRange } from 'react-day-picker'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
-import Topbar from '@/components/custom/top-bar'
-import CommonPageLayout from '@/components/custom/common-page-layout'
 import Pagination from '@/components/custom/pagination'
 import CardStatsList from '@/components/custom/specialized/card-stats-list'
 import ListFilters from '@/components/custom/specialized/list-filters'
-import CommonCenterLayout from '@/components/custom/common-center-layout'
 import InvoiceTable from '@/components/custom/specialized/invoice-table'
 
 interface Invoice {
@@ -184,25 +179,23 @@ export default function InvoicesPage() {
     }
 
     return (
-        <CommonPageLayout>
-            <CommonCenterLayout>
-                <CardStatsList />
+        <>
+            <CardStatsList />
 
-                <ListFilters<Invoice>
-                    subtitle="Invoice List"
-                    items={allInvoices}
-                    searchKeys={['id', 'title', 'client', 'status']}
-                    onFiltered={handleSearch}
-                    dateRange={dateRange}
-                    setDateRange={handleDateRangeChange}
-                />
+            <ListFilters<Invoice>
+                subtitle="Invoice List"
+                items={allInvoices}
+                searchKeys={['id', 'title', 'client', 'status']}
+                onFiltered={handleSearch}
+                dateRange={dateRange}
+                setDateRange={handleDateRangeChange}
+            />
 
-                <InvoiceTable
-                    invoices={currentInvoices}
-                    invoiceLinkPrefix="/invoices"
-                    clientLinkPrefix="/clients"
-                />
-            </CommonCenterLayout>
+            <InvoiceTable
+                invoices={currentInvoices}
+                invoiceLinkPrefix="/invoices"
+                clientLinkPrefix="/clients"
+            />
 
             <Pagination
                 currentPage={currentPage}
@@ -212,6 +205,6 @@ export default function InvoicesPage() {
                 endIndex={endIndex}
                 totalEntries={displayedInvoices.length}
             />
-        </CommonPageLayout>
+        </>
     )
 }
