@@ -36,18 +36,15 @@ export function NavUser() {
     const {
         data: userProfile,
         status: userStatus,
-        error: userError,
     } = useUser()
 
     const {
         logoutMutate,
         status: logoutStatus,
-        error: logoutError,
     } = useLogout()
     const isLoggingOut = logoutStatus === 'pending'
 
     React.useEffect(() => {
-        // If fetching the user failed (e.g. 401), redirect to /login
         if (userStatus === 'error') {
             router.push('/login')
         }
