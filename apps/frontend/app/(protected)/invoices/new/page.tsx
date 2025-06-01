@@ -2,7 +2,6 @@
 
 import { z } from 'zod'
 import InvoiceForm from '@/components/custom/specialized/invoice-form'
-import Topbar from '@/components/custom/top-bar'
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formSchema = z.object({

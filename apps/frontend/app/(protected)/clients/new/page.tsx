@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import Topbar from '@/components/custom/top-bar'
 import ErrorState from '@/components/custom/error-state'
 import ClientForm from '@/components/custom/specialized/client-form'
 

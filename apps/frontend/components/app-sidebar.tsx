@@ -13,7 +13,6 @@ import {
     IconFileWord,
     IconHelp,
     IconInnerShadowTop,
-    IconReceipt,
     IconReceipt2,
     IconReport,
     IconSearch,
