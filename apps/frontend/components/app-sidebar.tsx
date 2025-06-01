@@ -39,39 +39,39 @@ const data = {
     navMain: [
         {
             title: 'Dashboard',
-            url: 'dashboard',
+            url: '/dashboard',
             icon: IconDashboard,
         },
         {
             title: 'Invoices',
-            url: 'invoices',
+            url: '/invoices',
             icon: IconFileText,
         },
         {
             title: 'Analytics',
-            url: 'analytics',
+            url: '/analytics',
             icon: IconChartBar,
         },
         {
             title: 'Items',
-            url: 'items',
+            url: '/items',
             icon: IconBox,
         },
         {
             title: 'Clients',
-            url: 'clients',
+            url: '/clients',
             icon: IconUsers,
         },
     ],
     navSecondary: [
         {
             title: 'Settings',
-            url: 'settings',
+            url: '/settings',
             icon: IconSettings,
         },
         {
             title: 'Get Help',
-            url: 'help',
+            url: '/help',
             icon: IconHelp,
         },
         {
@@ -83,39 +83,39 @@ const data = {
     documents: [
         {
             name: 'Documents',
-            url: 'documents',
+            url: '/documents',
             icon: IconFileWord,
         },
         {
             name: 'Templates',
-            url: 'templates',
+            url: '/templates',
             icon: IconDatabase,
         },
         {
             name: 'Reports',
-            url: 'reports',
+            url: '/reports',
             icon: IconReport,
         },
     ],
     treasury: [
         {
             name: 'Payments',
-            url: 'payments',
+            url: '/payments',
             icon: IconCash,
         },
         {
             name: 'Forecast',
-            url: 'forecast',
+            url: '/forecast',
             icon: IconChartLine,
         },
         {
             name: 'Expenses',
-            url: 'expenses',
+            url: '/expenses',
             icon: IconReceipt2,
         },
         {
             name: 'Accounting Exports',
-            url: 'accounting-exports',
+            url: '/accounting-exports',
             icon: IconFileExport,
         },
     ],
