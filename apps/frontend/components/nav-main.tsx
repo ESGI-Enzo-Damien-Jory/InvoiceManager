@@ -46,7 +46,7 @@ export function NavMain({
                 <SidebarMenu>
                     {items.map((item) => (
                         <SidebarMenuItem key={item.title}>
-                            <Link href={item.title.toLowerCase()}>
+                            <Link href={item.url}>
                                 <SidebarMenuButton
                                     tooltip={item.title}
                                     className="cursor-pointer"
