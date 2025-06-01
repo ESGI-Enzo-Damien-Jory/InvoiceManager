@@ -1,5 +1,3 @@
-// hooks/use-auth.ts
-
 import {
     useMutation,
     useQuery,
