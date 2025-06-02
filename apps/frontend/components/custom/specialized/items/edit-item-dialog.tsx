@@ -1,3 +1,4 @@
+// edit-item-dialog.tsx
 import { DialogHeader, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import {
@@ -8,6 +9,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Loader2 } from 'lucide-react'
+import { Item } from '@/types/items'
 
 interface FormData {
     name: string
@@ -16,7 +19,14 @@ interface FormData {
 
 interface UpdateMutation {
     isPending: boolean
-    mutateAsync: (data: any) => Promise<any>
+    mutateAsync: (data: {
+        id: string
+        payload: {
+            name?: string
+            price?: number
+            avatarHex?: string | null
+        }
+    }) => Promise<Item>
 }
 
 interface EditItemDialogProps {
@@ -25,7 +35,7 @@ interface EditItemDialogProps {
     handleEditSubmit: (e: React.FormEvent) => void
     formData: FormData
     setFormData: (data: FormData) => void
-    setEditingItem: (item: any) => void
+    setEditingItem: React.Dispatch<React.SetStateAction<Item | null>>
     resetForm: () => void
     updateMutation: UpdateMutation
 }
@@ -100,6 +110,7 @@ export default function EditItemDialog({
                             type="button"
                             variant="outline"
                             onClick={handleCancel}
+                            disabled={updateMutation.isPending}
                             className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
                             Cancel
@@ -107,12 +118,17 @@ export default function EditItemDialog({
                         <Button
                             type="submit"
                             disabled={updateMutation.isPending}
-                            variant={"ghost"}
-                            className="text-foreground shadow-sm hover:bg-muted  font-medium"
+                            variant="ghost"
+                            className="text-foreground shadow-sm hover:bg-muted font-medium"
                         >
-                            {updateMutation.isPending
-                                ? 'Saving...'
-                                : 'Save Changes'}
+                            {updateMutation.isPending ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                'Save Changes'
+                            )}
                         </Button>
                     </DialogFooter>
                 </form>

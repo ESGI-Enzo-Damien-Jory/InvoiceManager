@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Loader2 } from 'lucide-react'
 
 interface FormData {
     name: string
@@ -16,7 +17,7 @@ interface FormData {
 
 interface CreateMutation {
     isPending: boolean
-    mutateAsync: (data: any) => Promise<any>
+    mutateAsync: (data: { name: string; price: number }) => Promise<unknown>
 }
 
 interface CreateItemDialogProps {
@@ -49,8 +50,7 @@ export default function CreateItemDialog({
                 <DialogHeader>
                     <DialogTitle>Create New Item</DialogTitle>
                     <DialogDescription>
-                        Add a new item to your inventory. Enter the name and
-                        price below.
+                        Add a new item to your inventory.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleCreateSubmit}>
@@ -69,7 +69,9 @@ export default function CreateItemDialog({
                                     })
                                 }
                                 className="col-span-3"
+                                placeholder="Enter item name"
                                 required
+                                autoFocus
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
@@ -92,6 +94,7 @@ export default function CreateItemDialog({
                                     })
                                 }
                                 className="col-span-3"
+                                placeholder="0.00"
                                 required
                             />
                         </div>
@@ -101,6 +104,7 @@ export default function CreateItemDialog({
                             type="button"
                             variant="outline"
                             onClick={handleCancel}
+                            disabled={createMutation.isPending}
                             className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
                             Cancel
@@ -111,9 +115,14 @@ export default function CreateItemDialog({
                             variant="ghost"
                             className="text-foreground shadow-sm hover:bg-muted font-medium"
                         >
-                            {createMutation.isPending
-                                ? 'Creating...'
-                                : 'Create Item'}
+                            {createMutation.isPending ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Creating...
+                                </>
+                            ) : (
+                                'Create Item'
+                            )}
                         </Button>
                     </DialogFooter>
                 </form>
