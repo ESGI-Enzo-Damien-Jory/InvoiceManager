@@ -34,35 +34,39 @@ export function useLogin(): {
     status: 'idle' | 'pending' | 'error' | 'success'
     error: Error | null
     reset: () => void
-  } {
+} {
     const queryClient = useQueryClient()
-  
+
     // We explicitly capture the exact `UseMutationResult<>` so that
     // its `mutate` method has the correct overloaded signature.
-    const mutation: UseMutationResult<LoginResponse, Error, LoginPayload, unknown> =
-      useMutation({
+    const mutation: UseMutationResult<
+        LoginResponse,
+        Error,
+        LoginPayload,
+        unknown
+    > = useMutation({
         mutationFn: (payload: LoginPayload) => loginUser(payload),
-  
+
         onSuccess: (_data: LoginResponse) => {
-          // Invalidate any queries that depend on being authenticated:
-          queryClient.invalidateQueries({ queryKey: ['items'] })
-          // Invalidate the user‐profile query so that useUser() refetches GET /users
-          queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] })
+            // Invalidate any queries that depend on being authenticated:
+            queryClient.invalidateQueries({ queryKey: ['items'] })
+            // Invalidate the user‐profile query so that useUser() refetches GET /users
+            queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] })
         },
-  
+
         onError: (error: Error) => {
-          console.error('[useLogin] Login failed:', error.message)
+            console.error('[useLogin] Login failed:', error.message)
         },
-      })
-  
+    })
+
     return {
-      // Expose the `mutate` method directly (it is a UseMutateFunction<...>).
-      loginMutate: mutation.mutate,
-      status: mutation.status,
-      error: mutation.error ?? null,
-      reset: mutation.reset,
+        // Expose the `mutate` method directly (it is a UseMutateFunction<...>).
+        loginMutate: mutation.mutate,
+        status: mutation.status,
+        error: mutation.error ?? null,
+        reset: mutation.reset,
     }
-  }
+}
 
 /**
  * Hook: useRegister

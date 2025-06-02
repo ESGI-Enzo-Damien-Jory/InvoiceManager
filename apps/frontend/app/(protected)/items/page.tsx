@@ -100,7 +100,6 @@ interface TableMeta {
     isUpdating: string | null
 }
 
-
 const columns: ColumnDef<Item>[] = [
     {
         id: 'select',
@@ -597,7 +596,7 @@ export default function ItemsPage() {
                 </div>
 
                 {items.length === 0 ? (
-                    <div className='h-full flex justify-center'>
+                    <div className="h-full flex justify-center">
                         <EmptyState
                             title="No items yet"
                             description="You haven't created any items. Click 'New Item' above to get started."
@@ -988,8 +987,8 @@ export default function ItemsPage() {
                             <AlertDialogTitle>Delete Item</AlertDialogTitle>
                             <AlertDialogDescription>
                                 Are you sure you want to delete &quot;
-                                {itemToDelete?.name}&quot;? This action cannot be
-                                undone.
+                                {itemToDelete?.name}&quot;? This action cannot
+                                be undone.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

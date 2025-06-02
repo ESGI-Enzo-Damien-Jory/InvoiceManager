@@ -33,15 +33,9 @@ export function NavUser() {
     const router = useRouter()
     const { isMobile } = useSidebar()
 
-    const {
-        data: userProfile,
-        status: userStatus,
-    } = useUser()
+    const { data: userProfile, status: userStatus } = useUser()
 
-    const {
-        logoutMutate,
-        status: logoutStatus,
-    } = useLogout()
+    const { logoutMutate, status: logoutStatus } = useLogout()
     const isLoggingOut = logoutStatus === 'pending'
 
     React.useEffect(() => {
