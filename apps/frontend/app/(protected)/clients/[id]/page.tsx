@@ -37,7 +37,6 @@ import {
     TrendingUp,
     Activity,
 } from 'lucide-react'
-import CommonPageLayout from '@/components/custom/common-page-layout'
 import type { Client } from '@/types/clients'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!
@@ -178,7 +177,7 @@ export default function ClientPage() {
 
     if (loading) {
         return (
-            <CommonPageLayout>
+            <div>
                 <div className="container mx-auto max-w-6xl px-4 py-8">
                     <div className="mb-8">
                         <div className="flex items-center gap-6 mb-6">
@@ -226,13 +225,13 @@ export default function ClientPage() {
                         </div>
                     </div>
                 </div>
-            </CommonPageLayout>
+            </div>
         )
     }
 
     if (error) {
         return (
-            <CommonPageLayout>
+            <div>
                 <div className="container mx-auto max-w-6xl px-4 py-8">
                     <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
                         <AlertCircle className="h-16 w-16 text-destructive" />
@@ -248,13 +247,13 @@ export default function ClientPage() {
                         </Button>
                     </div>
                 </div>
-            </CommonPageLayout>
+            </div>
         )
     }
 
     if (!client) {
         return (
-            <CommonPageLayout>
+            <div>
                 <div className="container mx-auto max-w-6xl px-4 py-8">
                     <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
                         <User className="h-16 w-16 text-muted-foreground" />
@@ -271,12 +270,12 @@ export default function ClientPage() {
                         </Button>
                     </div>
                 </div>
-            </CommonPageLayout>
+            </div>
         )
     }
 
     return (
-        <CommonPageLayout>
+        <div>
             <div className="container mx-auto max-w-6xl px-4 py-8">
                 {/* Header Section */}
                 <div className="mb-8">
@@ -676,6 +675,6 @@ export default function ClientPage() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </CommonPageLayout>
+        </div>
     )
 }

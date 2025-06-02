@@ -2,7 +2,6 @@
 
 import { z } from 'zod'
 import InvoiceForm from '@/components/custom/specialized/invoice-form'
-import Topbar from '@/components/custom/top-bar'
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formSchema = z.object({
@@ -30,7 +29,6 @@ export default function NewInvoice() {
 
     return (
         <div className="h-screen w-full">
-            <Topbar subtitle="Create" title="New Invoice" />
             <div className="flex">
                 <InvoiceForm
                     onSubmit={handleSubmit}

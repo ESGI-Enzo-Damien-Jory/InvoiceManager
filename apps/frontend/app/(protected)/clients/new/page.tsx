@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import Topbar from '@/components/custom/top-bar'
 import ErrorState from '@/components/custom/error-state'
 import ClientForm from '@/components/custom/specialized/client-form'
 
@@ -62,8 +61,6 @@ export default function NewClient() {
 
     return (
         <div className="h-screen w-full flex flex-col">
-            <Topbar subtitle="Create" title="New Client" />
-
             {error && (
                 <ErrorState message={error} onRetry={() => setError(null)} />
             )}

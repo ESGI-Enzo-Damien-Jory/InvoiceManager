@@ -24,14 +24,14 @@ interface ListFiltersProps<T> {
     setDateRange: (range: DateRange | undefined) => void
 }
 
-export default function ListFilters<T extends Record<string, unknown>>({
+export default function ListFilters<Invoice>({
     subtitle,
     items,
     searchKeys,
     onFiltered,
     dateRange,
     setDateRange,
-}: ListFiltersProps<T>) {
+}: ListFiltersProps<Invoice>) {
     const [searchTerm, setSearchTerm] = useState('')
     const from = dateRange?.from
     const to = dateRange?.to
