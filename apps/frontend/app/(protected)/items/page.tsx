@@ -93,6 +93,14 @@ interface ItemFormData {
     price: string
 }
 
+interface TableMeta {
+    onEdit: (item: Item) => void
+    onDelete: (item: Item) => void
+    isDeleting: string | null
+    isUpdating: string | null
+}
+
+
 const columns: ColumnDef<Item>[] = [
     {
         id: 'select',
@@ -209,7 +217,7 @@ const columns: ColumnDef<Item>[] = [
         id: 'actions',
         header: () => <div className="text-center font-semibold">Actions</div>,
         cell: ({ row, table }) => {
-            const meta = table.options.meta as any
+            const meta = table.options.meta as TableMeta | undefined
             return (
                 <div className="flex items-center justify-center gap-1">
                     <Button
@@ -589,15 +597,17 @@ export default function ItemsPage() {
                 </div>
 
                 {items.length === 0 ? (
-                    <EmptyState
-                        title="No items yet"
-                        description="You haven't created any items. Click 'New Item' above to get started."
-                        linkText="New Item"
-                        onLinkClick={openCreateDialog}
-                        icon={
-                            <Plus className="h-12 w-12 text-muted-foreground" />
-                        }
-                    />
+                    <div className='h-full flex justify-center'>
+                        <EmptyState
+                            title="No items yet"
+                            description="You haven't created any items. Click 'New Item' above to get started."
+                            linkText="New Item"
+                            onLinkClick={openCreateDialog}
+                            icon={
+                                <Plus className="h-12 w-12 text-muted-foreground" />
+                            }
+                        />
+                    </div>
                 ) : (
                     <>
                         {/* Table with Context Menu */}
@@ -977,8 +987,8 @@ export default function ItemsPage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Delete Item</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Are you sure you want to delete "
-                                {itemToDelete?.name}"? This action cannot be
+                                Are you sure you want to delete &quot;
+                                {itemToDelete?.name}&quot;? This action cannot be
                                 undone.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
