@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { cn } from '@/lib/utils'
-import api from '@/lib/api'
+import { useRegister } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -38,34 +38,37 @@ export function RegisterForm({
         resolver: zodResolver(formSchema),
     })
     const router = useRouter()
-    const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    const { registerMutate, status } = useRegister()
+
     const onSubmit = async (data: RegisterFormValues): Promise<void> => {
-        setLoading(true)
         setError(null)
 
-        try {
-            await api.post<void>('/api/auth/register', {
+        registerMutate(
+            {
                 display_name: data.display_name,
                 email: data.email,
                 password: data.password,
-            })
-            router.push('/login')
-        } catch (error: unknown) {
-            if (axios.isAxiosError(error)) {
-                const backendMessage = (
-                    error.response?.data as { error?: string }
-                )?.error
-                setError(backendMessage ?? 'Something went wrong')
-            } else if (error instanceof Error) {
-                setError(error.message)
-            } else {
-                setError('Something went wrong')
+            },
+            {
+                onSuccess: () => {
+                    router.push('/login')
+                },
+                onError: (err: unknown) => {
+                    if (axios.isAxiosError(err)) {
+                        const backendMessage = (
+                            err.response?.data as { error?: string }
+                        )?.error
+                        setError(backendMessage ?? 'Something went wrong')
+                    } else if (err instanceof Error) {
+                        setError(err.message)
+                    } else {
+                        setError('Something went wrong')
+                    }
+                },
             }
-        } finally {
-            setLoading(false)
-        }
+        )
     }
 
     return (
@@ -132,8 +135,12 @@ export function RegisterForm({
 
                 {error && <p className="text-center text-red-600">{error}</p>}
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Signing up…' : 'Sign up'}
+                <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={status === 'pending'}
+                >
+                    {status === 'pending' ? 'Signing up…' : 'Sign up'}
                 </Button>
 
                 <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
@@ -142,7 +149,11 @@ export function RegisterForm({
                     </span>
                 </div>
 
-                <Button variant="outline" className="w-full" disabled={loading}>
+                <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={status === 'pending'}
+                >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         height="24"
