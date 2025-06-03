@@ -1,12 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { supabase } from '#start/supabase'
 
-export default class UsersController {
+export default class ProfilesController {
   public async show({ request }: HttpContext) {
     const user = request.user
 
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, display_name, email, phone_number, updated_at')
       .eq('id', user.id)
       .single()
@@ -22,9 +22,13 @@ export default class UsersController {
     const user = request.user
     const updates = request.only(['display_name', 'phone_number'])
 
-    logger.info(`[USER] Updating user ${user.id}`)
+    logger.info(`[USER] Updating profile for user ${user.id}`)
 
-    const { data, error } = await supabase.from('users').update(updates).eq('id', user.id).select()
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id)
+      .select()
 
     if (error) {
       logger.error(`[USER] Update failed: ${error.message}`)

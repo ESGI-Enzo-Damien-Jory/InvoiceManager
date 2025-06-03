@@ -88,7 +88,7 @@ export default class InvoicesController {
     if (body.state !== 'Draft') {
       try {
         const { data: owner } = await supabase
-          .from('users')
+          .from('profiles')
           .select('display_name, email')
           .eq('id', user.id)
           .single()
@@ -100,6 +100,7 @@ export default class InvoicesController {
           state: body.state,
           created_at: new Date(),
           expiration_date: body.expiration_date ? new Date(body.expiration_date) : undefined,
+
           owner_name: owner!.display_name,
           owner_email: owner!.email,
           client_first_name: client.first_name,
@@ -173,142 +174,148 @@ export default class InvoicesController {
   public async update({ request, params, response, logger }: HttpContext) {
     const user = request.user
     const invoiceId = params.id
-    const body = request.only([
-      'title',
-      'total_amount',
-      'expiration_date',
-      'state',
-      'client_id',
-      'items',
-    ])
+    const { state } = request.only(['state'])
 
-    logger.info(`[INVOICES] Updating invoice ${invoiceId} for ${user.email}`)
-
-    const { data: fullUser, error: userError } = await supabase
-      .from('users')
-      .select('display_name, email')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !fullUser) {
-      logger.error(`[INVOICES] User fetch failed: ${userError?.message}`)
-      return response.badRequest({ error: 'User not found' })
+    if (!state) {
+      return response.badRequest({ error: 'Missing state in request body' })
     }
 
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('first_name, last_name, email, address, phone_number')
-      .eq('id', body.client_id)
-      .eq('user_id', user.id)
-      .single()
+    logger.info(`[INVOICES] Updating state of invoice ${invoiceId} to "${state}" for ${user.email}`)
 
-    if (clientError || !client) {
-      logger.warn(`[INVOICES] Invalid client_id: ${body.client_id}`)
-      return response.badRequest({ error: 'Client not found' })
-    }
+    try {
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('*')
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
 
-    let itemsWithDetails: any[] = []
-    let calculatedTotal = 0
-
-    if (body.items && body.items.length > 0) {
-      try {
-        const result = await processInvoiceItems(user.id, body.items)
-        itemsWithDetails = result.itemsWithDetails
-        calculatedTotal = result.totalAmount
-        body.total_amount = calculatedTotal
-        logger.info(`[INVOICES] Calculated total: ${calculatedTotal}`)
-      } catch (err: any) {
-        return response.badRequest({ error: err.message })
+      if (invoiceError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found or not owned by user`)
+        return response.notFound({ error: 'Invoice not found' })
       }
-    }
 
-    const { data: updatedInvoice, error: updateError } = await supabase
-      .from('invoices')
-      .update({
-        title: body.title,
-        total_amount: body.total_amount,
-        expiration_date: body.expiration_date,
-        state: body.state,
-        client_id: body.client_id,
-      })
-      .match({ id: invoiceId, owner_id: user.id })
-      .select()
-      .single()
+      if (invoice.state === state) {
+        logger.info(`[INVOICES] Invoice ${invoiceId} already in state "${state}", no update needed`)
 
-    if (updateError || !updatedInvoice) {
-      logger.error(`[INVOICES] Update failed for ${invoiceId}: ${updateError?.message}`)
-      return response.badRequest({ error: 'Failed to update invoice' })
-    }
+        if (state !== 'Draft' && invoice.pdf_url) {
+          const { signedUrl, error: signedUrlError } = await generatePdfSignedUrl(
+            user.id,
+            invoiceId
+          )
 
-    await supabase.from('invoice_items').delete().eq('invoice_id', invoiceId)
+          let finalSignedUrl = null
+          if (signedUrlError) {
+            logger.warn(`[INVOICES] Failed to generate signed URL: ${signedUrlError}`)
+          } else {
+            finalSignedUrl = signedUrl
+          }
 
-    if (body.items && body.items.length > 0) {
-      const itemRows = body.items.map((item: any) => ({
-        invoice_id: invoiceId,
-        item_id: item.item_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
+          return {
+            ...invoice,
+            signed_url: finalSignedUrl,
+          }
+        }
+
+        return invoice
+      }
+
+      const { data: updatedInvoice, error: updateError } = await supabase
+        .from('invoices')
+        .update({ state })
+        .eq('id', invoiceId)
+        .select()
+        .single()
+
+      if (updateError || !updatedInvoice) {
+        logger.error(`[INVOICES] Failed to update invoice state: ${updateError?.message}`)
+        return response.internalServerError({ error: 'Failed to update invoice state' })
+      }
+
+      if (state === 'Draft') {
+        logger.info(`[INVOICES] Skipped PDF generation because state is Draft`)
+        return updatedInvoice
+      }
+
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('first_name, last_name, email, address, phone_number')
+        .eq('id', updatedInvoice.client_id)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .single()
+
+      if (clientError || !client) {
+        logger.error(`[INVOICES] Client ${updatedInvoice.client_id} not found or unauthorized`)
+        return response.badRequest({ error: 'Client data required for PDF generation' })
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('display_name, email')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError || !profile) {
+        logger.error(`[INVOICES] Failed to fetch user profile: ${profileError?.message}`)
+        return response.badRequest({ error: 'User profile not found' })
+      }
+
+      const { data: items, error: itemsError } = await supabase
+        .from('invoice_items')
+        .select('quantity, unit_price, item_id, items (name)')
+        .eq('invoice_id', invoiceId)
+
+      if (itemsError || !items) {
+        logger.warn(`[INVOICES] No items found for invoice ${invoiceId}`)
+      }
+
+      const itemsWithDetails = (items || []).map((row: any) => ({
+        name: row.items?.name,
+        quantity: row.quantity,
+        unit_price: row.unit_price,
       }))
 
-      const { error: insertItemsError } = await supabase.from('invoice_items').insert(itemRows)
-      if (insertItemsError) {
-        return response.badRequest({ error: 'Failed to update invoice items' })
+      const pdfBuffer = await generateInvoicePdf({
+        title: updatedInvoice.title,
+        invoice_id: updatedInvoice.id,
+        total_amount: updatedInvoice.total_amount,
+        state: updatedInvoice.state,
+        created_at: new Date(updatedInvoice.created_at),
+        expiration_date: updatedInvoice.expiration_date
+          ? new Date(updatedInvoice.expiration_date)
+          : undefined,
+        owner_name: profile.display_name,
+        owner_email: profile.email,
+        client_first_name: client.first_name,
+        client_last_name: client.last_name,
+        client_email: client.email,
+        client_address: client.address,
+        client_phone: client.phone_number,
+        items: itemsWithDetails,
+      })
+
+      const pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
+      await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoiceId)
+
+      const { signedUrl, error: signedUrlError } = await generatePdfSignedUrl(user.id, invoiceId)
+
+      let finalSignedUrl = null
+      if (signedUrlError) {
+        logger.warn(`[INVOICES] Failed to generate signed URL: ${signedUrlError}`)
+      } else {
+        finalSignedUrl = signedUrl
       }
-    }
 
-    let pdfUrl: string | null = null
-    let signedUrl: string | null = null
-
-    if (body.state !== 'Draft') {
-      try {
-        const pdfBuffer = await generateInvoicePdf({
-          title: body.title,
-          invoice_id: invoiceId,
-          total_amount: body.total_amount,
-          state: body.state,
-          created_at: new Date(updatedInvoice.created_at),
-          expiration_date: body.expiration_date,
-
-          owner_name: fullUser.display_name,
-          owner_email: fullUser.email,
-
-          client_first_name: client.first_name,
-          client_last_name: client.last_name,
-          client_email: client.email,
-          client_address: client.address,
-          client_phone: client.phone_number,
-          items: itemsWithDetails,
-        })
-
-        pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
-        await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoiceId)
-
-        const { signedUrl: generatedSignedUrl, error: signedUrlError } = await generatePdfSignedUrl(
-          user.id,
-          invoiceId
-        )
-
-        if (signedUrlError) {
-          logger.warn(`[INVOICES] Failed to generate signed URL: ${signedUrlError}`)
-        } else {
-          signedUrl = generatedSignedUrl
-        }
-      } catch (uploadErr: any) {
-        logger.error(`[INVOICES] Failed to upload PDF: ${uploadErr.message}`)
-        return response.status(422).send({ error: `Failed to upload PDF: ${uploadErr.message}` })
+      logger.info(`[INVOICES] Invoice ${invoiceId} state updated and PDF regenerated`)
+      return {
+        ...updatedInvoice,
+        pdf_url: pdfUrl,
+        signed_url: finalSignedUrl,
       }
+    } catch (err: any) {
+      logger.error(`[INVOICES] Unexpected error during invoice state update: ${err.message}`)
+      return response.internalServerError({ error: 'Unexpected error', details: err.message })
     }
-
-    logger.info(`[INVOICES] Invoice ${invoiceId} updated successfully`)
-
-    // Include signed URL in response if available
-    const responseData = {
-      ...updatedInvoice,
-      pdf_url: pdfUrl,
-      ...(signedUrl && { signed_url: signedUrl }),
-    }
-
-    return responseData
   }
 
   public async destroy({ request, params, response, logger }: HttpContext) {
