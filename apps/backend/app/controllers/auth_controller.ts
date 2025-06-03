@@ -46,8 +46,14 @@ export default class AuthController {
     if (!display_name) {
       return response.badRequest({ error: 'Display name is required' })
     }
-    if (display_name < 5 || display_name.length > 50) {
-      return response.badRequest({ error: 'Display name must be between 5 and 50 characters long' })
+
+    const displayNameRegex = /^(?=.*\s)[a-zA-ZÀ-ÿ\- ]{6,50}$/
+
+    if (!displayNameRegex.test(display_name)) {
+      return response.badRequest({
+        error:
+          'Display name must be 6-50 characters, contain at least one space, and only use letters with or without accents, hyphens, and spaces',
+      })
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
