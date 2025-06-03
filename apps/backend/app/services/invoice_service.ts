@@ -13,6 +13,11 @@ interface ItemWithDetails {
   total: number
 }
 
+interface SignedUrlOptions {
+  expiresIn?: number
+  download?: boolean | string
+}
+
 export async function insertInvoiceItems(
   userId: string,
   invoiceId: string,
@@ -134,4 +139,43 @@ export async function uploadInvoicePdfToStorage(
 
   const { data } = supabase.storage.from('invoices').getPublicUrl(filename)
   return data.publicUrl
+}
+
+export async function generatePdfSignedUrl(
+  userId: string,
+  invoiceId: string,
+  options: SignedUrlOptions = {}
+): Promise<{ signedUrl: string | null; error: string | null }> {
+  try {
+    const { expiresIn = 3 * 24 * 60 * 60, download = false } = options
+    const filePath = `${userId}/invoices/${invoiceId}.pdf`
+
+    const { data: fileExists, error: checkError } = await supabase.storage
+      .from('invoices')
+      .list(userId + '/invoices', {
+        search: `${invoiceId}.pdf`,
+      })
+
+    if (checkError) {
+      return { signedUrl: null, error: `Failed to check file existence: ${checkError.message}` }
+    }
+
+    if (!fileExists || fileExists.length === 0) {
+      return { signedUrl: null, error: 'PDF file not found' }
+    }
+
+    const { data, error } = await supabase.storage
+      .from('invoices')
+      .createSignedUrl(filePath, expiresIn, {
+        download,
+      })
+
+    if (error) {
+      return { signedUrl: null, error: `Failed to generate signed URL: ${error.message}` }
+    }
+
+    return { signedUrl: data.signedUrl, error: null }
+  } catch (err: any) {
+    return { signedUrl: null, error: `Unexpected error: ${err.message}` }
+  }
 }

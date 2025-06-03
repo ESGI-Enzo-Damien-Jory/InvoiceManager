@@ -6,6 +6,7 @@ import {
   insertInvoiceItems,
   uploadInvoicePdfToStorage,
   processInvoiceItems,
+  generatePdfSignedUrl,
 } from '#services/invoice_service'
 import { Readable } from 'node:stream'
 
@@ -82,6 +83,7 @@ export default class InvoicesController {
     }
 
     let pdfUrl: string | null = null
+    let signedUrl: string | null = null
 
     if (body.state !== 'Draft') {
       try {
@@ -109,6 +111,17 @@ export default class InvoicesController {
         })
 
         pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
+
+        const { signedUrl: generatedSignedUrl, error: signedUrlError } = await generatePdfSignedUrl(
+          user.id,
+          invoiceId
+        )
+
+        if (signedUrlError) {
+          logger.warn(`[INVOICES] Failed to generate signed URL: ${signedUrlError}`)
+        } else {
+          signedUrl = generatedSignedUrl
+        }
       } catch (err: any) {
         logger.error(`[INVOICES] PDF generation/upload failed: ${err.message}`)
         return response
@@ -147,7 +160,14 @@ export default class InvoicesController {
     }
 
     logger.info(`[INVOICES] Invoice ${invoiceId} created successfully`)
-    return { ...invoiceData, pdf_url: pdfUrl }
+
+    const responseData = {
+      ...invoiceData,
+      pdf_url: pdfUrl,
+      ...(signedUrl && { signed_url: signedUrl }),
+    }
+
+    return responseData
   }
 
   public async update({ request, params, response, logger }: HttpContext) {
@@ -237,6 +257,8 @@ export default class InvoicesController {
     }
 
     let pdfUrl: string | null = null
+    let signedUrl: string | null = null
+
     if (body.state !== 'Draft') {
       try {
         const pdfBuffer = await generateInvoicePdf({
@@ -260,6 +282,17 @@ export default class InvoicesController {
 
         pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
         await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoiceId)
+
+        const { signedUrl: generatedSignedUrl, error: signedUrlError } = await generatePdfSignedUrl(
+          user.id,
+          invoiceId
+        )
+
+        if (signedUrlError) {
+          logger.warn(`[INVOICES] Failed to generate signed URL: ${signedUrlError}`)
+        } else {
+          signedUrl = generatedSignedUrl
+        }
       } catch (uploadErr: any) {
         logger.error(`[INVOICES] Failed to upload PDF: ${uploadErr.message}`)
         return response.status(422).send({ error: `Failed to upload PDF: ${uploadErr.message}` })
@@ -267,7 +300,15 @@ export default class InvoicesController {
     }
 
     logger.info(`[INVOICES] Invoice ${invoiceId} updated successfully`)
-    return { ...updatedInvoice, pdf_url: pdfUrl }
+
+    // Include signed URL in response if available
+    const responseData = {
+      ...updatedInvoice,
+      pdf_url: pdfUrl,
+      ...(signedUrl && { signed_url: signedUrl }),
+    }
+
+    return responseData
   }
 
   public async destroy({ request, params, response, logger }: HttpContext) {
@@ -428,6 +469,69 @@ export default class InvoicesController {
       logger.error(`[INVOICES] Unexpected error during preview: ${error.message}`)
       return response.internalServerError({
         error: 'Failed to get preview',
+        details: error.message,
+      })
+    }
+  }
+
+  public async generateSignedUrl({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+    const invoiceId = params.id
+    const { expiresIn, download, filename } = request.only(['expiresIn', 'download', 'filename'])
+
+    logger.info(`[INVOICES] Generating signed URL for invoice ${invoiceId} by ${user.email}`)
+
+    try {
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('id, title, state')
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
+
+      if (invoiceError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
+        return response.notFound({ error: 'Invoice not found' })
+      }
+
+      if (invoice.state === 'Draft') {
+        logger.warn(`[INVOICES] Attempted to generate signed URL for draft invoice ${invoiceId}`)
+        return response.badRequest({ error: 'Cannot generate signed URL for draft invoice' })
+      }
+
+      const options: any = {}
+
+      if (expiresIn) {
+        options.expiresIn = expiresIn
+      }
+
+      if (download) {
+        options.download = filename || invoice.title || `invoice-${invoiceId.substring(0, 8)}`
+      }
+
+      const { signedUrl, error: signedUrlError } = await generatePdfSignedUrl(
+        user.id,
+        invoiceId,
+        options
+      )
+
+      if (signedUrlError) {
+        logger.error(`[INVOICES] Failed to generate signed URL: ${signedUrlError}`)
+        return response.internalServerError({ error: signedUrlError })
+      }
+
+      const actualExpiresIn = options.expiresIn || 3 * 24 * 60 * 60
+      const expirationDate = new Date(Date.now() + actualExpiresIn * 1000)
+
+      logger.info(`[INVOICES] Signed URL generated for invoice ${invoiceId}`)
+      return {
+        signed_url: signedUrl,
+        expires_at: expirationDate.toISOString(),
+        expires_in_seconds: actualExpiresIn,
+      }
+    } catch (error) {
+      logger.error(`[INVOICES] Unexpected error generating signed URL: ${error.message}`)
+      return response.internalServerError({
+        error: 'Failed to generate signed URL',
         details: error.message,
       })
     }
