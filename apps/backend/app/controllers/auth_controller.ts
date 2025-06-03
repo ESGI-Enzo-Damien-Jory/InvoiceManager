@@ -75,7 +75,7 @@ export default class AuthController {
     logger.info(`[AUTH] Registration attempt for ${email}`)
 
     const { data: existingUsers, error: fetchError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id')
       .eq('email', email)
       .limit(1)
@@ -104,10 +104,6 @@ export default class AuthController {
     }
 
     logger.info(`[AUTH] Registration successful for ${email}`)
-
-    if (data.user) {
-      await supabase.from('users').update({ display_name }).eq('id', data.user.id)
-    }
 
     return { message: 'Check your email for verification', user: data.user }
   }
@@ -151,7 +147,7 @@ export default class AuthController {
     }
 
     const { error: dbError } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         ...(display_name && { display_name }),
         ...(phone_number && { phone_number }),
