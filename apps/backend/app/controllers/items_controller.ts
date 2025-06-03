@@ -51,6 +51,7 @@ export default class ItemsController {
       .from('items')
       .update(body)
       .match({ id: params.id, owner_id: user.id })
+      .is('deleted_at', null)
       .select()
 
     if (error) {
@@ -67,19 +68,26 @@ export default class ItemsController {
     return data
   }
 
-  public async destroy({ request, params, logger }: HttpContext) {
+  public async destroy({ request, params, response, logger }: HttpContext) {
     const user = request.user
 
     logger.warn(`[ITEMS] Soft-deleting item ${params.id} for user ${user.email}`)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('items')
       .update({ deleted_at: new Date().toISOString() })
       .match({ id: params.id, owner_id: user.id })
+      .is('deleted_at', null)
+      .select()
 
     if (error) {
       logger.error(`[ITEMS] Failed to delete item ${params.id}: ${error.message}`)
       throw new Error(error.message)
+    }
+
+    if (!data || data.length === 0) {
+      logger.warn(`[ITEMS] No item found to delete with ID: ${params.id}`)
+      return response.notFound({ error: 'Item not found' })
     }
 
     logger.info(`[ITEMS] Item ${params.id} soft-deleted`)
@@ -95,10 +103,11 @@ export default class ItemsController {
       .from('items')
       .select('*')
       .match({ id: params.id, owner_id: user.id })
+      .is('deleted_at', null)
       .single()
 
-    if (error) {
-      logger.error(`[ITEMS] Error fetching item ${params.id}: ${error.message}`)
+    if (error || !data) {
+      logger.error(`[ITEMS] Error fetching item ${params.id}: ${error?.message || 'Not found'}`)
       return response.notFound({ error: 'Item not found' })
     }
 
