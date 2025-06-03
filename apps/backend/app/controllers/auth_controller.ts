@@ -46,8 +46,8 @@ export default class AuthController {
     if (!display_name) {
       return response.badRequest({ error: 'Display name is required' })
     }
-    if (display_name.length > 50) {
-      return response.badRequest({ error: 'Display name must be at most 50 characters long' })
+    if (display_name < 5 || display_name.length > 50) {
+      return response.badRequest({ error: 'Display name must be between 5 and 50 characters long' })
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
