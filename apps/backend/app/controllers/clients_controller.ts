@@ -37,14 +37,18 @@ export default class ClientsController {
 
     logger.info(`[CLIENTS] Creating client for ${user.email}: ${body.first_name} ${body.last_name}`)
 
-    const { data, error } = await supabase.from('clients').insert({ ...body, user_id: user.id })
+    const { data, error } = await supabase
+      .from('clients')
+      .insert({ ...body, user_id: user.id })
+      .select()
 
     if (error) {
       logger.error(`[CLIENTS] Failed to create client: ${error.message}`)
       throw new Error(error.message)
     }
 
-    logger.info(`[CLIENTS] Client created with ID: ${(data?.[0] as any)?.id}`)
+    const clientId = data?.[0]?.id
+    logger.info(`[CLIENTS] Client created with ID: ${clientId}`)
     return data
   }
 
@@ -58,6 +62,7 @@ export default class ClientsController {
       .from('clients')
       .update(body)
       .match({ id: params.id, user_id: user.id })
+      .is('deleted_at', null)
       .select()
 
     if (error) {
@@ -82,6 +87,7 @@ export default class ClientsController {
       .from('clients')
       .update({ deleted_at: new Date().toISOString() })
       .match({ id: params.id, user_id: user.id })
+      .is('deleted_at', null)
 
     if (error) {
       logger.error(`[CLIENTS] Failed to delete client ${params.id}: ${error.message}`)
@@ -100,10 +106,11 @@ export default class ClientsController {
       .from('clients')
       .select('*')
       .match({ id: params.id, user_id: user.id })
+      .is('deleted_at', null)
       .single()
 
-    if (error) {
-      logger.error(`[CLIENTS] Error fetching client ${params.id}: ${error.message}`)
+    if (error || !data) {
+      logger.error(`[CLIENTS] Error fetching client ${params.id}: ${error?.message || 'Not found'}`)
       return response.notFound({ error: 'Client not found' })
     }
 
