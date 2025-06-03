@@ -88,7 +88,7 @@ export default class InvoicesController {
     if (body.state !== 'Draft') {
       try {
         const { data: owner } = await supabase
-          .from('users')
+          .from('profiles')
           .select('display_name, email')
           .eq('id', user.id)
           .single()
@@ -185,7 +185,7 @@ export default class InvoicesController {
     logger.info(`[INVOICES] Updating invoice ${invoiceId} for ${user.email}`)
 
     const { data: fullUser, error: userError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('display_name, email')
       .eq('id', user.id)
       .single()
