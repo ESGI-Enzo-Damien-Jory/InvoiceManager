@@ -15,10 +15,11 @@ export default class InvoiceItemsController {
       .is('deleted_at', null)
 
     if (error) {
-      logger.error(`[INVOICE_ITEMS] Fetch failed: ${error.message}`)
+      logger.error(`[INVOICE_ITEMS] Fetch failed for invoice ${invoiceId}: ${error.message}`)
       throw new Error(error.message)
     }
 
+    logger.info(`[INVOICE_ITEMS] Found ${data?.length ?? 0} items`)
     return data
   }
 
@@ -30,13 +31,17 @@ export default class InvoiceItemsController {
       `[INVOICE_ITEMS] Adding item ${body.item_id} to invoice ${body.invoice_id} by ${user.email}`
     )
 
-    const { data, error } = await supabase.from('invoice_items').upsert([body]).select()
+    const { data, error } = await supabase
+      .from('invoice_items')
+      .upsert([body], { onConflict: 'invoice_id,item_id' })
+      .select()
 
     if (error) {
       logger.error(`[INVOICE_ITEMS] Insert failed: ${error.message}`)
       throw new Error(error.message)
     }
 
+    logger.info(`[INVOICE_ITEMS] Item added or updated`)
     return data
   }
 
@@ -51,6 +56,7 @@ export default class InvoiceItemsController {
       .from('invoice_items')
       .update(body)
       .match({ invoice_id: invoiceId, item_id: itemId })
+      .is('deleted_at', null)
       .select()
 
     if (error) {
@@ -59,10 +65,11 @@ export default class InvoiceItemsController {
     }
 
     if (!data || data.length === 0) {
+      logger.warn(`[INVOICE_ITEMS] No matching item to update`)
       return response.notFound({ error: 'Invoice item not found' })
     }
 
-    logger.info(`[INVOICE_ITEMS] Item ${itemId} updated on invoice ${invoiceId}`)
+    logger.info(`[INVOICE_ITEMS] Updated item ${itemId} on invoice ${invoiceId}`)
     return data
   }
 
@@ -71,13 +78,14 @@ export default class InvoiceItemsController {
     const { invoice_id: invoiceId, item_id: itemId } = params
 
     logger.info(
-      `[INVOICE_ITEMS] Removing item ${itemId} from invoice ${invoiceId} by ${user.email}`
+      `[INVOICE_ITEMS] Soft deleting item ${itemId} from invoice ${invoiceId} by ${user.email}`
     )
 
     const { data, error } = await supabase
       .from('invoice_items')
       .update({ deleted_at: new Date().toISOString() })
       .match({ invoice_id: invoiceId, item_id: itemId })
+      .is('deleted_at', null)
       .select()
 
     if (error) {
@@ -86,10 +94,11 @@ export default class InvoiceItemsController {
     }
 
     if (!data || data.length === 0) {
+      logger.warn(`[INVOICE_ITEMS] No matching item to delete`)
       return response.notFound({ error: 'Invoice item not found' })
     }
 
-    logger.info(`[INVOICE_ITEMS] Item ${itemId} removed from invoice ${invoiceId}`)
+    logger.info(`[INVOICE_ITEMS] Soft-deleted item ${itemId} on invoice ${invoiceId}`)
     return { deleted: true }
   }
 }
