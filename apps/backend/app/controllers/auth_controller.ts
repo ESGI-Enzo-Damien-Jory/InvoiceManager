@@ -41,15 +41,35 @@ export default class AuthController {
   public async register({ request, response, logger }: HttpContext) {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { email, password, display_name } = request.only(['email', 'password', 'display_name'])
+    logger.info('[AUTH] Verifying registration data')
 
     if (!display_name) {
       return response.badRequest({ error: 'Display name is required' })
     }
+    if (display_name.length > 50) {
+      return response.badRequest({ error: 'Display name must be at most 50 characters long' })
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!email) {
       return response.badRequest({ error: 'Email is required' })
     }
+    if (email.length > 80) {
+      return response.badRequest({ error: 'Email must be at most 80 characters long' })
+    }
+    if (!emailRegex.test(email)) {
+      return response.badRequest({ error: 'Email format is invalid' })
+    }
+
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/
     if (!password) {
       return response.badRequest({ error: 'Password is required' })
+    }
+    if (!passwordRegex.test(password)) {
+      return response.badRequest({
+        error:
+          'Password must be at least 8 characters long, include one capital letter and one special character',
+      })
     }
 
     logger.info(`[AUTH] Registration attempt for ${email}`)
