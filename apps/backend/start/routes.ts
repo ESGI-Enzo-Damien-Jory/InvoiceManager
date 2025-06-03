@@ -90,6 +90,7 @@ router
     router.delete('/:id', [InvoicesController, 'destroy'])
     router.get('/pdf/:id', [InvoicesController, 'download'])
     router.get('/preview/:id', [InvoicesController, 'preview'])
+    router.post('/share/:id', [InvoicesController, 'generateSignedUrl'])
   })
   .prefix('/api/invoices')
   .use(middleware.supabaseAuth())
