@@ -41,8 +41,9 @@ router
   .group(() => {
     router.get('/', [ProfilesController, 'show'])
     router.put('/', [ProfilesController, 'update'])
+    router.post('/avatar', [ProfilesController, 'uploadAvatar'])
   })
-  .prefix('/api/user')
+  .prefix('/api/profile')
   .use(middleware.supabaseAuth())
 /*
 |--------------------------------------------------------------------------
