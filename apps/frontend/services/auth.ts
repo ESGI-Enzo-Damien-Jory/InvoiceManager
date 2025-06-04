@@ -97,7 +97,7 @@ export async function resetPassword(
  ** --------------------------------------------- **/
 
 /**
- * The user profile returned by GET /profiles (ProfilesController.show).
+ * The user profile returned by GET /profile (ProfilesController.show).
  * Includes avatar_url which is a signed URL when an avatar exists.
  */
 export interface UserProfile {
@@ -105,12 +105,12 @@ export interface UserProfile {
     display_name: string
     email: string
     phone_number: string | null
-    avatar_url: string | ZodNullDef
+    avatar_url: string | null
     updated_at: string
 }
 
 /**
- * GET /profiles
+ * GET /profile
  * - Uses the HttpOnly "supabase-session" cookie for authentication.
  * - Returns: UserProfile with avatar_url as a signed URL.
  */
@@ -129,7 +129,7 @@ export interface UpdateProfilePayload {
 }
 
 /**
- * PUT /profiles
+ * PUT /profile
  * - Updates the Supabase "profiles" row for the authenticated user.
  * - Returns: the updated UserProfile.
  */
@@ -147,14 +147,14 @@ export async function updateUser(
  ** --------------------------------------------- **/
 
 /**
- * Response from POST /profiles/avatar
+ * Response from POST /profile/avatar
  */
 export interface UploadAvatarResponse {
     message: string
 }
 
 /**
- * POST /profiles/avatar
+ * POST /profile/avatar
  * - Uploads an avatar image file for the authenticated user.
  * - Accepts: jpg, jpeg, png files up to 5MB.
  * - Returns: { message: string }.
