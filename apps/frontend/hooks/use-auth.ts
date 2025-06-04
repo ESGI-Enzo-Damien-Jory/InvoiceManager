@@ -21,13 +21,12 @@ import {
     updateUser,
     UpdateProfilePayload,
     UpdateProfileResponse,
+    uploadAvatar,
+    UploadAvatarResponse,
 } from '@/services/auth'
 
 /**
  * Hook: useLogin
- *
- * We return `loginMutate` as a `UseMutateFunction` so that callers
- * can pass both `(variables, options)` without type errors.
  */
 export function useLogin(): {
     loginMutate: UseMutateFunction<LoginResponse, Error, LoginPayload, unknown>
@@ -37,8 +36,6 @@ export function useLogin(): {
 } {
     const queryClient = useQueryClient()
 
-    // We explicitly capture the exact `UseMutationResult<>` so that
-    // its `mutate` method has the correct overloaded signature.
     const mutation: UseMutationResult<
         LoginResponse,
         Error,
@@ -48,9 +45,7 @@ export function useLogin(): {
         mutationFn: (payload: LoginPayload) => loginUser(payload),
 
         onSuccess: (_data: LoginResponse) => {
-            // Invalidate any queries that depend on being authenticated:
             queryClient.invalidateQueries({ queryKey: ['items'] })
-            // Invalidate the user‐profile query so that useUser() refetches GET /users
             queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] })
         },
 
@@ -60,7 +55,6 @@ export function useLogin(): {
     })
 
     return {
-        // Expose the `mutate` method directly (it is a UseMutateFunction<...>).
         loginMutate: mutation.mutate,
         status: mutation.status,
         error: mutation.error ?? null,
@@ -70,7 +64,6 @@ export function useLogin(): {
 
 /**
  * Hook: useRegister
- * - mutationFn: registerUser
  */
 export function useRegister(): {
     registerMutate: (
@@ -106,8 +99,6 @@ export function useRegister(): {
 
 /**
  * Hook: useLogout
- * - mutationFn: logoutUser
- * - onSuccess: remove user‐profile and items cache
  */
 export function useLogout(): {
     logoutMutate: (options?: {
@@ -129,9 +120,7 @@ export function useLogout(): {
         mutationFn: () => logoutUser(),
 
         onSuccess: () => {
-            // 1) Remove cached user profile
             queryClient.removeQueries({ queryKey: ['currentUserProfile'] })
-            // 2) Remove any other queries that depend on login
             queryClient.removeQueries({ queryKey: ['items'] })
         },
 
@@ -140,7 +129,6 @@ export function useLogout(): {
         },
     })
 
-    // Wrap mutate so callers don’t need to pass “undefined” explicitly
     const logoutMutate = (options?: {
         onSuccess?: (data: { message: string }) => void
         onError?: (error: unknown) => void
@@ -158,7 +146,6 @@ export function useLogout(): {
 
 /**
  * Hook: useResetPassword
- * - mutationFn: resetPassword
  */
 export function useResetPassword(): {
     resetMutate: (
@@ -197,8 +184,6 @@ export function useResetPassword(): {
 
 /**
  * Hook: useUser
- * - queryFn: getUser (GET /users)
- * - caches under ['currentUserProfile']
  */
 export function useUser() {
     return useQuery<UserProfile, Error>({
@@ -211,8 +196,6 @@ export function useUser() {
 
 /**
  * Hook: useUpdateProfile
- * - mutationFn: updateUser (PUT /users)
- * - onSuccess: overwrite ['currentUserProfile'] cache
  */
 export function useUpdateProfile(): {
     updateMutate: (
@@ -237,7 +220,6 @@ export function useUpdateProfile(): {
         mutationFn: (payload: UpdateProfilePayload) => updateUser(payload),
 
         onSuccess: (updatedProfile: UpdateProfileResponse) => {
-            // Overwrite the cached user profile
             queryClient.setQueryData<UserProfile>(
                 ['currentUserProfile'],
                 updatedProfile
@@ -251,6 +233,51 @@ export function useUpdateProfile(): {
 
     return {
         updateMutate: mutation.mutate,
+        status: mutation.status,
+        error: mutation.error ?? null,
+        reset: mutation.reset,
+    }
+}
+
+/**
+ * Hook: useUploadAvatar
+ */
+export function useUploadAvatar(): {
+    uploadMutate: (
+        file: File,
+        options?: {
+            onSuccess?: (data: UploadAvatarResponse) => void
+            onError?: (error: unknown) => void
+        }
+    ) => void
+    status: 'idle' | 'pending' | 'error' | 'success'
+    error: Error | null
+    reset: () => void
+} {
+    const queryClient = useQueryClient()
+
+    const mutation: UseMutationResult<
+        UploadAvatarResponse,
+        Error,
+        File,
+        unknown
+    > = useMutation({
+        mutationFn: (file: File) => uploadAvatar(file),
+
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] })
+        },
+
+        onError: (error: Error) => {
+            console.error(
+                '[useUploadAvatar] Avatar upload failed:',
+                error.message
+            )
+        },
+    })
+
+    return {
+        uploadMutate: mutation.mutate,
         status: mutation.status,
         error: mutation.error ?? null,
         reset: mutation.reset,
