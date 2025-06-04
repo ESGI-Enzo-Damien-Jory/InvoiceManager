@@ -1,4 +1,5 @@
 import api from '@/lib/api'
+import { ZodNullDef } from 'zod'
 
 /** --------------------------------------------- **
  * 1) Auth‐related types & functions
@@ -17,7 +18,7 @@ export interface LoginResponse {
 
 /**
  * POST /auth/login
- * - Server sets the HttpOnly “supabase-session” cookie on success.
+ * - Server sets the HttpOnly "supabase-session" cookie on success.
  * - Returns: { message: string }.
  */
 export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
@@ -58,7 +59,7 @@ export async function registerUser(
 
 /**
  * POST /auth/logout
- * - Server clears the “supabase-session” cookie.
+ * - Server clears the "supabase-session" cookie.
  * - Returns: { message: string }.
  */
 export async function logoutUser(): Promise<{ message: string }> {
@@ -96,29 +97,30 @@ export async function resetPassword(
  ** --------------------------------------------- **/
 
 /**
- * The “public” user profile returned by GET /users (UsersController.show).
- * Matches exactly: { id, display_name, email, phone_number, updated_at }.
+ * The user profile returned by GET /profile (ProfilesController.show).
+ * Includes avatar_url which is a signed URL when an avatar exists.
  */
 export interface UserProfile {
     id: string
     display_name: string
     email: string
     phone_number: string | null
+    avatar_url: string | null
     updated_at: string
 }
 
 /**
- * GET /users
- * - Uses the HttpOnly “supabase-session” cookie for authentication.
- * - Returns: UserProfile.
+ * GET /profile
+ * - Uses the HttpOnly "supabase-session" cookie for authentication.
+ * - Returns: UserProfile with avatar_url as a signed URL.
  */
 export async function getUser(): Promise<UserProfile> {
-    const response = await api.get<UserProfile>('/user')
+    const response = await api.get<UserProfile>('/profile')
     return response.data
 }
 
 /**
- * Payload for updating the current user’s profile.
+ * Payload for updating the current user's profile.
  * Only display_name and/or phone_number may be provided.
  */
 export interface UpdateProfilePayload {
@@ -127,8 +129,8 @@ export interface UpdateProfilePayload {
 }
 
 /**
- * PUT /users
- * - Updates the Supabase “users” row for the authenticated user.
+ * PUT /profile
+ * - Updates the Supabase "profiles" row for the authenticated user.
  * - Returns: the updated UserProfile.
  */
 export type UpdateProfileResponse = UserProfile
@@ -136,6 +138,39 @@ export type UpdateProfileResponse = UserProfile
 export async function updateUser(
     payload: UpdateProfilePayload
 ): Promise<UpdateProfileResponse> {
-    const response = await api.put<UpdateProfileResponse>('/users', payload)
+    const response = await api.put<UpdateProfileResponse>('/profile', payload)
+    return response.data
+}
+
+/** --------------------------------------------- **
+ * 3) Avatar upload functionality
+ ** --------------------------------------------- **/
+
+/**
+ * Response from POST /profile/avatar
+ */
+export interface UploadAvatarResponse {
+    message: string
+}
+
+/**
+ * POST /profile/avatar
+ * - Uploads an avatar image file for the authenticated user.
+ * - Accepts: jpg, jpeg, png files up to 5MB.
+ * - Returns: { message: string }.
+ */
+export async function uploadAvatar(file: File): Promise<UploadAvatarResponse> {
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    const response = await api.post<UploadAvatarResponse>(
+        '/profile/avatar',
+        formData,
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        }
+    )
     return response.data
 }

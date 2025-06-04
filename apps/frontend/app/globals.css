@@ -117,7 +117,26 @@
     * {
         @apply border-border outline-ring/50;
     }
+
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+.input-autofill {
+    &:-webkit-autofill,
+    &:-webkit-autofill:hover,
+    &:-webkit-autofill:focus,
+    &:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px hsl(var(--muted)) inset !important;
+        -webkit-text-fill-color: hsl(var(--foreground)) !important;
+        border-color: hsl(var(--border)) !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
+    &:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 30px hsl(var(--muted)) inset !important;
+        border-color: hsl(var(--ring)) !important;
+        box-shadow: 0 0 0 2px hsl(var(--ring)) !important;
     }
 }
