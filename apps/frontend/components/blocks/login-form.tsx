@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useLogin } from '@/hooks/use-auth'
@@ -11,9 +11,24 @@ import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface LoginFormProps extends React.ComponentProps<'div'> {}
+interface LoginFormProps {
+    className?: string
+}
 
-export function LoginForm({ className, ...props }: LoginFormProps) {
+interface ApiError {
+    response?: {
+        status: number
+        data?: {
+            error?: string
+        }
+    }
+    message?: string
+}
+
+export function LoginForm({
+    className,
+    ...props
+}: LoginFormProps & React.ComponentProps<'div'>) {
     const router = useRouter()
     const queryClient = useQueryClient()
     const emailRef = useRef<HTMLInputElement>(null)
@@ -48,7 +63,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         return null
     }
 
-    const checkAutofillValues = () => {
+    const checkAutofillValues = useCallback(() => {
         const emailValue = emailRef.current?.value || ''
         const passwordValue = passwordRef.current?.value || ''
 
@@ -58,7 +73,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         if (passwordValue !== password) {
             setPassword(passwordValue)
         }
-    }
+    }, [email, password])
 
     useEffect(() => {
         if (touched.email) {
@@ -77,7 +92,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     useEffect(() => {
         const interval = setInterval(checkAutofillValues, 100)
         return () => clearInterval(interval)
-    }, [email, password])
+    }, [checkAutofillValues])
 
     useEffect(() => {
         const handleFormInteraction = () => {
@@ -91,7 +106,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             document.removeEventListener('click', handleFormInteraction)
             document.removeEventListener('keydown', handleFormInteraction)
         }
-    }, [])
+    }, [checkAutofillValues])
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -130,7 +145,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
 
                     router.push('/dashboard')
                 },
-                onError: (err: any) => {
+                onError: (err: ApiError) => {
                     let errorMessage = 'An unexpected error occurred'
 
                     if (err?.response?.status) {
