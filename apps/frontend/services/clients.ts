@@ -99,10 +99,7 @@ export async function updateClient(
     clientId: string,
     payload: UpdateClientPayload
 ): Promise<Client[]> {
-    const response = await api.put<Client[]>(
-        `/clients/${clientId}`,
-        payload
-    )
+    const response = await api.put<Client[]>(`/clients/${clientId}`, payload)
     return response.data
 }
 
