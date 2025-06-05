@@ -16,15 +16,15 @@ An application to generate customized invoices in various formats, with dynamic 
 ## Table of Contents
 
 - [Invoice Manager](#invoice-manager)
-  - [CI/CD](#cicd)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Quick Start](#quick-start)
-  - [Documentation](#documentation)
-  - [Technologies Used](#technologies-used)
-  - [Project Structure](#project-structure)
-  - [Acknowledgments](#acknowledgments)
-  - [Disclaimer](#disclaimer)
+    - [CI/CD](#cicd)
+    - [Table of Contents](#table-of-contents)
+    - [Features](#features)
+    - [Quick Start](#quick-start)
+    - [Documentation](#documentation)
+    - [Technologies Used](#technologies-used)
+    - [Project Structure](#project-structure)
+    - [Acknowledgments](#acknowledgments)
+    - [Disclaimer](#disclaimer)
 
 ---
 
@@ -46,15 +46,15 @@ To quickly start using the Invoice Manager application, follow these steps:
 
 1. **Clone the Repository**:
 
-   ```bash
-   git clone git@github.com:ESGI-Enzo-Damien-Jory/InvoiceManager.git
-   ```
+    ```bash
+    git clone git@github.com:ESGI-Enzo-Damien-Jory/InvoiceManager.git
+    ```
 
 2. **Navigate to the Project Directory**:
 
-   ```bash
-   cd InvoiceManager
-   ```
+    ```bash
+    cd InvoiceManager
+    ```
 
 3. **Getting Started**
 
@@ -65,7 +65,7 @@ To quickly start using the Invoice Manager application, follow these steps:
 
 4. **Access the Application**:
 
-   Open your web browser and navigate to `http://localhost:3000`.
+    Open your web browser and navigate to `http://localhost:3000`.
 
 ---
 
