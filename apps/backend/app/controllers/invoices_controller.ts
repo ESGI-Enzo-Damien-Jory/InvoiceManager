@@ -174,13 +174,21 @@ export default class InvoicesController {
   public async update({ request, params, response, logger }: HttpContext) {
     const user = request.user
     const invoiceId = params.id
-    const { state } = request.only(['state'])
+    const body = request.only([
+      'client_id',
+      'title',
+      'total_amount',
+      'expiration_date',
+      'state',
+      'items',
+    ])
 
-    if (!state) {
-      return response.badRequest({ error: 'Missing state in request body' })
+    logger.info(`[INVOICES] Updating invoice ${invoiceId} for ${user.email}`)
+
+    if (Object.keys(body).length === 0) {
+      logger.info(`[INVOICES] No changes provided for invoice ${invoiceId}`)
+      return response.badRequest({ error: 'No fields provided for update' })
     }
-
-    logger.info(`[INVOICES] Updating state of invoice ${invoiceId} to "${state}" for ${user.email}`)
 
     try {
       const { data: invoice, error: invoiceError } = await supabase
@@ -194,47 +202,153 @@ export default class InvoicesController {
         return response.notFound({ error: 'Invoice not found' })
       }
 
-      if (invoice.state === state) {
-        logger.info(`[INVOICES] Invoice ${invoiceId} already in state "${state}", no update needed`)
+      const currentState = invoice.state
+      const newState = body.state || currentState
 
-        if (state !== 'Draft' && invoice.pdf_url) {
-          const { signedUrl, error: signedUrlError } = await generatePdfSignedUrl(
-            user.id,
-            invoiceId
-          )
+      if (body.state) {
+        const allowedStates = ['Draft', 'Sent', 'Cancelled']
+        if (!allowedStates.includes(body.state)) {
+          return response.badRequest({
+            error: `Invalid state. Allowed states: ${allowedStates.join(', ')}`,
+          })
+        }
 
-          let finalSignedUrl = null
-          if (signedUrlError) {
-            logger.warn(`[INVOICES] Failed to generate signed URL: ${signedUrlError}`)
-          } else {
-            finalSignedUrl = signedUrl
-          }
-
-          return {
-            ...invoice,
-            signed_url: finalSignedUrl,
+        if (currentState === newState) {
+          if (
+            currentState === 'Sent' ||
+            currentState === 'Paid' ||
+            currentState === 'Overdue' ||
+            currentState === 'Cancelled'
+          ) {
+            return response.status(422).send({
+              error: `Cannot update invoice already in ${currentState} state`,
+            })
           }
         }
 
-        return invoice
+        if (currentState === 'Draft') {
+          if (newState !== 'Draft' && newState !== 'Sent') {
+            return response.status(422).send({
+              error: `Invalid state transition from ${currentState} to ${newState}. Draft can only go to Draft or Sent.`,
+            })
+          }
+        } else if (currentState === 'Cancelled') {
+          if (newState !== 'Draft') {
+            return response.status(422).send({
+              error: `Invalid state transition from ${currentState} to ${newState}. Cancelled can only go to Draft.`,
+            })
+          }
+        } else if (
+          currentState === 'Sent' ||
+          currentState === 'Paid' ||
+          currentState === 'Overdue'
+        ) {
+          return response.status(422).send({
+            error: `Cannot modify invoice in ${currentState} state`,
+          })
+        }
+      }
+
+      if (currentState === 'Sent' || currentState === 'Paid' || currentState === 'Overdue') {
+        if (!body.state || currentState === newState) {
+          logger.warn(
+            `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in non-modifiable state: ${currentState}`
+          )
+          return response
+            .status(422)
+            .send({ error: `Cannot modify invoice fields in ${currentState} state` })
+        }
+      }
+
+      if (currentState === newState && !body.state) {
+        if (currentState !== 'Draft') {
+          logger.warn(
+            `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in state: ${currentState}`
+          )
+          return response.status(422).send({ error: `Can only modify fields of Draft invoices` })
+        }
+      } else if (currentState === newState && body.state) {
+        if (newState === 'Draft') {
+        } else {
+          logger.info(
+            `[INVOICES] Invoice ${invoiceId} already in state "${newState}", no update needed`
+          )
+          return invoice
+        }
+      }
+
+      if (currentState === 'Cancelled' && newState === 'Draft' && body.state) {
+        const { data: updatedInvoice, error: updateError } = await supabase
+          .from('invoices')
+          .update({ state: newState })
+          .eq('id', invoiceId)
+          .select()
+          .single()
+
+        if (updateError || !updatedInvoice) {
+          logger.error(`[INVOICES] Failed to update invoice state: ${updateError?.message}`)
+          return response.internalServerError({ error: 'Failed to update invoice state' })
+        }
+
+        logger.info(`[INVOICES] Invoice ${invoiceId} state changed from Cancelled to Draft`)
+        return updatedInvoice
+      }
+
+      const updateData: any = {}
+
+      if (currentState === 'Draft') {
+        if (body.client_id !== undefined) updateData.client_id = body.client_id
+        if (body.title !== undefined) updateData.title = body.title
+        if (body.total_amount !== undefined) updateData.total_amount = body.total_amount
+        if (body.expiration_date !== undefined) updateData.expiration_date = body.expiration_date
+
+        if (body.items) {
+          try {
+            const result = await processInvoiceItems(user.id, body.items)
+            updateData.total_amount = result.totalAmount
+            logger.info(`[INVOICES] Calculated total: ${result.totalAmount}`)
+          } catch (err: any) {
+            return response.status(422).send({ error: err.message })
+          }
+        }
+      }
+
+      if (currentState !== newState) {
+        updateData.state = newState
       }
 
       const { data: updatedInvoice, error: updateError } = await supabase
         .from('invoices')
-        .update({ state })
+        .update(updateData)
         .eq('id', invoiceId)
         .select()
         .single()
 
       if (updateError || !updatedInvoice) {
-        logger.error(`[INVOICES] Failed to update invoice state: ${updateError?.message}`)
-        return response.internalServerError({ error: 'Failed to update invoice state' })
+        logger.error(`[INVOICES] Failed to update invoice: ${updateError?.message}`)
+        return response.internalServerError({ error: 'Failed to update invoice' })
       }
 
-      if (state === 'Draft') {
-        logger.info(`[INVOICES] Skipped PDF generation because state is Draft`)
+      if (body.items && currentState === 'Draft') {
+        try {
+          await supabase.from('invoice_items').delete().eq('invoice_id', invoiceId)
+          await insertInvoiceItems(user.id, invoiceId, body.items)
+        } catch (err: any) {
+          logger.error(`[INVOICES] Item update failed: ${err.message}`)
+          return response.status(422).send({ error: 'Invoice updated, but item update failed' })
+        }
+      }
+
+      const shouldGeneratePdf = currentState === 'Draft' && newState === 'Sent'
+
+      if (!shouldGeneratePdf) {
+        logger.info(
+          `[INVOICES] PDF generation skipped - transition from ${currentState} to ${newState}`
+        )
         return updatedInvoice
       }
+
+      logger.info(`[INVOICES] Generating PDF for transition from Draft to Sent`)
 
       const { data: client, error: clientError } = await supabase
         .from('clients')
@@ -306,7 +420,9 @@ export default class InvoicesController {
         finalSignedUrl = signedUrl
       }
 
-      logger.info(`[INVOICES] Invoice ${invoiceId} state updated and PDF regenerated`)
+      logger.info(
+        `[INVOICES] Invoice ${invoiceId} updated from ${currentState} to ${newState} with PDF generated`
+      )
       return {
         ...updatedInvoice,
         pdf_url: pdfUrl,
