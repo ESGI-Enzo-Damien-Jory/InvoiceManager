@@ -208,8 +208,11 @@ export default class InvoicesController {
       if (body.state) {
         const allowedStates = ['Draft', 'Sent', 'Cancelled']
         if (!allowedStates.includes(body.state)) {
+          logger.warn(
+            `[INVOICES] Invalid state transition attempted for invoice ${invoiceId}: from ${currentState} to ${newState}`
+          )
           return response.badRequest({
-            error: `Invalid state. Allowed states: ${allowedStates.join(', ')}`,
+            error: `Invalid state transition from ${currentState} to ${newState}. Allowed states: ${allowedStates.join(', ')}`,
           })
         }
 
@@ -220,6 +223,9 @@ export default class InvoicesController {
             currentState === 'Overdue' ||
             currentState === 'Cancelled'
           ) {
+            logger.warn(
+              `[INVOICES] Attempted to update invoice ${invoiceId} in non-modifiable state: ${currentState}`
+            )
             return response.status(422).send({
               error: `Cannot update invoice already in ${currentState} state`,
             })
@@ -228,12 +234,18 @@ export default class InvoicesController {
 
         if (currentState === 'Draft') {
           if (newState !== 'Draft' && newState !== 'Sent') {
+            logger.warn(
+              `[INVOICES] Invalid state transition from ${currentState} to ${newState} for invoice ${invoiceId}`
+            )
             return response.status(422).send({
               error: `Invalid state transition from ${currentState} to ${newState}. Draft can only go to Draft or Sent.`,
             })
           }
         } else if (currentState === 'Cancelled') {
           if (newState !== 'Draft') {
+            logger.warn(
+              `[INVOICES] Invalid state transition from ${currentState} to ${newState} for invoice ${invoiceId}`
+            )
             return response.status(422).send({
               error: `Invalid state transition from ${currentState} to ${newState}. Cancelled can only go to Draft.`,
             })
@@ -243,6 +255,9 @@ export default class InvoicesController {
           currentState === 'Paid' ||
           currentState === 'Overdue'
         ) {
+          logger.warn(
+            `[INVOICES] Attempted to modify invoice ${invoiceId} in non-modifiable state: ${currentState}`
+          )
           return response.status(422).send({
             error: `Cannot modify invoice in ${currentState} state`,
           })
