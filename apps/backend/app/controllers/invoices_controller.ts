@@ -206,7 +206,7 @@ export default class InvoicesController {
       const newState = body.state || currentState
 
       if (body.state) {
-        const allowedStates = ['Draft', 'Sent', 'Cancelled']
+        const allowedStates = ['Draft', 'Sent', 'Cancelled', 'Paid', 'Overdue']
         if (!allowedStates.includes(body.state)) {
           logger.warn(
             `[INVOICES] Invalid state transition attempted for invoice ${invoiceId}: from ${currentState} to ${newState}`
