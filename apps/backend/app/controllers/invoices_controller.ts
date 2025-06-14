@@ -55,6 +55,29 @@ export default class InvoicesController {
 
     logger.info(`[INVOICES] Creating invoice for user ${user.email}`)
 
+    if (Object.keys(body).length === 0) {
+      logger.info(`[INVOICES] No fields provided for invoice creation`)
+      return response.badRequest({ error: 'No fields provided for invoice creation' })
+    }
+
+    if (body.state) {
+      const allowedStates = ['Draft', 'Sent']
+      if (!allowedStates.includes(body.state)) {
+        logger.warn(`[INVOICES] Invalid state for invoice creation: ${body.state}`)
+        return response.badRequest({
+          error: `Invalid state for invoice creation. Allowed states: ${allowedStates.join(', ')}`,
+        })
+      }
+    }
+
+    if (!body.client_id) {
+      return response.badRequest({ error: 'client_id is required' })
+    }
+
+    if (!body.title) {
+      return response.badRequest({ error: 'title is required' })
+    }
+
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('*')
@@ -85,13 +108,18 @@ export default class InvoicesController {
     let pdfUrl: string | null = null
     let signedUrl: string | null = null
 
-    if (body.state !== 'Draft') {
+    if (body.state === 'Sent') {
       try {
         const { data: owner } = await supabase
           .from('profiles')
           .select('display_name, email')
           .eq('id', user.id)
           .single()
+
+        if (!owner) {
+          logger.error(`[INVOICES] Failed to fetch user profile for PDF generation`)
+          return response.badRequest({ error: 'User profile not found for PDF generation' })
+        }
 
         const pdfBuffer = await generateInvoicePdf({
           title: body.title,
@@ -101,8 +129,8 @@ export default class InvoicesController {
           created_at: new Date(),
           expiration_date: body.expiration_date ? new Date(body.expiration_date) : undefined,
 
-          owner_name: owner!.display_name,
-          owner_email: owner!.email,
+          owner_name: owner.display_name,
+          owner_email: owner.email,
           client_first_name: client.first_name,
           client_last_name: client.last_name,
           client_email: client.email,
@@ -160,7 +188,9 @@ export default class InvoicesController {
       }
     }
 
-    logger.info(`[INVOICES] Invoice ${invoiceId} created successfully`)
+    logger.info(
+      `[INVOICES] Invoice ${invoiceId} created successfully with state: ${body.state ?? 'Draft'}`
+    )
 
     const responseData = {
       ...invoiceData,
