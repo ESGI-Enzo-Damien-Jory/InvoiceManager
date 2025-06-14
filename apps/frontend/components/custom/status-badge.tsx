@@ -1,7 +1,18 @@
-import { Database } from "@/types/database"
-import { AlertTriangle, CheckCircle, PenTool, Send, XCircle } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
+import { Database } from '@/types/database'
+import {
+    AlertTriangle,
+    CheckCircle,
+    PenTool,
+    Send,
+    XCircle,
+} from 'lucide-react'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Badge } from '@/components/ui/badge'
 
 type InvoiceState = Database['public']['Enums']['invoice_state']
 
