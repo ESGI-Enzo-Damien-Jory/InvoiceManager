@@ -4,17 +4,17 @@ export type Database = {
             clients: {
                 Row: {
                     address: string | null
-                    avatar: string | null
+                    deleted_at: string | null
                     email: string
                     first_name: string
                     id: string
                     last_name: string
                     phone_number: string | null
                     updated_at: string
+                    user_id: string
                 }
                 Insert: {
                     address?: string | null
-                    avatar?: string | null
                     deleted_at?: string | null
                     email: string
                     first_name: string
@@ -26,7 +26,6 @@ export type Database = {
                 }
                 Update: {
                     address?: string | null
-                    avatar?: string | null
                     deleted_at?: string | null
                     email?: string
                     first_name?: string
@@ -41,7 +40,7 @@ export type Database = {
                         foreignKeyName: 'clients_user_id_fkey'
                         columns: ['user_id']
                         isOneToOne: false
-                        referencedRelation: 'users'
+                        referencedRelation: 'profiles'
                         referencedColumns: ['id']
                     },
                 ]
@@ -123,9 +122,9 @@ export type Database = {
                     created_at: string
                     deleted_at: string | null
                     expiration_date: string | null
-                    file_blob: string | null
                     id: string
                     owner_id: string
+                    pdf_url: string | null
                     state: Database['public']['Enums']['invoice_state']
                     title: string
                     total_amount: number | null
@@ -136,9 +135,9 @@ export type Database = {
                     created_at?: string
                     deleted_at?: string | null
                     expiration_date?: string | null
-                    file_blob?: string | null
                     id?: string
                     owner_id: string
+                    pdf_url?: string | null
                     state?: Database['public']['Enums']['invoice_state']
                     title: string
                     total_amount?: number | null
@@ -149,9 +148,9 @@ export type Database = {
                     created_at?: string
                     deleted_at?: string | null
                     expiration_date?: string | null
-                    file_blob?: string | null
                     id?: string
                     owner_id?: string
+                    pdf_url?: string | null
                     state?: Database['public']['Enums']['invoice_state']
                     title?: string
                     total_amount?: number | null
@@ -169,7 +168,7 @@ export type Database = {
                         foreignKeyName: 'invoices_owner_id_fkey'
                         columns: ['owner_id']
                         isOneToOne: false
-                        referencedRelation: 'users'
+                        referencedRelation: 'profiles'
                         referencedColumns: ['id']
                     },
                 ]
@@ -207,13 +206,15 @@ export type Database = {
                         foreignKeyName: 'items_owner_id_fkey'
                         columns: ['owner_id']
                         isOneToOne: false
-                        referencedRelation: 'users'
+                        referencedRelation: 'profiles'
                         referencedColumns: ['id']
                     },
                 ]
             }
-            users: {
+            profiles: {
                 Row: {
+                    avatar_url: string | null
+                    created_at: string
                     deleted_at: string | null
                     display_name: string
                     email: string
@@ -223,15 +224,19 @@ export type Database = {
                     updated_at: string
                 }
                 Insert: {
+                    avatar_url?: string | null
+                    created_at?: string
                     deleted_at?: string | null
                     display_name: string
                     email: string
-                    id?: string
+                    id: string
                     last_login?: string
                     phone_number?: string | null
                     updated_at?: string
                 }
                 Update: {
+                    avatar_url?: string | null
+                    created_at?: string
                     deleted_at?: string | null
                     display_name?: string
                     email?: string
