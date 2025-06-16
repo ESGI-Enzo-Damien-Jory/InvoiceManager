@@ -12,6 +12,7 @@ import {
     Loader2,
     Trash2,
     Calendar,
+    Lock,
 } from 'lucide-react'
 import { formatDate, formatCurrency, isOverdue } from '@/lib/utils'
 import { StatusBadge } from '@/components/custom/status-badge'
@@ -254,6 +255,7 @@ export const invoiceColumns: ColumnDef<Invoice>[] = [
         cell: ({ row, table }) => {
             const meta = table.options.meta as TableMeta | undefined
             const invoice = row.original
+            const canEdit = invoice.state === 'Draft'
 
             return (
                 <div className="flex items-center justify-center gap-1">
@@ -266,15 +268,35 @@ export const invoiceColumns: ColumnDef<Invoice>[] = [
                         <Eye className="h-4 w-4" />
                         <span className="sr-only">View invoice</span>
                     </Button>
+
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => meta?.onEdit(invoice)}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={() =>
+                            canEdit ? meta?.onEdit(invoice) : undefined
+                        }
+                        className={`h-8 w-8 p-0 ${
+                            canEdit
+                                ? 'text-muted-foreground hover:text-foreground cursor-pointer'
+                                : 'text-muted-foreground/40 cursor-not-allowed'
+                        }`}
+                        disabled={!canEdit}
+                        title={
+                            canEdit
+                                ? 'Edit invoice'
+                                : 'Only draft invoices can be edited'
+                        }
                     >
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Edit invoice</span>
+                        {canEdit ? (
+                            <Edit className="h-4 w-4" />
+                        ) : (
+                            <Lock className="h-4 w-4" />
+                        )}
+                        <span className="sr-only">
+                            {canEdit ? 'Edit invoice' : 'Invoice locked'}
+                        </span>
                     </Button>
+
                     <Button
                         variant="ghost"
                         size="sm"

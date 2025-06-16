@@ -152,7 +152,7 @@ export default function InvoicesPage() {
             onView: (invoice: Invoice) =>
                 router.push(`/invoices/${invoice.id}`),
             onEdit: (invoice: Invoice) =>
-                router.push(`/invoices/${invoice.id}/edit`),
+                router.push(`/invoices/${invoice.id}/update`),
             onDelete: (invoice: Invoice) => {
                 setDeletingInvoiceId(invoice.id)
                 setInvoiceToDelete(invoice)

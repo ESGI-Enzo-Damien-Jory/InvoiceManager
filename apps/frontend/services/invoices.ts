@@ -20,7 +20,7 @@ export interface UpdateInvoicePayload {
     title?: string
     total_amount?: number
     expiration_date?: string
-    state?: 'Draft' | 'Sent' | 'Paid'
+    state?: 'Draft' | 'Sent' | 'Paid' | 'Cancelled' | 'Overdue'
     items?: InvoiceItem[]
 }
 
@@ -30,7 +30,7 @@ export interface Invoice {
     title: string
     total_amount: number
     expiration_date: string | null
-    state: 'Draft' | 'Sent' | 'Paid'
+    state: 'Draft' | 'Sent' | 'Paid' | 'Cancelled' | 'Overdue'
     owner_id: string
     pdf_url: string | null
     created_at: string
@@ -46,7 +46,7 @@ export interface Invoice {
     }
 }
 
-/** Fetch all invoices. Browser automatically sends auth cookie. */
+/** Fetch all invoices */
 export async function fetchInvoices(): Promise<Invoice[]> {
     const response = await api.get<Invoice[]>('/invoices')
     return response.data
@@ -78,7 +78,7 @@ export async function updateInvoice(
 /** Update invoice state only */
 export async function updateInvoiceState(
     id: string,
-    state: 'Draft' | 'Sent' | 'Paid'
+    state: 'Draft' | 'Sent' | 'Paid' | 'Cancelled' | 'Overdue'
 ): Promise<Invoice> {
     const response = await api.put<Invoice>(`/invoices/${id}`, { state })
     return response.data

@@ -50,9 +50,6 @@ export function useCreateInvoice() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['invoices'] })
         },
-        onError: (error) => {
-            console.error('Failed to create invoice:', error)
-        },
     })
 }
 
@@ -76,9 +73,6 @@ export function useUpdateInvoice() {
                 ['invoices', updatedInvoice.id],
                 updatedInvoice
             )
-        },
-        onError: (error) => {
-            console.error('Failed to update invoice:', error)
         },
     })
 }
@@ -104,9 +98,6 @@ export function useUpdateInvoiceState() {
                 updatedInvoice
             )
         },
-        onError: (error) => {
-            console.error('Failed to update invoice state:', error)
-        },
     })
 }
 
@@ -121,9 +112,6 @@ export function useDeleteInvoice() {
         onSuccess: (_, deletedId) => {
             queryClient.invalidateQueries({ queryKey: ['invoices'] })
             queryClient.removeQueries({ queryKey: ['invoices', deletedId] })
-        },
-        onError: (error) => {
-            console.error('Failed to delete invoice:', error)
         },
     })
 }
@@ -145,9 +133,6 @@ export function useDownloadInvoicePdf() {
             document.body.removeChild(link)
             window.URL.revokeObjectURL(url)
         },
-        onError: (error) => {
-            console.error('Failed to download invoice PDF:', error)
-        },
     })
 }
 
@@ -160,7 +145,7 @@ export function useInvoicePreview(id: string) {
         queryFn: () => getInvoicePreview(id),
         retry: 1,
         staleTime: 1000 * 60 * 5,
-        enabled: !!id,
+        enabled: !!id && id !== 'undefined',
     })
 }
 
@@ -180,8 +165,5 @@ export function useGenerateInvoiceSignedUrl() {
                 filename?: string
             }
         }) => generateInvoiceSignedUrl(id, options),
-        onError: (error) => {
-            console.error('Failed to generate signed URL:', error)
-        },
     })
 }
