@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@repo/types": [
+                "packages/types"
+            ]
+        },
+    },
+    "include": [
+        "apps/**/*",
+        "packages/**/*"
+    ]
+}
