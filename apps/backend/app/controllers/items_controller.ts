@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { supabase } from '#start/supabase'
+import { Item, Insert, Update, CreateItemPayload, UpdateItemPayload } from '@inma/types'
 
 export default class ItemsController {
   public async index({ request, logger }: HttpContext) {
@@ -17,101 +18,116 @@ export default class ItemsController {
       throw new Error(error.message)
     }
 
-    logger.info(`[ITEMS] Found ${data.length} items`)
-    return data
+    const items = data as Item[]
+    logger.info(`[ITEMS] Found ${items.length} items`)
+    return items
   }
 
   public async store({ request, logger }: HttpContext) {
     const user = request.user
-    const body = request.only(['name', 'price'])
+    const body: CreateItemPayload = request.only(['name', 'price'])
 
     logger.info(`[ITEMS] Creating item '${body.name}' for user ${user.email}`)
 
-    const { data, error } = await supabase
-      .from('items')
-      .insert({ ...body, owner_id: user.id })
-      .select()
+    const insertData: Insert<'items'> = {
+      ...body,
+      owner_id: user.id,
+    }
+
+    const { data, error } = await supabase.from('items').insert(insertData).select()
 
     if (error) {
       logger.error(`[ITEMS] Failed to create item: ${error.message}`)
       throw new Error(error.message)
     }
 
-    logger.info(`[ITEMS] Item created with ID: ${(data?.[0] as any)?.id}`)
-    return data
+    const items = data as Item[]
+    logger.info(`[ITEMS] Item created with ID: ${items[0]?.id}`)
+    return items
   }
 
   public async update({ request, params, response, logger }: HttpContext) {
     const user = request.user
-    const body = request.only(['name', 'price'])
+    const body: UpdateItemPayload = request.only(['name', 'price'])
+    const itemId: string = params.id
 
-    logger.info(`[ITEMS] Attempting to update item ${params.id} for ${user.email}`)
+    logger.info(`[ITEMS] Attempting to update item ${itemId} for ${user.email}`)
+
+    const updateData: Update<'items'> = body
 
     const { data, error } = await supabase
       .from('items')
-      .update(body)
-      .match({ id: params.id, owner_id: user.id })
+      .update(updateData)
+      .match({ id: itemId, owner_id: user.id })
       .is('deleted_at', null)
       .select()
 
     if (error) {
-      logger.error(`[ITEMS] Update failed for ${params.id}: ${error.message}`)
+      logger.error(`[ITEMS] Update failed for ${itemId}: ${error.message}`)
       throw new Error(error.message)
     }
 
     if (!data || data.length === 0) {
-      logger.warn(`[ITEMS] No item found to update with ID: ${params.id}`)
+      logger.warn(`[ITEMS] No item found to update with ID: ${itemId}`)
       return response.notFound({ error: 'Item not found' })
     }
 
-    logger.info(`[ITEMS] Item ${params.id} updated`)
-    return data
+    const items = data as Item[]
+    logger.info(`[ITEMS] Item ${itemId} updated`)
+    return items
   }
 
   public async destroy({ request, params, response, logger }: HttpContext) {
     const user = request.user
+    const itemId: string = params.id
 
-    logger.warn(`[ITEMS] Soft-deleting item ${params.id} for user ${user.email}`)
+    logger.warn(`[ITEMS] Soft-deleting item ${itemId} for user ${user.email}`)
+
+    const deleteData: Update<'items'> = {
+      deleted_at: new Date().toISOString(),
+    }
 
     const { data, error } = await supabase
       .from('items')
-      .update({ deleted_at: new Date().toISOString() })
-      .match({ id: params.id, owner_id: user.id })
+      .update(deleteData)
+      .match({ id: itemId, owner_id: user.id })
       .is('deleted_at', null)
       .select()
 
     if (error) {
-      logger.error(`[ITEMS] Failed to delete item ${params.id}: ${error.message}`)
+      logger.error(`[ITEMS] Failed to delete item ${itemId}: ${error.message}`)
       throw new Error(error.message)
     }
 
     if (!data || data.length === 0) {
-      logger.warn(`[ITEMS] No item found to delete with ID: ${params.id}`)
+      logger.warn(`[ITEMS] No item found to delete with ID: ${itemId}`)
       return response.notFound({ error: 'Item not found' })
     }
 
-    logger.info(`[ITEMS] Item ${params.id} soft-deleted`)
+    logger.info(`[ITEMS] Item ${itemId} soft-deleted`)
     return { deleted: true }
   }
 
   public async show({ request, params, response, logger }: HttpContext) {
     const user = request.user
+    const itemId: string = params.id
 
-    logger.info(`[ITEMS] Fetching item ${params.id} for user ${user.email}`)
+    logger.info(`[ITEMS] Fetching item ${itemId} for user ${user.email}`)
 
     const { data, error } = await supabase
       .from('items')
       .select('*')
-      .match({ id: params.id, owner_id: user.id })
+      .match({ id: itemId, owner_id: user.id })
       .is('deleted_at', null)
       .single()
 
     if (error || !data) {
-      logger.error(`[ITEMS] Error fetching item ${params.id}: ${error?.message || 'Not found'}`)
+      logger.error(`[ITEMS] Error fetching item ${itemId}: ${error?.message || 'Not found'}`)
       return response.notFound({ error: 'Item not found' })
     }
 
-    logger.info(`[ITEMS] Item ${params.id} fetched successfully`)
-    return data
+    const item = data as Item
+    logger.info(`[ITEMS] Item ${itemId} fetched successfully`)
+    return item
   }
 }

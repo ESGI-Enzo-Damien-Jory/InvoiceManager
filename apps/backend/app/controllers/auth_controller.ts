@@ -1,10 +1,18 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { supabase } from '#start/supabase'
 import env from '#start/env'
+import {
+  Update,
+  LoginPayload,
+  RegisterPayload,
+  ResetPasswordPayload,
+  UpdateProfilePayload,
+  SessionData,
+} from '@inma/types'
 
 export default class AuthController {
   public async login({ request, response, logger }: HttpContext) {
-    const { email, password } = request.only(['email', 'password'])
+    const { email, password }: LoginPayload = request.only(['email', 'password'])
     logger.info(`[AUTH] Login attempt for ${email}`)
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -18,10 +26,10 @@ export default class AuthController {
     }
 
     if (data.session) {
-      const sessionData = {
+      const sessionData: SessionData = {
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
-        expires_at: data.session.expires_at,
+        expires_at: data.session.expires_at || 0,
         user_id: data.user.id,
       }
 
@@ -40,7 +48,11 @@ export default class AuthController {
 
   public async register({ request, response, logger }: HttpContext) {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { email, password, display_name } = request.only(['email', 'password', 'display_name'])
+    const { email, password, display_name }: RegisterPayload = request.only([
+      'email',
+      'password',
+      'display_name',
+    ])
     logger.info('[AUTH] Verifying registration data')
 
     if (!display_name) {
@@ -122,7 +134,7 @@ export default class AuthController {
   }
 
   public async reset({ request, response, logger }: HttpContext) {
-    const { email } = request.only(['email'])
+    const { email }: ResetPasswordPayload = request.only(['email'])
     logger.info(`[AUTH] Password reset requested for ${email}`)
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -140,7 +152,10 @@ export default class AuthController {
   public async update({ request, response }: HttpContext) {
     const user = request.user
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { display_name, phone_number } = request.only(['display_name', 'phone_number'])
+    const { display_name, phone_number }: UpdateProfilePayload = request.only([
+      'display_name',
+      'phone_number',
+    ])
 
     if (display_name) {
       const { error: authError } = await supabase.auth.updateUser({
@@ -152,13 +167,11 @@ export default class AuthController {
       }
     }
 
-    const { error: dbError } = await supabase
-      .from('profiles')
-      .update({
-        ...(display_name && { display_name }),
-        ...(phone_number && { phone_number }),
-      })
-      .eq('id', user.id)
+    const updateData: Update<'profiles'> = {}
+    if (display_name) updateData.display_name = display_name
+    if (phone_number) updateData.phone_number = phone_number
+
+    const { error: dbError } = await supabase.from('profiles').update(updateData).eq('id', user.id)
 
     if (dbError) {
       return response.badRequest({ error: dbError.message })

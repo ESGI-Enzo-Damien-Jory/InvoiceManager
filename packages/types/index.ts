@@ -38,7 +38,7 @@ export interface AuthResponse {
 }
 
 export interface RegisterResponse extends AuthResponse {
-    user?: AnimationPlayState
+    user?: any
 }
 
 export interface SessionData {
@@ -66,10 +66,24 @@ export interface CreateItemPayload {
 
 export interface UpdateItemPayload extends Partial<CreateItemPayload> {}
 
+export interface UpdateProfilePayload {
+    display_name?: string
+    phone_number?: string
+}
+
+export interface CreateItemPayload {
+    name: string
+    price: number
+}
+
+export interface UpdateItemPayload extends Partial<CreateItemPayload> {}
+
 export interface CreateInvoicePayload {
     client_id: string
     title: string
+    total_amount?: number
     expiration_date?: string
+    state?: Database['public']['Enums']['invoice_state']
 }
 
 export interface UpdateInvoicePayload extends Partial<CreateInvoicePayload> {
