@@ -38,7 +38,7 @@ export interface AuthResponse {
 }
 
 export interface RegisterResponse extends AuthResponse {
-    user?: any
+    user?: AnimationPlayState
 }
 
 export interface SessionData {
@@ -77,6 +77,7 @@ export interface UpdateInvoicePayload extends Partial<CreateInvoicePayload> {
 }
 
 export interface CreateInvoiceItemPayload {
+    invoice_id: string
     item_id: string
     quantity?: number
     unit_price: number
