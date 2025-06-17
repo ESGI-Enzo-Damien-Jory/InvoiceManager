@@ -1,5 +1,5 @@
 import api from '@/lib/api'
-import { ZodNullDef } from 'zod'
+import { UserProfile } from '@inma/types'
 
 /** --------------------------------------------- **
  * 1) Auth‐related types & functions
@@ -93,21 +93,8 @@ export async function resetPassword(
 }
 
 /** --------------------------------------------- **
- * 2) User‐profile types & functions
+ * 2) User‐profile functions
  ** --------------------------------------------- **/
-
-/**
- * The user profile returned by GET /profile (ProfilesController.show).
- * Includes avatar_url which is a signed URL when an avatar exists.
- */
-export interface UserProfile {
-    id: string
-    display_name: string
-    email: string
-    phone_number: string | null
-    avatar_url: string | null
-    updated_at: string
-}
 
 /**
  * GET /profile

@@ -1,29 +1,5 @@
 import api from '@/lib/api'
-
-/** --------------------------------------------- **
- * 1) Client-related types
- ** --------------------------------------------- **/
-
-/**
- * The client entity returned by the API (matches your Supabase schema)
- */
-export interface Client {
-    id: string
-    first_name: string
-    last_name: string
-    email: string
-    phone_number: string | null
-    address: string | null
-    user_id: string
-    created_at: string
-    updated_at: string
-    deleted_at: string | null
-    // These would be computed fields if you add them later
-    total_invoices?: number
-    total_revenue?: number
-    unpaid_amount?: number
-    status?: 'Active' | 'Inactive'
-}
+import { Client } from '@inma/types'
 
 /**
  * Payload for creating a new client (matches your controller's request.only())

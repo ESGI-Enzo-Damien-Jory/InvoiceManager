@@ -1,5 +1,5 @@
 import api from '@/lib/api'
-import { Item } from '@/types/items'
+import { Item } from '@inma/types'
 
 export interface CreateItemPayload {
     name: string
