@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useLogin } from '@/hooks/use-auth'
@@ -10,197 +12,81 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useState } from 'react'
 
-interface LoginFormProps {
+const schema = z.object({
+    email: z
+        .string()
+        .min(1, 'Email is required')
+        .email('Please enter a valid email address'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+})
+
+interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
     className?: string
 }
 
-interface ApiError {
-    response?: {
-        status: number
-        data?: {
-            error?: string
-        }
-    }
-    message?: string
-}
-
-export function LoginForm({
-    className,
-    ...props
-}: LoginFormProps & React.ComponentProps<'div'>) {
+export function LoginForm({ className, ...props }: LoginFormProps) {
+    const [show_password, set_show_password] = useState(false)
+    const [error, set_error] = useState<string | null>(null)
     const router = useRouter()
-    const queryClient = useQueryClient()
-    const emailRef = useRef<HTMLInputElement>(null)
-    const passwordRef = useRef<HTMLInputElement>(null)
-
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [showPassword, setShowPassword] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [fieldErrors, setFieldErrors] = useState<{
-        email?: string | null
-        password?: string | null
-    }>({})
-    const [touched, setTouched] = useState<{
-        email?: boolean
-        password?: boolean
-    }>({})
-
+    const query_client = useQueryClient()
     const { loginMutate, status } = useLogin()
+    const { register, handleSubmit, formState, setError, watch } = useForm({
+        resolver: zodResolver(schema),
+        mode: 'onChange',
+        reValidateMode: 'onChange',
+        defaultValues: { email: '', password: '' },
+    })
+    const { errors, isValid, isSubmitting, touchedFields } = formState
 
-    const validateEmail = (email: string) => {
-        if (!email) return 'Email is required'
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            return 'Please enter a valid email address'
-        }
-        return null
-    }
-
-    const validatePassword = (password: string) => {
-        if (!password) return 'Password is required'
-        if (password.length < 6) return 'Password must be at least 6 characters'
-        return null
-    }
-
-    const checkAutofillValues = useCallback(() => {
-        const emailValue = emailRef.current?.value || ''
-        const passwordValue = passwordRef.current?.value || ''
-
-        if (emailValue !== email) {
-            setEmail(emailValue)
-        }
-        if (passwordValue !== password) {
-            setPassword(passwordValue)
-        }
-    }, [email, password])
-
-    useEffect(() => {
-        if (touched.email) {
-            const emailError = validateEmail(email)
-            setFieldErrors((prev) => ({ ...prev, email: emailError }))
-        }
-    }, [email, touched.email])
-
-    useEffect(() => {
-        if (touched.password) {
-            const passwordError = validatePassword(password)
-            setFieldErrors((prev) => ({ ...prev, password: passwordError }))
-        }
-    }, [password, touched.password])
-
-    useEffect(() => {
-        const interval = setInterval(checkAutofillValues, 100)
-        return () => clearInterval(interval)
-    }, [checkAutofillValues])
-
-    useEffect(() => {
-        const handleFormInteraction = () => {
-            setTimeout(checkAutofillValues, 50)
-        }
-
-        document.addEventListener('click', handleFormInteraction)
-        document.addEventListener('keydown', handleFormInteraction)
-
-        return () => {
-            document.removeEventListener('click', handleFormInteraction)
-            document.removeEventListener('keydown', handleFormInteraction)
-        }
-    }, [checkAutofillValues])
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        setError(null)
-
-        checkAutofillValues()
-
-        const currentEmail = emailRef.current?.value || email
-        const currentPassword = passwordRef.current?.value || password
-
-        setTouched({ email: true, password: true })
-
-        const emailError = validateEmail(currentEmail)
-        const passwordError = validatePassword(currentPassword)
-
-        if (emailError || passwordError) {
-            setFieldErrors({
-                email: emailError,
-                password: passwordError,
-            })
-            return
-        }
-
+    const on_submit = (data: { email: string; password: string }) => {
+        set_error(null)
         loginMutate(
-            { email: currentEmail.trim(), password: currentPassword },
+            { email: data.email.trim(), password: data.password },
             {
                 onSuccess: async () => {
                     try {
-                        await queryClient.fetchQuery({
+                        await query_client.fetchQuery({
                             queryKey: ['currentUserProfile'],
                             queryFn: getUser,
                         })
-                    } catch (fetchError) {
-                        console.error('Prefetch /users failed:', fetchError)
-                    }
-
+                    } catch {}
                     router.push('/dashboard')
                 },
-                onError: (err: ApiError) => {
-                    let errorMessage = 'An unexpected error occurred'
-
-                    if (err?.response?.status) {
-                        const status = err.response.status
-                        const payload = err.response?.data || {}
-
-                        if (status === 401) {
-                            errorMessage =
-                                'Invalid email or password. Please try again.'
-                        } else if (status === 429) {
-                            errorMessage =
-                                'Too many login attempts. Please try again later.'
-                        } else if (status === 500) {
-                            errorMessage =
-                                'Server error. Please try again later.'
-                        } else {
-                            errorMessage =
-                                payload.error || err.message || errorMessage
-                        }
-                    } else if (err?.message) {
-                        errorMessage = err.message
-                    }
-
-                    setError(errorMessage)
+                onError: (err) => {
+                    const errorWithResponse = err as
+                        | {
+                              response?: {
+                                  status?: number
+                                  data?: { error?: string }
+                              }
+                          }
+                        | Error
+                    const status = (errorWithResponse as any)?.response?.status
+                    if (status === 401)
+                        set_error(
+                            'Invalid email or password. Please try again.'
+                        )
+                    else if (status === 429)
+                        set_error(
+                            'Too many login attempts. Please try again later.'
+                        )
+                    else if (status === 500)
+                        set_error('Server error. Please try again later.')
+                    else
+                        set_error(
+                            (errorWithResponse as any)?.response?.data?.error ||
+                                err?.message ||
+                                'An unexpected error occurred'
+                        )
                 },
             }
         )
     }
 
-    const handleBlur = (field: 'email' | 'password') => {
-        setTouched((prev) => ({ ...prev, [field]: true }))
-        setTimeout(checkAutofillValues, 50)
-    }
-
-    const handleFocus = () => {
-        setTimeout(checkAutofillValues, 50)
-    }
-
-    const getCurrentValues = () => {
-        const currentEmail = emailRef.current?.value || email
-        const currentPassword = passwordRef.current?.value || password
-        return { currentEmail, currentPassword }
-    }
-
-    const { currentEmail, currentPassword } = getCurrentValues()
-    const isFormValid =
-        !fieldErrors.email &&
-        !fieldErrors.password &&
-        currentEmail.length > 0 &&
-        currentPassword.length > 0
-    const isPending = status === 'pending'
-
     return (
         <div className={cn('flex flex-col gap-6', className)} {...props}>
-            {/* Header */}
             <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Login to your account</h1>
                 <p className="text-muted-foreground text-sm">
@@ -208,7 +94,6 @@ export function LoginForm({
                 </p>
             </div>
 
-            {/* Error message */}
             {error && (
                 <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
                     <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -216,38 +101,28 @@ export function LoginForm({
                 </div>
             )}
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="grid gap-4">
-                {/* Email */}
+            <form onSubmit={handleSubmit(on_submit)} className="grid gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
-                        ref={emailRef}
                         id="email"
-                        type="email"
+                        autoComplete="email"
+                        disabled={isSubmitting || status === 'pending'}
                         placeholder="m@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onBlur={() => handleBlur('email')}
-                        onFocus={handleFocus}
+                        {...register('email')}
                         className={cn(
-                            'input-autofill',
-                            fieldErrors.email &&
-                                touched.email &&
+                            errors.email &&
+                                touchedFields.email &&
                                 'border-destructive focus-visible:ring-destructive'
                         )}
-                        disabled={isPending}
-                        required
                     />
-                    {fieldErrors.email && touched.email && (
+                    {errors.email && touchedFields.email && (
                         <div className="flex items-center gap-2 text-xs text-destructive">
                             <AlertCircle className="h-3 w-3" />
-                            {fieldErrors.email}
+                            {errors.email.message}
                         </div>
                     )}
                 </div>
-
-                {/* Password */}
                 <div className="grid gap-2">
                     <div className="flex items-center">
                         <Label htmlFor="password">Password</Label>
@@ -260,57 +135,52 @@ export function LoginForm({
                     </div>
                     <div className="relative">
                         <Input
-                            ref={passwordRef}
                             id="password"
-                            type={showPassword ? 'text' : 'password'}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            onBlur={() => handleBlur('password')}
-                            onFocus={handleFocus}
+                            type={show_password ? 'text' : 'password'}
+                            autoComplete="current-password"
+                            disabled={isSubmitting || status === 'pending'}
+                            {...register('password')}
                             className={cn(
-                                'pr-10 input-autofill',
-                                fieldErrors.password &&
-                                    touched.password &&
+                                'pr-10',
+                                errors.password &&
+                                    touchedFields.password &&
                                     'border-destructive focus-visible:ring-destructive'
                             )}
-                            disabled={isPending}
-                            required
                         />
                         <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                            disabled={isPending}
+                            onClick={() => set_show_password((v) => !v)}
+                            tabIndex={-1}
+                            disabled={isSubmitting || status === 'pending'}
                         >
-                            {showPassword ? (
+                            {show_password ? (
                                 <EyeOff className="h-4 w-4" />
                             ) : (
                                 <Eye className="h-4 w-4" />
                             )}
                             <span className="sr-only">
-                                {showPassword
+                                {show_password
                                     ? 'Hide password'
                                     : 'Show password'}
                             </span>
                         </Button>
                     </div>
-                    {fieldErrors.password && touched.password && (
+                    {errors.password && touchedFields.password && (
                         <div className="flex items-center gap-2 text-xs text-destructive">
                             <AlertCircle className="h-3 w-3" />
-                            {fieldErrors.password}
+                            {errors.password.message}
                         </div>
                     )}
                 </div>
-
-                {/* Submit Button */}
                 <Button
                     type="submit"
                     className="w-full"
-                    disabled={!isFormValid || isPending}
+                    disabled={!isValid || isSubmitting || status === 'pending'}
                 >
-                    {isPending ? (
+                    {isSubmitting || status === 'pending' ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Logging in...
@@ -319,19 +189,15 @@ export function LoginForm({
                         'Login'
                     )}
                 </Button>
-
-                {/* Divider */}
                 <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
                     <span className="relative z-10 bg-background px-2 text-muted-foreground">
                         Or continue with
                     </span>
                 </div>
-
-                {/* Google Button */}
                 <Button
                     variant="outline"
                     className="w-full"
-                    disabled={isPending}
+                    disabled={isSubmitting || status === 'pending'}
                     type="button"
                 >
                     <svg
@@ -362,8 +228,6 @@ export function LoginForm({
                     Login with Google
                 </Button>
             </form>
-
-            {/* Footer */}
             <div className="text-center text-sm">
                 Don&apos;t have an account?{' '}
                 <a href="/register" className="underline underline-offset-4">
