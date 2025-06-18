@@ -1,8 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Client } from '@inma/types'
 
 import {
@@ -51,6 +51,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function ClientsPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
 
     const { data: clients = [], status, error, refetch } = useClients()
     const createMutation = useCreateClient()
@@ -71,6 +72,15 @@ export default function ClientsPage() {
         useState<ClientFormData>(initialFormData)
     const [editFormData, setEditFormData] =
         useState<ClientFormData>(initialFormData)
+
+    useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsCreateDialogOpen(true)
+            const url = new URL(window.location.href)
+            url.searchParams.delete('create')
+            window.history.replaceState({}, '', url.toString())
+        }
+    }, [searchParams])
 
     const isPerformingMutation =
         createMutation.isPending ||

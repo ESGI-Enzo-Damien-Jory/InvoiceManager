@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { Item } from '@inma/types'
 
@@ -41,6 +42,8 @@ const initialFormData: ItemFormData = {
 }
 
 export default function ItemsPage() {
+    const searchParams = useSearchParams()
+
     // Queries & Mutations
     const { data: items = [], status, error, refetch } = useItems()
     const createMutation = useCreateItem()
@@ -62,6 +65,15 @@ export default function ItemsPage() {
         useState<ItemFormData>(initialFormData)
     const [editFormData, setEditFormData] =
         useState<ItemFormData>(initialFormData)
+
+    useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsCreateDialogOpen(true)
+            const url = new URL(window.location.href)
+            url.searchParams.delete('create')
+            window.history.replaceState({}, '', url.toString())
+        }
+    }, [searchParams])
 
     // Computed States
     const isPerformingMutation =
@@ -279,7 +291,7 @@ export default function ItemsPage() {
                     <div className="h-full flex justify-center">
                         <EmptyState
                             title="No items yet"
-                            description="You haven't created any items. Click 'New Item' above to get started."
+                            description="You haven't created any items. Click 'New Item' above or press Ctrl+K to get started."
                             linkText="New Item"
                             onLinkClick={openCreateDialog}
                             icon={
