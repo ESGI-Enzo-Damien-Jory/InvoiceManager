@@ -22,8 +22,18 @@ const schema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
+type LoginFormData = z.infer<typeof schema>
+
 interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
     className?: string
+}
+
+interface ErrorWithResponse {
+    response?: {
+        status?: number
+        data?: { error?: string }
+    }
+    message?: string
 }
 
 export function LoginForm({ className, ...props }: LoginFormProps) {
@@ -32,7 +42,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     const router = useRouter()
     const query_client = useQueryClient()
     const { loginMutate, status } = useLogin()
-    const { register, handleSubmit, formState, setError, watch } = useForm({
+    const { register, handleSubmit, formState } = useForm<LoginFormData>({
         resolver: zodResolver(schema),
         mode: 'onChange',
         reValidateMode: 'onChange',
@@ -40,7 +50,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     })
     const { errors, isValid, isSubmitting, touchedFields } = formState
 
-    const on_submit = (data: { email: string; password: string }) => {
+    const on_submit = (data: LoginFormData) => {
         set_error(null)
         loginMutate(
             { email: data.email.trim(), password: data.password },
@@ -51,35 +61,32 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                             queryKey: ['currentUserProfile'],
                             queryFn: getUser,
                         })
-                    } catch {}
+                    } catch {
+                        // Ignore error, user will be redirected anyway
+                    }
                     router.push('/dashboard')
                 },
-                onError: (err) => {
-                    const errorWithResponse = err as
-                        | {
-                              response?: {
-                                  status?: number
-                                  data?: { error?: string }
-                              }
-                          }
-                        | Error
-                    const status = (errorWithResponse as any)?.response?.status
-                    if (status === 401)
+                onError: (err: unknown) => {
+                    const errorWithResponse = err as ErrorWithResponse
+                    const status = errorWithResponse?.response?.status
+
+                    if (status === 401) {
                         set_error(
                             'Invalid email or password. Please try again.'
                         )
-                    else if (status === 429)
+                    } else if (status === 429) {
                         set_error(
                             'Too many login attempts. Please try again later.'
                         )
-                    else if (status === 500)
+                    } else if (status === 500) {
                         set_error('Server error. Please try again later.')
-                    else
+                    } else {
                         set_error(
-                            (errorWithResponse as any)?.response?.data?.error ||
-                                err?.message ||
+                            errorWithResponse?.response?.data?.error ||
+                                errorWithResponse?.message ||
                                 'An unexpected error occurred'
                         )
+                    }
                 },
             }
         )
