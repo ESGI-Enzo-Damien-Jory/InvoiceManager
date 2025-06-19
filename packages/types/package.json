@@ -1,6 +1,6 @@
 {
     "name": "@inma/types",
-    "packageManager": "pnpm@10.0.0",
+    "packageManager": "pnpm@10.12.1",
     "version": "1.0.0",
     "main": "./index.ts",
     "types": "./index.ts",
