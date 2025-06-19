@@ -1,8 +1,16 @@
-import { Client } from "@inma/types"
-import { ColumnDef } from "@tanstack/react-table"
-import { ChevronDown, Phone, MapPin, Eye, Edit, Loader2, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Client } from '@inma/types'
+import { ColumnDef } from '@tanstack/react-table'
+import {
+    ChevronDown,
+    Phone,
+    MapPin,
+    Eye,
+    Edit,
+    Loader2,
+    Trash2,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface TableMeta {
     onEdit: (client: Client) => void
