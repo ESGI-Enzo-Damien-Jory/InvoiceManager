@@ -187,8 +187,8 @@ jobs:
           key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
       - run: pnpm install --frozen-lockfile
-      - run: npx npm-check-updates -m -l major -p apps/backend/package.json
-      - run: npx npm-check-updates -m -l major -p apps/frontend/package.json
+      - run: npx npm-check-updates -m -l major --cwd apps/backend
+      - run: npx npm-check-updates -m -l major --cwd apps/frontend
 
   test:
     needs: install
