@@ -45,19 +45,14 @@
     "@types/dotenv": "^8.2.3",
     "@types/node": "^22.15.17",
     "eslint": "^9.20.1",
-    "hot-hook": "^0.4.0",
-    "pino-pretty": "^13.0.0",
     "prettier": "^3.5.0",
     "ts-node-maintained": "^10.9.5",
     "typescript": "~5.7"
   },
   "dependencies": {
     "@inma/types": "workspace:*",
-    "@adonisjs/auth": "^9.3.1",
     "@adonisjs/core": "^6.17.2",
     "@adonisjs/cors": "^2.2.1",
-    "@adonisjs/env": "^6.2.0",
-    "@adonisjs/lucid": "^21.6.0",
     "@pdfme/common": "^5.3.19",
     "@pdfme/generator": "^5.3.19",
     "@pdfme/schemas": "^5.3.19",
@@ -65,7 +60,8 @@
     "@supabase/supabase-js": "^2.49.4",
     "@vinejs/vine": "^3.0.0",
     "dotenv": "^16.5.0",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "hot-hook": "^0.4.0"
   },
   "hotHook": {
     "boundaries": [
