@@ -19,7 +19,7 @@ import DataTable from '@/components/custom/generic/data-table'
 import { Loader2, UserPlus, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-import EmptyState from '@/components/custom/empty-state'
+import EmptyState from '@/components/custom/states/empty-state'
 import {
     AlertDialog,
     AlertDialogAction,

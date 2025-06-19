@@ -14,8 +14,8 @@ import {
     User,
 } from 'lucide-react'
 
-import LoadingState from '@/components/custom/loading-state'
-import ErrorState from '@/components/custom/error-state'
+import LoadingState from '@/components/custom/states/loading-state'
+import ErrorState from '@/components/custom/states/error-state'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

@@ -17,7 +17,7 @@ import { columns } from '@/types/columns/items'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
-import EmptyState from '@/components/custom/empty-state'
+import EmptyState from '@/components/custom/states/empty-state'
 import CreateItemDialog from '@/components/custom/specialized/items/create-item-dialog'
 import EditItemDialog from '@/components/custom/specialized/items/edit-item-dialog'
 import {

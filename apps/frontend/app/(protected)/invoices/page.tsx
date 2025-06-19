@@ -3,7 +3,6 @@
 import React, { useState, useRef } from 'react'
 import { isAfter, isBefore, startOfDay, endOfDay } from 'date-fns'
 import { DateRange } from 'react-day-picker'
-import Pagination from '@/components/custom/pagination'
 import CardStatsList from '@/components/custom/specialized/card-stats-list'
 import ListFilters from '@/components/custom/specialized/list-filters'
 import InvoiceTable from '@/components/custom/specialized/invoice-table'
@@ -194,15 +193,6 @@ export default function InvoicesPage() {
                 invoices={currentInvoices}
                 invoiceLinkPrefix="/invoices"
                 clientLinkPrefix="/clients"
-            />
-
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                startIndex={startIndex + 1}
-                endIndex={endIndex}
-                totalEntries={displayedInvoices.length}
             />
         </>
     )

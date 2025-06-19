@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useTheme } from 'next-themes'
-import { Breadcrumbs } from '@/components/custom/breadcrumb'
+import { Breadcrumbs } from '@/components/custom/generic/breadcrumb'
 import { IconContrast } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 
