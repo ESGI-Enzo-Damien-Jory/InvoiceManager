@@ -160,8 +160,8 @@ jobs:
           key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
       - run: pnpm install --frozen-lockfile
-      - run: npx depcheck backend
-      - run: npx depcheck frontend
+      - run: npx depcheck apps/backend
+      - run: npx depcheck apps/frontend
 
   dep_updates:
     needs: install
@@ -187,8 +187,8 @@ jobs:
           key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
       - run: pnpm install --frozen-lockfile
-      - run: npx npm-check-updates -m -l major -p backend/package.json
-      - run: npx npm-check-updates -m -l major -p frontend/package.json
+      - run: npx npm-check-updates -m -l major -p apps/backend/package.json
+      - run: npx npm-check-updates -m -l major -p apps/frontend/package.json
 
   test:
     needs: install
