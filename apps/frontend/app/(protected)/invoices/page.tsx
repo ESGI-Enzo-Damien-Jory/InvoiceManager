@@ -133,12 +133,9 @@ export default function InvoicesPage() {
 
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
     const [searchResults, setSearchResults] = useState<Invoice[]>(allInvoices)
-    const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 10
 
     const handleSearch = (results: Invoice[]) => {
         setSearchResults(results)
-        setCurrentPage(1)
     }
 
     let displayedInvoices = [...searchResults]
@@ -159,21 +156,6 @@ export default function InvoicesPage() {
 
     const handleDateRangeChange = (range: DateRange | undefined) => {
         setDateRange(range)
-        setCurrentPage(1)
-    }
-
-    const totalPages = Math.ceil(displayedInvoices.length / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = Math.min(
-        startIndex + itemsPerPage,
-        displayedInvoices.length
-    )
-    const currentInvoices = displayedInvoices.slice(startIndex, endIndex)
-
-    const handlePageChange = (page: number) => {
-        if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page)
-        }
     }
 
     return (
@@ -190,7 +172,7 @@ export default function InvoicesPage() {
             />
 
             <InvoiceTable
-                invoices={currentInvoices}
+                invoices={displayedInvoices}
                 invoiceLinkPrefix="/invoices"
                 clientLinkPrefix="/clients"
             />
