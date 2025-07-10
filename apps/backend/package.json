@@ -57,7 +57,7 @@
     "@adonisjs/cors": "^2.2.1",
     "@adonisjs/env": "^6.2.0",
     "@adonisjs/lucid": "^21.6.0",
-    "@pdfme/common": "^5.3.19",
+    "@pdfme/common": "^5.4.1",
     "@pdfme/generator": "^5.3.19",
     "@pdfme/schemas": "^5.3.19",
     "@supabase/ssr": "^0.6.1",
