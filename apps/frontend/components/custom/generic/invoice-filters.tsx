@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { IconSearch, IconFilter, IconPlus, IconDotsVertical } from '@tabler/icons-react'
+import { IconSearch, IconFilter, IconPlus, IconDotsVertical, IconX } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -18,7 +18,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { type Invoice } from '@/services/invoices'
 
@@ -60,39 +59,34 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
         onFiltered(filteredInvoices)
     }, [filteredInvoices, onFiltered])
 
+    const clearFilters = () => {
+        setSearchTerm('')
+        setStatusFilter('all')
+    }
+
+    const hasActiveFilters = searchTerm || statusFilter !== 'all'
+
     return (
-        <div className="flex flex-col gap-4">
+        <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <h2 className="text-lg font-semibold">Invoices</h2>
                     <Badge variant="outline" className="text-muted-foreground">
                         {filteredInvoices.length} of {invoices.length}
                     </Badge>
+                    {hasActiveFilters && (
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={clearFilters}
+                            className="h-6 px-2 text-xs"
+                        >
+                            <IconX className="mr-1 h-3 w-3" />
+                            Clear filters
+                        </Button>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                <IconFilter className="mr-2 h-4 w-4" />
-                                More Filters
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem>
-                                <IconSearch className="mr-2 h-4 w-4" />
-                                Advanced Search
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <IconFilter className="mr-2 h-4 w-4" />
-                                Date Range
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                                <IconDotsVertical className="mr-2 h-4 w-4" />
-                                Export Data
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
                     {onCreateNew && (
                         <Button onClick={onCreateNew} size="sm">
                             <IconPlus className="mr-2 h-4 w-4" />
@@ -102,7 +96,7 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
                 </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="relative flex-1 max-w-sm">
                     <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -126,6 +120,37 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
                     </SelectContent>
                 </Select>
             </div>
+
+            {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                    {searchTerm && (
+                        <Badge variant="secondary" className="text-xs">
+                            Search: "{searchTerm}"
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-1 h-4 w-4 p-0 hover:bg-transparent"
+                                onClick={() => setSearchTerm('')}
+                            >
+                                <IconX className="h-3 w-3" />
+                            </Button>
+                        </Badge>
+                    )}
+                    {statusFilter !== 'all' && (
+                        <Badge variant="secondary" className="text-xs">
+                            Status: {statusFilter}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-1 h-4 w-4 p-0 hover:bg-transparent"
+                                onClick={() => setStatusFilter('all')}
+                            >
+                                <IconX className="h-3 w-3" />
+                            </Button>
+                        </Badge>
+                    )}
+                </div>
+            )}
         </div>
     )
 } 

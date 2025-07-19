@@ -141,8 +141,8 @@ export function InvoiceTable({
                                     }
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className={`${statusConfig.className} px-2 py-1`}>
-                                        <StatusIcon className={`mr-1 h-3 w-3 ${statusConfig.iconClassName}`} />
+                                    <Badge variant="outline" className={`${statusConfig.className} px-2 py-1 inline-flex items-center gap-1`}>
+                                        <StatusIcon className={`h-3 w-3 ${statusConfig.iconClassName}`} />
                                         {invoice.state}
                                     </Badge>
                                 </TableCell>
