@@ -1,181 +1,157 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
-import { isAfter, isBefore, startOfDay, endOfDay } from 'date-fns'
-import { DateRange } from 'react-day-picker'
-import CardStatsList from '@/components/custom/specialized/card-stats-list'
-import ListFilters from '@/components/custom/specialized/list-filters'
-import InvoiceTable from '@/components/custom/specialized/invoice-table'
-
-interface Invoice {
-    id: string
-    date: Date
-    dueDate: Date
-    title: string
-    client: string
-    status: 'Paid' | 'Sent' | 'Pending' | 'Overdue'
-    amount: number
-}
-
-const sampleInvoices: Invoice[] = [
-    {
-        id: 'INV001',
-        date: new Date(),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
-        title: 'Web Services',
-        client: 'Enzo Hugonnier',
-        status: 'Paid',
-        amount: 250.0,
-    },
-    {
-        id: 'INV002',
-        date: new Date(new Date().setDate(new Date().getDate() - 3)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 27)),
-        title: 'Design Work',
-        client: 'Alice Dupont',
-        status: 'Sent',
-        amount: 400.0,
-    },
-    {
-        id: 'INV003',
-        date: new Date(new Date().setDate(new Date().getDate() - 10)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 20)),
-        title: 'Consulting',
-        client: 'Bob Martin',
-        status: 'Pending',
-        amount: 600.0,
-    },
-    {
-        id: 'INV004',
-        date: new Date(new Date().setDate(new Date().getDate() - 15)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 15)),
-        title: 'Logo Design',
-        client: 'Emma Johnson',
-        status: 'Sent',
-        amount: 350.0,
-    },
-    {
-        id: 'INV005',
-        date: new Date(new Date().setDate(new Date().getDate() - 18)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 12)),
-        title: 'SEO Services',
-        client: 'Charles Wilson',
-        status: 'Paid',
-        amount: 500.0,
-    },
-    {
-        id: 'INV006',
-        date: new Date(new Date().setDate(new Date().getDate() - 22)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 8)),
-        title: 'Content Writing',
-        client: 'Diana Smith',
-        status: 'Overdue',
-        amount: 325.0,
-    },
-    {
-        id: 'INV007',
-        date: new Date(new Date().setDate(new Date().getDate() - 25)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 5)),
-        title: 'Mobile App Development',
-        client: 'Frank Miller',
-        status: 'Pending',
-        amount: 1200.0,
-    },
-    {
-        id: 'INV008',
-        date: new Date(new Date().setDate(new Date().getDate() - 30)),
-        dueDate: new Date(new Date().setDate(new Date().getDate())),
-        title: 'Website Maintenance',
-        client: 'Grace Lee',
-        status: 'Overdue',
-        amount: 180.0,
-    },
-    {
-        id: 'INV009',
-        date: new Date(new Date().setDate(new Date().getDate() - 35)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 5)),
-        title: 'UI/UX Design',
-        client: 'Henry Brown',
-        status: 'Paid',
-        amount: 750.0,
-    },
-    {
-        id: 'INV010',
-        date: new Date(new Date().setDate(new Date().getDate() - 40)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 10)),
-        title: 'Email Marketing',
-        client: 'Isabella Garcia',
-        status: 'Paid',
-        amount: 450.0,
-    },
-    {
-        id: 'INV011',
-        date: new Date(new Date().setDate(new Date().getDate() - 45)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 15)),
-        title: 'Social Media Management',
-        client: 'Jack Taylor',
-        status: 'Paid',
-        amount: 550.0,
-    },
-    {
-        id: 'INV012',
-        date: new Date(new Date().setDate(new Date().getDate() - 50)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 20)),
-        title: 'Video Production',
-        client: 'Kelly Anderson',
-        status: 'Paid',
-        amount: 950.0,
-    },
-]
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { IconFileText, IconPlus } from '@tabler/icons-react'
+import { useInvoices } from '@/hooks/use-invoices'
+import { InvoiceStats } from '@/components/custom/generic/invoice-stats'
+import { InvoiceFilters } from '@/components/custom/generic/invoice-filters'
+import { InvoiceTable } from '@/components/custom/generic/invoice-table'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { type Invoice } from '@/services/invoices'
+import { invoicesService } from '@/services/invoices'
 
 export default function InvoicesPage() {
-    const allInvoices = useRef(sampleInvoices).current
+    const router = useRouter()
+    const { invoices, loading, error, deleteInvoice } = useInvoices()
+    const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>(invoices)
 
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
-    const [searchResults, setSearchResults] = useState<Invoice[]>(allInvoices)
+    // Update filtered invoices when invoices change
+    useEffect(() => {
+        setFilteredInvoices(invoices)
+    }, [invoices])
 
-    const handleSearch = (results: Invoice[]) => {
-        setSearchResults(results)
+    const handleView = (invoice: Invoice) => {
+        router.push(`/invoices/${invoice.id}`)
     }
 
-    let displayedInvoices = [...searchResults]
-    const from = dateRange?.from
-    const to = dateRange?.to
-
-    if (from && to) {
-        displayedInvoices = displayedInvoices.filter((inv) => {
-            const d = inv.date
-            return (
-                (isAfter(d, startOfDay(from)) ||
-                    d.getTime() === startOfDay(from).getTime()) &&
-                (isBefore(d, endOfDay(to)) ||
-                    d.getTime() === endOfDay(to).getTime())
-            )
-        })
+    const handleEdit = (invoice: Invoice) => {
+        router.push(`/invoices/${invoice.id}`)
     }
 
-    const handleDateRangeChange = (range: DateRange | undefined) => {
-        setDateRange(range)
+    const handleDelete = async (invoice: Invoice) => {
+        if (confirm(`Are you sure you want to delete invoice "${invoice.title}"?`)) {
+            try {
+                await deleteInvoice(invoice.id)
+            } catch (error) {
+                console.error('Failed to delete invoice:', error)
+            }
+        }
+    }
+
+    const handleDownload = async (invoice: Invoice) => {
+        try {
+            const blob = await invoicesService.downloadPdf(invoice.id)
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `invoice-${invoice.id}.pdf`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+        } catch (error) {
+            console.error('Failed to download invoice:', error)
+        }
+    }
+
+    const handleCreateNew = () => {
+        router.push('/invoices/new')
+    }
+
+    if (loading) {
+        return (
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader>
+                                <Skeleton className="h-4 w-24" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-8 w-16 mb-2" />
+                                <Skeleton className="h-3 w-32" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-32" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Skeleton key={i} className="h-12 w-full" />
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
     }
 
     return (
-        <>
-            <CardStatsList />
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+            {error && (
+                <Alert variant="destructive" className="mx-4 lg:mx-6">
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
 
-            <ListFilters<Invoice>
-                subtitle="Invoice List"
-                items={allInvoices}
-                searchKeys={['id', 'title', 'client', 'status']}
-                onFiltered={handleSearch}
-                dateRange={dateRange}
-                setDateRange={handleDateRangeChange}
-            />
+            <InvoiceStats invoices={invoices} />
 
-            <InvoiceTable
-                invoices={displayedInvoices}
-                invoiceLinkPrefix="/invoices"
-                clientLinkPrefix="/clients"
-            />
-        </>
+            <div className="px-4 lg:px-6">
+                <div className="space-y-4">
+                    <InvoiceFilters
+                        invoices={invoices}
+                        onFiltered={setFilteredInvoices}
+                        onCreateNew={handleCreateNew}
+                    />
+                    
+                    {filteredInvoices.length === 0 ? (
+                        <div className="text-center py-12">
+                            <div className="mx-auto max-w-md">
+                                <div className="rounded-full bg-muted p-3 w-fit mx-auto mb-4">
+                                    <IconFileText className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <h3 className="text-lg font-semibold mb-2">
+                                    {invoices.length === 0 
+                                        ? "No invoices yet"
+                                        : "No matching invoices"
+                                    }
+                                </h3>
+                                <p className="text-muted-foreground mb-6">
+                                    {invoices.length === 0 
+                                        ? "Get started by creating your first invoice to track your business revenue."
+                                        : "Try adjusting your search criteria or filters to find what you're looking for."
+                                    }
+                                </p>
+                                {invoices.length === 0 && (
+                                    <Button 
+                                        onClick={handleCreateNew}
+                                        size="lg"
+                                    >
+                                        <IconPlus className="mr-2 h-4 w-4" />
+                                        Create First Invoice
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <InvoiceTable
+                            invoices={filteredInvoices}
+                            onView={handleView}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onDownload={handleDownload}
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
     )
 }
