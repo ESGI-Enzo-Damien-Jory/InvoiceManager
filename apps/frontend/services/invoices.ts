@@ -12,6 +12,18 @@ export type Invoice = Row<'invoices'> & {
     }
 }
 
+export type InvoiceItem = {
+    id: string
+    invoice_id: string
+    item_id: string
+    quantity: number
+    unit_price: number
+    items: {
+        name: string
+        price: number
+    }
+}
+
 export type CreateInvoicePayload = {
     client_id: string
     title: string
@@ -38,6 +50,11 @@ export const invoicesService = {
 
     async getById(id: string): Promise<Invoice> {
         const response = await api.get(`/invoices/${id}`)
+        return response.data
+    },
+
+    async getItems(id: string): Promise<InvoiceItem[]> {
+        const response = await api.get(`/invoices/${id}/items`)
         return response.data
     },
 

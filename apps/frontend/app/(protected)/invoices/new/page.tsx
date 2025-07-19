@@ -14,6 +14,8 @@ import { getClients } from '@/services/clients'
 import { fetchItems } from '@/services/items'
 import { type Client, type Item } from '@inma/types'
 import InvoiceForm from '@/components/custom/specialized/invoice-form-new'
+import LoadingState from '@/components/custom/states/loading-state'
+import ErrorState from '@/components/custom/states/error-state'
 
 export default function NewInvoicePage() {
     const router = useRouter()
@@ -74,64 +76,34 @@ export default function NewInvoicePage() {
     }
 
     if (clientsLoading || itemsLoading) {
-        return (
-            <div className="flex flex-col gap-6 p-6">
-                <div className="flex items-center gap-4">
-                    <Skeleton className="h-8 w-32" />
-                    <Skeleton className="h-8 w-24" />
-                </div>
-                
-                <Card>
-                    <CardHeader>
-                        <Skeleton className="h-6 w-48" />
-                        <Skeleton className="h-4 w-64" />
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Skeleton className="h-20 w-full" />
-                            <Skeleton className="h-20 w-full" />
-                        </div>
-                        <Skeleton className="h-64 w-full" />
-                        <div className="flex justify-end gap-4">
-                            <Skeleton className="h-10 w-24" />
-                            <Skeleton className="h-10 w-32" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
+        return <LoadingState message="Loading form data…" />
     }
 
     if (clientsError || itemsError) {
         return (
-            <div className="flex flex-col gap-6 p-6">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={handleCancel}>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Invoices
-                    </Button>
-                </div>
-                
-                <Alert variant="destructive">
-                    <AlertDescription>
-                        {clientsError ? 'Failed to load clients' : 'Failed to load items'}. Please try refreshing the page.
-                    </AlertDescription>
-                </Alert>
-            </div>
+            <ErrorState
+                message={clientsError?.message || itemsError?.message || 'Failed to load form data'}
+                onRetry={() => window.location.reload()}
+            />
         )
     }
 
     return (
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-6 p-4 lg:p-6 h-full">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={handleCancel}>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancel}
+                        className="flex items-center gap-2"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
                         Back to Invoices
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Create New Invoice</h1>
+                        <h1 className="text-2xl font-bold">Create New Invoice</h1>
                         <p className="text-muted-foreground">
                             Create a professional invoice for your client
                         </p>
@@ -145,11 +117,11 @@ export default function NewInvoicePage() {
             </div>
 
             {/* Main Form */}
-            <Card className="max-w-4xl mx-auto w-full">
+            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Plus className="h-5 w-5" />
-                        New Invoice Details
+                        Invoice Details
                     </CardTitle>
                     <CardDescription>
                         Fill in the invoice information and add items to create your invoice

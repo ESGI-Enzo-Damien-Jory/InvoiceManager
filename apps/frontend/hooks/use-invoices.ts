@@ -1,69 +1,98 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { invoicesService, type Invoice } from '@/services/invoices'
+import { toast } from 'sonner'
 
 export function useInvoices() {
-    const [invoices, setInvoices] = useState<Invoice[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const queryClient = useQueryClient()
 
-    const fetchInvoices = useCallback(async () => {
-        try {
-            setLoading(true)
-            setError(null)
-            const data = await invoicesService.getAll()
-            setInvoices(data)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch invoices')
-        } finally {
-            setLoading(false)
-        }
-    }, [])
+    const { data: invoices = [], isLoading: loading, error } = useQuery({
+        queryKey: ['invoices'],
+        queryFn: invoicesService.getAll,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    })
 
-    const createInvoice = useCallback(async (data: any) => {
-        try {
-            const newInvoice = await invoicesService.create(data)
-            setInvoices(prev => [newInvoice, ...prev])
-            return newInvoice
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create invoice')
-            throw err
-        }
-    }, [])
+    const deleteMutation = useMutation({
+        mutationFn: invoicesService.delete,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['invoices'] })
+            toast.success('Invoice deleted successfully')
+        },
+        onError: (error: any) => {
+            console.error('Failed to delete invoice:', error)
+            toast.error(error?.response?.data?.error || 'Failed to delete invoice')
+        },
+    })
 
-    const updateInvoice = useCallback(async (id: string, data: any) => {
-        try {
-            const updatedInvoice = await invoicesService.update(id, data)
-            setInvoices(prev => prev.map(invoice => 
-                invoice.id === id ? updatedInvoice : invoice
-            ))
-            return updatedInvoice
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to update invoice')
-            throw err
-        }
-    }, [])
-
-    const deleteInvoice = useCallback(async (id: string) => {
-        try {
-            await invoicesService.delete(id)
-            setInvoices(prev => prev.filter(invoice => invoice.id !== id))
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to delete invoice')
-            throw err
-        }
-    }, [])
-
-    useEffect(() => {
-        fetchInvoices()
-    }, [fetchInvoices])
+    const deleteInvoice = async (id: string) => {
+        await deleteMutation.mutateAsync(id)
+    }
 
     return {
         invoices,
         loading,
-        error,
-        fetchInvoices,
-        createInvoice,
-        updateInvoice,
-        deleteInvoice
+        error: error?.message,
+        deleteInvoice,
+        isDeleting: deleteMutation.isPending,
+    }
+}
+
+export function useInvoice(id: string) {
+    return useQuery({
+        queryKey: ['invoice', id],
+        queryFn: () => invoicesService.getById(id),
+        enabled: !!id,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    })
+}
+
+export function useInvoiceActions() {
+    const queryClient = useQueryClient()
+
+    const downloadMutation = useMutation({
+        mutationFn: invoicesService.downloadPdf,
+        onError: (error: any) => {
+            console.error('Failed to download invoice:', error)
+            toast.error('Failed to download invoice')
+        },
+    })
+
+    const shareMutation = useMutation({
+        mutationFn: invoicesService.generateSignedUrl,
+        onSuccess: (data) => {
+            // Copy to clipboard
+            navigator.clipboard.writeText(data.signed_url)
+            toast.success('Share link copied to clipboard!')
+        },
+        onError: (error: any) => {
+            console.error('Failed to generate share link:', error)
+            toast.error('Failed to generate share link')
+        },
+    })
+
+    const downloadInvoice = async (id: string) => {
+        try {
+            const blob = await downloadMutation.mutateAsync(id)
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `invoice-${id}.pdf`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+        } catch (error) {
+            // Error is handled by the mutation
+        }
+    }
+
+    const shareInvoice = async (id: string) => {
+        await shareMutation.mutateAsync(id)
+    }
+
+    return {
+        downloadInvoice,
+        shareInvoice,
+        isDownloading: downloadMutation.isPending,
+        isSharing: shareMutation.isPending,
     }
 } 
