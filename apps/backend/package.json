@@ -50,9 +50,9 @@
     "typescript": "~5.7"
   },
   "dependencies": {
-    "@inma/types": "workspace:*",
     "@adonisjs/core": "^6.17.2",
     "@adonisjs/cors": "^2.2.1",
+    "@inma/types": "workspace:*",
     "@pdfme/common": "^5.3.19",
     "@pdfme/generator": "^5.3.19",
     "@pdfme/schemas": "^5.3.19",
@@ -60,8 +60,9 @@
     "@supabase/supabase-js": "^2.49.4",
     "@vinejs/vine": "^3.0.0",
     "dotenv": "^16.5.0",
-    "reflect-metadata": "^0.2.2",
-    "hot-hook": "^0.4.0"
+    "hot-hook": "^0.4.0",
+    "pino-pretty": "^13.0.0",
+    "reflect-metadata": "^0.2.2"
   },
   "hotHook": {
     "boundaries": [

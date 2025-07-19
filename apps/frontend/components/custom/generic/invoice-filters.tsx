@@ -86,14 +86,6 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
                         </Button>
                     )}
                 </div>
-                <div className="flex items-center gap-2">
-                    {onCreateNew && (
-                        <Button onClick={onCreateNew} size="sm">
-                            <IconPlus className="mr-2 h-4 w-4" />
-                            New Invoice
-                        </Button>
-                    )}
-                </div>
             </div>
             
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
