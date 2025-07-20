@@ -52,8 +52,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { type Client } from '@inma/types'
-import { type Item } from '@inma/types'
+import type { Client, Item } from '@/types'
 
 const formSchema = z.object({
     title: z.string().min(3, {

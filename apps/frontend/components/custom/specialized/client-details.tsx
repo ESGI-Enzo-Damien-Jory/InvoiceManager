@@ -5,12 +5,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Mail, Phone, MapPin, User, DollarSign } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Client } from '@/types/clients'
+import type { ClientWithStats } from '@/types'
 
 const formatNumber = (n?: number) =>
     (typeof n === 'number' ? n : 0).toLocaleString('en-US')
 
-const ClientDetails: FC<{ client: Client }> = ({ client }) => (
+const ClientDetails: FC<{ client: ClientWithStats }> = ({ client }) => (
     <Card className="max-w-2xl mx-auto space-y-6">
         <CardHeader>
             <CardTitle>Overview</CardTitle>

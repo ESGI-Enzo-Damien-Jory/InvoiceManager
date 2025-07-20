@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
-import { Item } from '@/types/items'
+import type { Item } from '@/types'
 
 interface FormData {
     name: string

@@ -12,11 +12,11 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { type Invoice } from '@/services/invoices'
+import type { Invoice } from '@/types'
 
 interface InvoiceFiltersProps {
     invoices: Invoice[]
-    onFiltered: (filtered: Invoice[]) => void
+    onFiltered?: (filtered: Invoice[]) => void
     onCreateNew?: () => void
 }
 
@@ -32,9 +32,6 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
             const term = searchTerm.toLowerCase()
             filtered = filtered.filter(invoice => 
                 invoice.title.toLowerCase().includes(term) ||
-                invoice.clients.first_name.toLowerCase().includes(term) ||
-                invoice.clients.last_name.toLowerCase().includes(term) ||
-                invoice.clients.email.toLowerCase().includes(term) ||
                 invoice.id.toLowerCase().includes(term)
             )
         }
@@ -49,8 +46,8 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
 
     // Update parent component when filters change
     useEffect(() => {
-        onFiltered(filteredInvoices)
-    }, [filteredInvoices])
+        onFiltered?.(filteredInvoices)
+    }, [filteredInvoices, onFiltered])
 
     const clearFilters = () => {
         setSearchTerm('')

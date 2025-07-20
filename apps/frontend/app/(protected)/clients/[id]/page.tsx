@@ -328,11 +328,11 @@ export default function ClientViewPage() {
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">
-                                    Created Date
+                                    Last Updated
                                 </label>
                                 <p className="text-sm">
                                     {new Date(
-                                        client.created_at
+                                        client.updated_at
                                     ).toLocaleDateString('en-US', {
                                         year: 'numeric',
                                         month: 'long',

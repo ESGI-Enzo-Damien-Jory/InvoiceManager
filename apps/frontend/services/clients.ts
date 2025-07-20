@@ -1,27 +1,7 @@
 import api from '@/lib/api'
-import { Client } from '@inma/types'
+import type { Client, CreateClientPayload, UpdateClientPayload, ClientFilters, PaginatedResponse } from '@/types'
 
-/**
- * Payload for creating a new client (matches your controller's request.only())
- */
-export interface CreateClientPayload {
-    first_name: string
-    last_name: string
-    email: string
-    phone_number?: string | null
-    address?: string | null
-}
 
-/**
- * Payload for updating an existing client (same fields as create)
- */
-export interface UpdateClientPayload {
-    first_name?: string
-    last_name?: string
-    email?: string
-    phone_number?: string | null
-    address?: string | null
-}
 
 /**
  * Response from deleting a client (matches your controller)

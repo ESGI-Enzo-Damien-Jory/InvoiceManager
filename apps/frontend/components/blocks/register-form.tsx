@@ -13,12 +13,6 @@ import { Label } from '@/components/ui/label'
 import { AlertCircle, Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import axios from 'axios'
 
-export interface RegisterPayload {
-    email: string
-    password: string
-    display_name: string
-}
-
 const register_schema = z
     .object({
         display_name: z
@@ -124,7 +118,7 @@ export function RegisterForm({ className, ...props }: RegisterFormProps) {
 
     const on_submit = (data: RegisterFormValues) => {
         set_form_error(null)
-        const payload: RegisterPayload = {
+        const payload = {
             display_name: data.display_name,
             email: data.email,
             password: data.password,

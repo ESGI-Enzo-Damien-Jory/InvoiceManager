@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
-import { Item } from '@inma/types'
+import type { Item } from '@/types'
 
 import {
     useItems,
@@ -13,7 +13,7 @@ import {
     useDeleteItem,
 } from '@/hooks/use-items'
 import DataTable from '@/components/custom/generic/data-table'
-import { columns } from '@/types/columns/items'
+import { itemColumns } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
@@ -301,7 +301,7 @@ export default function ItemsPage() {
                     </div>
                 ) : (
                     <DataTable<Item>
-                        columns={columns}
+                        columns={itemColumns}
                         data={items}
                         is_loading={false}
                         is_error={false}

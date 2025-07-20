@@ -36,7 +36,8 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useInvoice, useInvoiceActions } from '@/hooks/use-invoices'
-import { invoicesService, type Invoice, type InvoiceItem } from '@/services/invoices'
+import { invoicesService, type InvoiceItem } from '@/services/invoices'
+import type { Invoice, InvoiceWithClient } from '@/types'
 import { toast } from 'sonner'
 import LoadingState from '@/components/custom/states/loading-state'
 import ErrorState from '@/components/custom/states/error-state'
@@ -102,6 +103,14 @@ export default function InvoicePage() {
 
     const { data: invoice, isLoading, error, refetch } = useInvoice(invoiceId)
     const { downloadInvoice, shareInvoice, isDownloading, isSharing } = useInvoiceActions()
+
+    // Fetch client data separately if invoice exists
+    const { data: client } = useQuery({
+        queryKey: ['client', invoice?.client_id],
+        queryFn: () => invoicesService.getClient(invoice!.client_id),
+        enabled: !!invoice?.client_id,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    })
 
     // Fetch invoice items separately
     const { data: invoiceItems = [] } = useQuery({
@@ -199,7 +208,7 @@ export default function InvoicePage() {
                     <div className="flex items-center gap-2">
                         <InvoicePreview
                             invoice={invoice}
-                            client={invoice.clients}
+                            client={client}
                             items={invoiceItems.map(item => item.items)}
                             invoiceItems={invoiceItems}
                             onDownload={handleDownload}
@@ -345,32 +354,32 @@ export default function InvoicePage() {
                                     Client Name
                                 </label>
                                 <p className="text-lg font-medium">
-                                    {invoice.clients.first_name} {invoice.clients.last_name}
+                                    {client ? `${client.first_name} ${client.last_name}` : 'Loading...'}
                                 </p>
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">
                                     Email Address
                                 </label>
-                                <p className="text-sm">{invoice.clients.email}</p>
+                                <p className="text-sm">{client?.email || 'Loading...'}</p>
                             </div>
-                            {invoice.clients.phone_number && (
+                            {client?.phone_number && (
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground">
                                         Phone Number
                                     </label>
                                     <p className="text-sm tabular-nums">
-                                        {invoice.clients.phone_number}
+                                        {client.phone_number}
                                     </p>
                                 </div>
                             )}
-                            {invoice.clients.address && (
+                            {client?.address && (
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground">
                                         Address
                                     </label>
                                     <p className="text-sm">
-                                        {invoice.clients.address}
+                                        {client.address}
                                     </p>
                                 </div>
                             )}

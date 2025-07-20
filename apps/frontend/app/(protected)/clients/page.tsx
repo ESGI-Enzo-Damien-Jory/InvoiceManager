@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Client } from '@inma/types'
+import type { Client } from '@/types'
 
 import {
     useClients,
@@ -11,10 +11,10 @@ import {
     useUpdateClient,
     useDeleteClient,
 } from '@/hooks/use-clients'
-import type { CreateClientPayload } from '@/services/clients'
+import type { CreateClientPayload } from '@/types'
 import CreateClientDialog from '@/components/custom/specialized/clients/create-clients-dialog'
 import EditClientDialog from '@/components/custom/specialized/clients/edit-clients-dialog'
-import { columns } from '@/types/columns/client'
+import { clientColumns } from '@/types'
 import DataTable from '@/components/custom/generic/data-table'
 import { Loader2, UserPlus, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -318,7 +318,7 @@ export default function ClientsPage() {
                     </div>
                 ) : (
                     <DataTable<Client>
-                        columns={columns}
+                        columns={clientColumns}
                         data={clients}
                         is_loading={false}
                         is_error={false}

@@ -31,7 +31,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { type Invoice } from '@/services/invoices'
+import type { Invoice, InvoiceWithClient } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 
 interface InvoiceTableProps {
@@ -119,10 +119,9 @@ export function InvoiceTable({
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className="font-medium">
-                                            {invoice.clients.first_name} {invoice.clients.last_name}
+                                        <span className="font-medium text-muted-foreground">
+                                            Client ID: {invoice.client_id}
                                         </span>
-                                        <span className="text-xs text-muted-foreground">{invoice.clients.email}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">

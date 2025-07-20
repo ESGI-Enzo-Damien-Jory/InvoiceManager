@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
-import { invoicesService, type UpdateInvoicePayload } from '@/services/invoices'
+import { invoicesService } from '@/services/invoices'
 import { getClients } from '@/services/clients'
 import { fetchItems } from '@/services/items'
-import { type Client, type Item } from '@inma/types'
+import type { UpdateInvoicePayload, Client, Item } from '@/types'
 import InvoiceForm from '@/components/custom/specialized/invoice-form-new'
 
 export default function EditInvoicePage() {

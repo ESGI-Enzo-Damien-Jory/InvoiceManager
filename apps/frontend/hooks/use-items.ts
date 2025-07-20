@@ -6,7 +6,7 @@ import {
     updateItem,
     deleteItem,
 } from '@/services/items'
-import { Item } from '@/types/items'
+import type { Item } from '@/types'
 
 /**
  * Hook for fetching all items.

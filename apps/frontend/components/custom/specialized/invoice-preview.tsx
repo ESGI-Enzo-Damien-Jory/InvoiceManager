@@ -7,16 +7,16 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Eye, Download, Share2, X, ChevronLeft, ChevronRight } from 'lucide-react'
-import { type Invoice, type InvoiceItem } from '@/services/invoices'
+import type { Invoice, InvoiceItem, Client } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import template from '../../../templates/template.json'
 
 interface InvoicePreviewProps {
     invoice: Invoice
-    client?: Invoice['clients']
-    items?: InvoiceItem['items'][]
-    invoiceItems?: InvoiceItem[]
+    client?: Client
+    items?: any[]
+    invoiceItems?: any[]
     onDownload?: () => void
     onShare?: () => void
 }
@@ -58,7 +58,7 @@ export function InvoicePreview({ invoice, client, items, invoiceItems, onDownloa
         ].filter(Boolean).join('\n')
 
         // Format invoice items - use the item data directly from invoiceItems
-        const formattedItems = invoiceItems.map((invoiceItem: InvoiceItem) => {
+        const formattedItems = invoiceItems.map((invoiceItem: any) => {
             return [
                 invoiceItem.items.name, // Use the name directly from the item
                 invoiceItem.quantity.toString(),
@@ -68,7 +68,7 @@ export function InvoicePreview({ invoice, client, items, invoiceItems, onDownloa
         })
 
         // Calculate totals
-        const subtotal = invoiceItems.reduce((sum: number, item: InvoiceItem) => 
+        const subtotal = invoiceItems.reduce((sum: number, item: any) => 
             sum + (item.quantity * item.unit_price), 0)
         const taxRate = 10 // Default tax rate
         const tax = subtotal * (taxRate / 100)

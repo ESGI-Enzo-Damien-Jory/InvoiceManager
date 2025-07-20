@@ -3,7 +3,7 @@
 import { IconReceipt, IconCash, IconCheck, IconAlertTriangle, IconFileText, IconSend } from '@tabler/icons-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { type Invoice } from '@/services/invoices'
+import type { Invoice } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 
 interface InvoiceStatsProps {

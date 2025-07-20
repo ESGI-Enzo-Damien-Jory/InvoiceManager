@@ -1,16 +1,5 @@
 import api from '@/lib/api'
-import { Row } from '@inma/types'
-
-export type Invoice = Row<'invoices'> & {
-    clients: {
-        id: string
-        first_name: string
-        last_name: string
-        email: string
-        address: string | null
-        phone_number: string | null
-    }
-}
+import type { Invoice, InvoiceWithClient, CreateInvoicePayload, UpdateInvoicePayload, InvoiceFilters } from '@/types'
 
 export type InvoiceItem = {
     id: string
@@ -24,23 +13,7 @@ export type InvoiceItem = {
     }
 }
 
-export type CreateInvoicePayload = {
-    client_id: string
-    title: string
-    total_amount?: number
-    expiration_date?: string
-    state?: 'Draft' | 'Sent'
-    items?: any[]
-}
 
-export type UpdateInvoicePayload = {
-    client_id?: string
-    title?: string
-    total_amount?: number
-    expiration_date?: string
-    state?: 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Cancelled'
-    items?: any[]
-}
 
 export const invoicesService = {
     async getAll(): Promise<Invoice[]> {
@@ -91,5 +64,10 @@ export const invoicesService = {
     async generatePdf(invoiceId: string): Promise<{ message: string; pdf_url: string }> {
       const response = await api.post(`/invoices/${invoiceId}/generate-pdf`)
       return response.data
+    },
+
+    async getClient(clientId: string): Promise<any> {
+        const response = await api.get(`/clients/${clientId}`)
+        return response.data
     }
 } 

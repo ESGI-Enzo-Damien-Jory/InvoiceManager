@@ -11,11 +11,13 @@ import {
     createClient,
     updateClient,
     deleteClient,
+    DeleteClientResponse,
+} from '@/services/clients'
+import type {
     Client,
     CreateClientPayload,
     UpdateClientPayload,
-    DeleteClientResponse,
-} from '@/services/clients'
+} from '@/types'
 
 /** --------------------------------------------- **
  * 1) Query hooks for data fetching

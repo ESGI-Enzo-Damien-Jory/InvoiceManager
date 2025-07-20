@@ -13,24 +13,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { type Invoice } from '@/services/invoices'
+import type { Invoice } from '@/types'
 import { invoicesService } from '@/services/invoices'
 import { formatCurrency } from '@/lib/utils'
 
 export default function InvoicesPage() {
     const router = useRouter()
     const { invoices, loading, error, deleteInvoice } = useInvoices()
-    const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>(invoices)
     const [searchTerm, setSearchTerm] = useState('')
 
-    const handleFiltered = useCallback((filtered: Invoice[]) => {
-        setFilteredInvoices(filtered)
-    }, [])
-
-    // Update filtered invoices when invoices change
-    useEffect(() => {
-        setFilteredInvoices(invoices)
-    }, [invoices])
+    // Use invoices directly instead of maintaining separate filtered state
+    const filteredInvoices = invoices
 
     const handleView = (invoice: Invoice) => {
         router.push(`/invoices/${invoice.id}`)
@@ -303,7 +296,6 @@ export default function InvoicesPage() {
                             <CardContent>
                                 <InvoiceFilters
                                     invoices={invoices}
-                                    onFiltered={handleFiltered}
                                     onCreateNew={handleCreateNew}
                                 />
                             </CardContent>
@@ -325,7 +317,6 @@ export default function InvoicesPage() {
                                     <div className="flex gap-3">
                                         <Button 
                                             onClick={() => {
-                                                setFilteredInvoices(invoices)
                                                 setSearchTerm('')
                                             }}
                                             variant="outline"
