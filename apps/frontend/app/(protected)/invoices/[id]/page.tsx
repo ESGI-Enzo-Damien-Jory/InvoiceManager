@@ -18,7 +18,9 @@ import {
     CheckCircle,
     XCircle,
     AlertCircle,
-    Loader2
+    Loader2,
+    Mail,
+    Bell
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,6 +44,8 @@ import { toast } from 'sonner'
 import LoadingState from '@/components/custom/states/loading-state'
 import ErrorState from '@/components/custom/states/error-state'
 import { InvoicePreview } from '@/components/custom/specialized/invoice-preview'
+import { SendEmailDialog } from '@/components/custom/specialized/invoice-form/send-email-dialog'
+import { ShareLinkDialog } from '@/components/custom/specialized/invoice-form/share-link-dialog'
 
 const getStatusConfig = (state: string, expirationDate?: string | null) => {
     const now = new Date()
@@ -100,9 +104,19 @@ export default function InvoicePage() {
     const invoiceId = params.id as string
     
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+    const [showEmailDialog, setShowEmailDialog] = useState(false)
+    const [showShareDialog, setShowShareDialog] = useState(false)
 
     const { data: invoice, isLoading, error, refetch } = useInvoice(invoiceId)
-    const { downloadInvoice, shareInvoice, isDownloading, isSharing } = useInvoiceActions()
+    const { 
+        downloadInvoice, 
+        shareInvoice, 
+        sendEmail, 
+        sendReminder,
+        isGeneratingPdf,
+        isSendingEmail,
+        isSendingReminder 
+    } = useInvoiceActions()
 
     // Fetch client data separately if invoice exists
     const { data: client } = useQuery({
@@ -147,7 +161,19 @@ export default function InvoicePage() {
     }
 
     const handleShare = () => {
-        shareInvoice(invoiceId)
+        setShowShareDialog(true)
+    }
+
+    const handleSendEmail = () => {
+        setShowEmailDialog(true)
+    }
+
+    const handleSendReminder = async () => {
+        try {
+            await sendReminder(invoiceId)
+        } catch (error) {
+            console.error('Failed to send reminder:', error)
+        }
     }
 
     const handleBack = () => {
@@ -173,13 +199,14 @@ export default function InvoicePage() {
     return (
         <>
             {/* Loading overlay for mutations */}
-            {(isDownloading || isSharing) && (
+            {(isGeneratingPdf || isSendingEmail || isSendingReminder) && (
                 <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
                     <div className="bg-card p-6 rounded-lg shadow-lg border flex items-center gap-3">
                         <Loader2 className="h-5 w-5 animate-spin" />
                         <span className="text-sm font-medium">
-                            {isDownloading && 'Downloading PDF...'}
-                            {isSharing && 'Generating share link...'}
+                            {isGeneratingPdf && 'Generating PDF...'}
+                            {isSendingEmail && 'Sending email...'}
+                            {isSendingReminder && 'Sending reminder...'}
                         </span>
                     </div>
                 </div>
@@ -219,9 +246,9 @@ export default function InvoicePage() {
                             size="sm"
                             onClick={handleDownload}
                             className="flex items-center gap-2"
-                            disabled={isDownloading}
+                            disabled={isGeneratingPdf}
                         >
-                            {isDownloading ? (
+                            {isGeneratingPdf ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                                 <Download className="h-4 w-4" />
@@ -233,15 +260,41 @@ export default function InvoicePage() {
                             size="sm"
                             onClick={handleShare}
                             className="flex items-center gap-2"
-                            disabled={isSharing || invoice.state === 'Draft'}
+                            disabled={invoice.state === 'Draft'}
                         >
-                            {isSharing ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Share2 className="h-4 w-4" />
-                            )}
+                            <Share2 className="h-4 w-4" />
                             Share Link
                         </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSendEmail}
+                            className="flex items-center gap-2"
+                            disabled={invoice.state === 'Draft' || isSendingEmail}
+                        >
+                            {isSendingEmail ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Mail className="h-4 w-4" />
+                            )}
+                            Send Email
+                        </Button>
+                        {(invoice.state === 'Sent' || invoice.state === 'Overdue') && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSendReminder}
+                                className="flex items-center gap-2"
+                                disabled={isSendingReminder}
+                            >
+                                {isSendingReminder ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Bell className="h-4 w-4" />
+                                )}
+                                Send Reminder
+                            </Button>
+                        )}
                         <Button
                             variant="outline"
                             size="sm"
@@ -492,6 +545,30 @@ export default function InvoicePage() {
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+
+                {/* Send Email Dialog */}
+                {client && (
+                    <SendEmailDialog
+                        isOpen={showEmailDialog}
+                        onClose={() => setShowEmailDialog(false)}
+                        invoiceId={invoiceId}
+                        invoiceTitle={invoice.title}
+                        clientEmail={client.email}
+                        clientName={`${client.first_name} ${client.last_name}`}
+                        onEmailSent={() => {
+                            setShowEmailDialog(false)
+                            refetch()
+                        }}
+                    />
+                )}
+
+                {/* Share Link Dialog */}
+                <ShareLinkDialog
+                    isOpen={showShareDialog}
+                    onClose={() => setShowShareDialog(false)}
+                    invoiceId={invoiceId}
+                    invoiceTitle={invoice.title}
+                />
             </div>
         </>
     )

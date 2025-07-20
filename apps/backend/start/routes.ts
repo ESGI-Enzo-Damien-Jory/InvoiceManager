@@ -94,6 +94,8 @@ router
     router.get('/preview/:id', [InvoicesController, 'preview'])
     router.post('/share/:id', [InvoicesController, 'generateSignedUrl'])
     router.post('/:id/generate-pdf', [InvoicesController, 'generatePdf'])
+    router.post('/:id/send-email', [InvoicesController, 'sendEmail'])
+    router.post('/:id/send-reminder', [InvoicesController, 'sendReminder'])
   })
   .prefix('/api/invoices')
   .use(middleware.supabaseAuth())

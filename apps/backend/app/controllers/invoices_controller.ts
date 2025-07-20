@@ -8,6 +8,7 @@ import {
   processInvoiceItems,
   generatePdfSignedUrl,
 } from '#services/invoice_service'
+import { sendInvoiceEmail, sendInvoiceReminder } from '#services/email_service'
 import {
   Invoice,
   Client,
@@ -997,7 +998,7 @@ export default class InvoicesController {
     // Upload to storage
     const pdfUrl = await uploadInvoicePdfToStorage(userId, pdfBuffer, invoiceId)
 
-    // Update invoice with PDF URL
+    // Update invoice with PDF URL - with better error handling
     const { error: updateError } = await supabase
       .from('invoices')
       .update({ pdf_url: pdfUrl })
@@ -1005,7 +1006,27 @@ export default class InvoicesController {
 
     if (updateError) {
       logger.error(`[INVOICES] Error updating invoice with PDF URL: ${updateError.message}`)
+      logger.error(`[INVOICES] RLS Policy Error Details: ${JSON.stringify(updateError)}`)
+      
+      try {
+        const { error: retryError } = await supabase
+          .from('invoices')
+          .update({ pdf_url: pdfUrl })
+          .eq('id', invoiceId)
+          .eq('owner_id', userId)
+        
+        if (retryError) {
+          logger.error(`[INVOICES] Retry also failed: ${retryError.message}`)
+        } else {
+          logger.info(`[INVOICES] PDF URL update succeeded on retry`)
+        }
+      } catch (retryErr: any) {
+        logger.error(`[INVOICES] Retry attempt failed: ${retryErr.message}`)
+      }
+      
       // Don't fail the request, PDF was generated successfully
+    } else {
+      logger.info(`[INVOICES] PDF URL updated successfully`)
     }
 
     logger.info(`[INVOICES] PDF generated and uploaded successfully for invoice ${invoiceId}`)
@@ -1029,6 +1050,219 @@ export default class InvoicesController {
       logger.error(`[INVOICES] Error generating PDF: ${error.message}`)
       return response.internalServerError({
         error: 'Failed to generate PDF',
+        details: error.message,
+      })
+    }
+  }
+
+  public async sendEmail({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+    const invoiceId: string = params.id
+    const { customMessage } = request.only(['customMessage'])
+
+    logger.info(`[INVOICES] Sending email for invoice ${invoiceId} by ${user.email}`)
+
+    try {
+      // Get invoice with client data
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select(`
+          id,
+          title,
+          state,
+          clients (
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
+
+      if (invoiceError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
+        return response.notFound({ error: 'Invoice not found' })
+      }
+
+      const invoiceData = invoice as any
+      const client = invoiceData.clients
+
+      if (!client) {
+        return response.badRequest({ error: 'Client data not found' })
+      }
+
+      // Generate PDF directly without storing
+      let pdfBuffer: Buffer
+      try {
+        // Get invoice items for PDF generation
+        const { data: invoiceItems = [] } = await supabase
+          .from('invoice_items')
+          .select(`
+            quantity,
+            unit_price,
+            items (
+              name
+            )
+          `)
+          .match({ invoice_id: invoiceId })
+
+        // Prepare data for PDF generation
+        const pdfData = {
+          title: invoiceData.title,
+          invoice_id: invoiceId,
+          total_amount: 0, // Will be calculated
+          state: invoiceData.state,
+          created_at: new Date(invoiceData.created_at),
+          expiration_date: invoiceData.expiration_date ? new Date(invoiceData.expiration_date) : undefined,
+          owner_name: user.email || 'Unknown',
+          owner_email: user.email || 'unknown@example.com',
+          client_first_name: client.first_name,
+          client_last_name: client.last_name,
+          client_email: client.email,
+          items: (invoiceItems || []).map((item: any) => ({
+            name: item.items?.name || 'Item',
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.quantity * item.unit_price
+          }))
+        }
+
+        pdfBuffer = await generateInvoicePdf(pdfData)
+        logger.info(`[INVOICES] PDF generated successfully for email`)
+      } catch (err: any) {
+        logger.error(`[INVOICES] Failed to generate PDF for email: ${err.message}`)
+        return response.badRequest({ error: 'Failed to generate PDF for email' })
+      }
+
+      const clientName = `${client.first_name} ${client.last_name}`
+      const result = await sendInvoiceEmail(
+        client.email,
+        clientName,
+        invoiceData.title,
+        invoiceId,
+        '', // No PDF URL needed
+        false,
+        customMessage,
+        pdfBuffer, // Pass PDF buffer directly
+        invoiceData // Pass invoice data for template
+      )
+
+      if (!result.success) {
+        logger.error(`[INVOICES] Email sending failed: ${result.error}`)
+        return response.internalServerError({ error: 'Failed to send email', details: result.error })
+      }
+
+      logger.info(`[INVOICES] Email sent successfully for invoice ${invoiceId} to ${client.email}`)
+      return { message: 'Email sent successfully' }
+    } catch (error: any) {
+      logger.error(`[INVOICES] Error sending email: ${error.message}`)
+      return response.internalServerError({
+        error: 'Failed to send email',
+        details: error.message,
+      })
+    }
+  }
+
+  public async sendReminder({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+    const invoiceId: string = params.id
+
+    logger.info(`[INVOICES] Sending reminder for invoice ${invoiceId} by ${user.email}`)
+
+    try {
+      // Get invoice with client data
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select(`
+          id,
+          title,
+          state,
+          clients (
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
+
+      if (invoiceError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
+        return response.notFound({ error: 'Invoice not found' })
+      }
+
+      const invoiceData = invoice as any
+      const client = invoiceData.clients
+
+      if (!client) {
+        return response.badRequest({ error: 'Client data not found' })
+      }
+
+      // Generate PDF directly without storing
+      let pdfBuffer: Buffer
+      try {
+        // Get invoice items for PDF generation
+        const { data: invoiceItems = [] } = await supabase
+          .from('invoice_items')
+          .select(`
+            quantity,
+            unit_price,
+            items (
+              name
+            )
+          `)
+          .match({ invoice_id: invoiceId })
+
+        // Prepare data for PDF generation
+        const pdfData = {
+          title: invoiceData.title,
+          invoice_id: invoiceId,
+          total_amount: 0, // Will be calculated
+          state: invoiceData.state,
+          created_at: new Date(invoiceData.created_at),
+          expiration_date: invoiceData.expiration_date ? new Date(invoiceData.expiration_date) : undefined,
+          owner_name: user.email || 'Unknown',
+          owner_email: user.email || 'unknown@example.com',
+          client_first_name: client.first_name,
+          client_last_name: client.last_name,
+          client_email: client.email,
+          items: (invoiceItems || []).map((item: any) => ({
+            name: item.items?.name || 'Item',
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.quantity * item.unit_price
+          }))
+        }
+
+        pdfBuffer = await generateInvoicePdf(pdfData)
+        logger.info(`[INVOICES] PDF generated successfully for reminder`)
+      } catch (err: any) {
+        logger.error(`[INVOICES] Failed to generate PDF for reminder: ${err.message}`)
+        return response.badRequest({ error: 'Failed to generate PDF for reminder' })
+      }
+
+      const clientName = `${client.first_name} ${client.last_name}`
+      const result = await sendInvoiceReminder(
+        client.email,
+        clientName,
+        invoiceData.title,
+        invoiceId,
+        '', // No PDF URL needed
+        pdfBuffer, // Pass PDF buffer directly
+        invoiceData // Pass invoice data for template
+      )
+
+      if (!result.success) {
+        logger.error(`[INVOICES] Reminder sending failed: ${result.error}`)
+        return response.internalServerError({ error: 'Failed to send reminder', details: result.error })
+      }
+
+      logger.info(`[INVOICES] Reminder sent successfully for invoice ${invoiceId} to ${client.email}`)
+      return { message: 'Reminder sent successfully' }
+    } catch (error: any) {
+      logger.error(`[INVOICES] Error sending reminder: ${error.message}`)
+      return response.internalServerError({
+        error: 'Failed to send reminder',
         details: error.message,
       })
     }

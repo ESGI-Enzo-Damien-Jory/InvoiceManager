@@ -66,6 +66,18 @@ export const invoicesService = {
       return response.data
     },
 
+    // Send invoice email
+    async sendEmail(invoiceId: string, customMessage?: string): Promise<{ message: string }> {
+      const response = await api.post(`/invoices/${invoiceId}/send-email`, { customMessage })
+      return response.data
+    },
+
+    // Send invoice reminder
+    async sendReminder(invoiceId: string): Promise<{ message: string }> {
+      const response = await api.post(`/invoices/${invoiceId}/send-reminder`)
+      return response.data
+    },
+
     async getClient(clientId: string): Promise<any> {
         const response = await api.get(`/clients/${clientId}`)
         return response.data

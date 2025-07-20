@@ -84,6 +84,31 @@ export function useInvoiceActions() {
     },
   })
 
+  // Send email mutation
+  const sendEmailMutation = useMutation({
+    mutationFn: ({ invoiceId, customMessage }: { invoiceId: string; customMessage?: string }) =>
+      invoicesService.sendEmail(invoiceId, customMessage),
+    onSuccess: () => {
+      toast.success('Email envoyé avec succès !')
+    },
+    onError: (error: any) => {
+      console.error('Failed to send email:', error)
+      toast.error(error?.response?.data?.error || 'Erreur lors de l\'envoi de l\'email')
+    },
+  })
+
+  // Send reminder mutation
+  const sendReminderMutation = useMutation({
+    mutationFn: (invoiceId: string) => invoicesService.sendReminder(invoiceId),
+    onSuccess: () => {
+      toast.success('Rappel envoyé avec succès !')
+    },
+    onError: (error: any) => {
+      console.error('Failed to send reminder:', error)
+      toast.error(error?.response?.data?.error || 'Erreur lors de l\'envoi du rappel')
+    },
+  })
+
     const downloadInvoice = async (id: string) => {
         try {
             const blob = await downloadMutation.mutateAsync(id)
@@ -107,9 +132,11 @@ export function useInvoiceActions() {
     return {
         downloadInvoice,
         shareInvoice,
-        generatePdf: generatePdfMutation.mutate,
-        isDownloading: downloadMutation.isPending,
-        isSharing: shareMutation.isPending,
+        generatePdf: generatePdfMutation.mutateAsync,
         isGeneratingPdf: generatePdfMutation.isPending,
+        sendEmail: sendEmailMutation.mutateAsync,
+        isSendingEmail: sendEmailMutation.isPending,
+        sendReminder: sendReminderMutation.mutateAsync,
+        isSendingReminder: sendReminderMutation.isPending,
     }
 } 
