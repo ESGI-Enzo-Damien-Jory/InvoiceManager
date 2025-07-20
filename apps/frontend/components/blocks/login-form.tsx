@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const schema = z.object({
     email: z
@@ -42,13 +42,21 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     const router = useRouter()
     const query_client = useQueryClient()
     const { loginMutate, status } = useLogin()
-    const { register, handleSubmit, formState } = useForm<LoginFormData>({
+    const { register, handleSubmit, formState, reset } = useForm<LoginFormData>({
         resolver: zodResolver(schema),
         mode: 'onChange',
         reValidateMode: 'onChange',
         defaultValues: { email: '', password: '' },
     })
     const { errors, isValid, isSubmitting, touchedFields } = formState
+
+    // Reset form when status changes from pending to idle
+    useEffect(() => {
+        if (status === 'idle' && error) {
+            // Clear password field on error
+            reset({ email: '', password: '' })
+        }
+    }, [status, error, reset])
 
     const on_submit = (data: LoginFormData) => {
         set_error(null)
@@ -61,10 +69,12 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                             queryKey: ['currentUserProfile'],
                             queryFn: getUser,
                         })
-                    } catch {
-                        // Ignore error, user will be redirected anyway
+                        router.push('/dashboard')
+                    } catch (error) {
+                        console.error('Failed to fetch user profile:', error)
+                        // Still redirect even if profile fetch fails
+                        router.push('/dashboard')
                     }
-                    router.push('/dashboard')
                 },
                 onError: (err: unknown) => {
                     const errorWithResponse = err as ErrorWithResponse
@@ -145,7 +155,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                             id="password"
                             type={show_password ? 'text' : 'password'}
                             autoComplete="current-password"
-                            disabled={isSubmitting || status === 'pending'}
+                            disabled={status === 'pending'}
                             {...register('password')}
                             className={cn(
                                 'pr-10',
@@ -161,7 +171,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                             onClick={() => set_show_password((v) => !v)}
                             tabIndex={-1}
-                            disabled={isSubmitting || status === 'pending'}
+                            disabled={status === 'pending'}
                         >
                             {show_password ? (
                                 <EyeOff className="h-4 w-4" />
@@ -185,9 +195,9 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                 <Button
                     type="submit"
                     className="w-full"
-                    disabled={!isValid || isSubmitting || status === 'pending'}
+                    disabled={status === 'pending'}
                 >
-                    {isSubmitting || status === 'pending' ? (
+                    {status === 'pending' ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Logging in...
@@ -204,7 +214,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                 <Button
                     variant="outline"
                     className="w-full"
-                    disabled={isSubmitting || status === 'pending'}
+                    disabled={status === 'pending'}
                     type="button"
                 >
                     <svg
