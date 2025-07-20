@@ -126,13 +126,13 @@ export default function EditInvoicePage() {
 
     if (invoiceLoading || itemsLoading || clientsLoading || allItemsLoading) {
         return (
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-6 pt-4">
                 <div className="flex items-center gap-4">
                     <Skeleton className="h-8 w-32" />
                     <Skeleton className="h-8 w-24" />
                 </div>
                 
-                <Card>
+                <Card className="w-full">
                     <CardHeader>
                         <Skeleton className="h-6 w-48" />
                         <Skeleton className="h-4 w-64" />
@@ -155,7 +155,7 @@ export default function EditInvoicePage() {
 
     if (invoiceError || itemsError || clientsError || allItemsError || !invoice) {
         return (
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-6 pt-4">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={handleCancel}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
@@ -174,8 +174,29 @@ export default function EditInvoicePage() {
 
     const initialValues = getInitialValues()
 
+    // Check if invoice can be edited
+    if (invoice.state !== 'Draft') {
+        return (
+            <div className="flex flex-col gap-6 p-6 pt-4">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" onClick={handleCancel}>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Invoice
+                    </Button>
+                </div>
+                
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        This invoice is in <strong>{invoice.state}</strong> state and cannot be edited. 
+                        Only Draft invoices can be modified.
+                    </AlertDescription>
+                </Alert>
+            </div>
+        )
+    }
+
     return (
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-6 p-6 pt-4">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -198,7 +219,7 @@ export default function EditInvoicePage() {
             </div>
 
             {/* Main Form */}
-            <Card className="max-w-4xl mx-auto w-full">
+            <Card className="w-full">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Save className="h-5 w-5" />

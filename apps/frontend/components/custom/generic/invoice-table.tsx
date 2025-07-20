@@ -162,9 +162,18 @@ export function InvoiceTable({
                                                 </DropdownMenuItem>
                                             )}
                                             {onEdit && (
-                                                <DropdownMenuItem onClick={() => onEdit(invoice)}>
+                                                <DropdownMenuItem 
+                                                    onClick={() => onEdit(invoice)}
+                                                    disabled={invoice.state !== 'Draft'}
+                                                    className={invoice.state !== 'Draft' ? 'opacity-50 cursor-not-allowed' : ''}
+                                                >
                                                     <IconEdit className="mr-2 h-4 w-4" />
                                                     Edit Invoice
+                                                    {invoice.state !== 'Draft' && (
+                                                        <span className="ml-auto text-xs text-muted-foreground">
+                                                            {invoice.state}
+                                                        </span>
+                                                    )}
                                                 </DropdownMenuItem>
                                             )}
                                             <DropdownMenuSeparator />
@@ -177,10 +186,20 @@ export function InvoiceTable({
                                             {onDelete && (
                                                 <DropdownMenuItem 
                                                     onClick={() => onDelete(invoice)}
-                                                    className="text-red-600 focus:text-red-600"
+                                                    disabled={invoice.state !== 'Draft' && invoice.state !== 'Cancelled'}
+                                                    className={`${
+                                                        invoice.state !== 'Draft' && invoice.state !== 'Cancelled' 
+                                                            ? 'opacity-50 cursor-not-allowed' 
+                                                            : 'text-red-600 focus:text-red-600'
+                                                    }`}
                                                 >
                                                     <IconTrash className="mr-2 h-4 w-4" />
                                                     Delete Invoice
+                                                    {invoice.state !== 'Draft' && invoice.state !== 'Cancelled' && (
+                                                        <span className="ml-auto text-xs text-muted-foreground">
+                                                            {invoice.state}
+                                                        </span>
+                                                    )}
                                                 </DropdownMenuItem>
                                             )}
                                         </DropdownMenuContent>

@@ -237,7 +237,15 @@ export default function InvoicePage() {
                             variant="outline"
                             size="sm"
                             onClick={handleEdit}
-                            className="flex items-center gap-2"
+                            disabled={invoice.state !== 'Draft'}
+                            className={`flex items-center gap-2 ${
+                                invoice.state !== 'Draft' ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                            title={
+                                invoice.state !== 'Draft' 
+                                    ? `Cannot edit invoice in ${invoice.state} state` 
+                                    : 'Edit invoice'
+                            }
                         >
                             <Edit className="h-4 w-4" />
                             Edit Invoice
@@ -246,7 +254,17 @@ export default function InvoicePage() {
                             variant="outline"
                             size="sm"
                             onClick={() => setShowDeleteDialog(true)}
-                            className="flex items-center gap-2 text-destructive hover:text-destructive"
+                            disabled={invoice.state !== 'Draft' && invoice.state !== 'Cancelled'}
+                            className={`flex items-center gap-2 ${
+                                invoice.state !== 'Draft' && invoice.state !== 'Cancelled'
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : 'text-destructive hover:text-destructive'
+                            }`}
+                            title={
+                                invoice.state !== 'Draft' && invoice.state !== 'Cancelled'
+                                    ? `Cannot delete invoice in ${invoice.state} state`
+                                    : 'Delete invoice'
+                            }
                         >
                             <Trash2 className="h-4 w-4" />
                             Delete Invoice
@@ -254,12 +272,22 @@ export default function InvoicePage() {
                     </div>
                 </div>
 
-                {/* Overdue Alert */}
+                {/* Status Alerts */}
                 {isOverdue && (
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
                             This invoice is overdue. The due date was {format(new Date(invoice.expiration_date!), 'PPP')}.
+                        </AlertDescription>
+                    </Alert>
+                )}
+                
+                {invoice.state !== 'Draft' && (
+                    <Alert variant="default">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                            This invoice is in <strong>{invoice.state}</strong> state and cannot be modified. 
+                            Only Draft invoices can be edited or deleted.
                         </AlertDescription>
                     </Alert>
                 )}

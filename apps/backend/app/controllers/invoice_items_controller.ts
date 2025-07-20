@@ -6,6 +6,7 @@ import {
   Update,
   CreateInvoiceItemPayload,
   UpdateInvoiceItemPayload,
+  Invoice,
 } from '@inma/types'
 
 interface InvoiceItemWithItem extends InvoiceItem {
@@ -16,6 +17,30 @@ interface InvoiceItemWithItem extends InvoiceItem {
 }
 
 export default class InvoiceItemsController {
+  private async checkInvoiceModifiable(invoiceId: string, user: any, logger: any): Promise<boolean> {
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .select('id, state')
+      .match({ id: invoiceId, owner_id: user.id })
+      .single()
+
+    if (error || !invoice) {
+      logger.warn(`[INVOICE_ITEMS] Invoice ${invoiceId} not found for user ${user.email}`)
+      return false
+    }
+
+    const invoiceData = invoice as Pick<Invoice, 'id' | 'state'>
+
+    if (invoiceData.state !== 'Draft') {
+      logger.warn(
+        `[INVOICE_ITEMS] Attempted to modify items of invoice ${invoiceId} in non-modifiable state: ${invoiceData.state}`
+      )
+      return false
+    }
+
+    return true
+  }
+
   public async index({ params, request, logger }: HttpContext) {
     const user = request.user
     const invoiceId: string = params.invoice_id
@@ -37,7 +62,7 @@ export default class InvoiceItemsController {
     return data as InvoiceItemWithItem[]
   }
 
-  public async store({ request, logger }: HttpContext) {
+  public async store({ request, response, logger }: HttpContext) {
     const user = request.user
     const body: CreateInvoiceItemPayload = request.only([
       'invoice_id',
@@ -49,6 +74,13 @@ export default class InvoiceItemsController {
     logger.info(
       `[INVOICE_ITEMS] Adding item ${body.item_id} to invoice ${body.invoice_id} by ${user.email}`
     )
+
+    // Check if invoice is modifiable
+    if (!(await this.checkInvoiceModifiable(body.invoice_id, user, logger))) {
+      return response.status(422).send({
+        error: 'Cannot modify invoice items. Only Draft invoices can be modified.'
+      })
+    }
 
     const insertData: Insert<'invoice_items'> = body
 
@@ -72,6 +104,13 @@ export default class InvoiceItemsController {
     const body: UpdateInvoiceItemPayload = request.only(['quantity', 'unit_price'])
 
     logger.info(`[INVOICE_ITEMS] Updating item ${itemId} on invoice ${invoiceId} by ${user.email}`)
+
+    // Check if invoice is modifiable
+    if (!(await this.checkInvoiceModifiable(invoiceId, user, logger))) {
+      return response.status(422).send({
+        error: 'Cannot modify invoice items. Only Draft invoices can be modified.'
+      })
+    }
 
     const updateData: Update<'invoice_items'> = body
 
@@ -103,6 +142,13 @@ export default class InvoiceItemsController {
     logger.info(
       `[INVOICE_ITEMS] Soft deleting item ${itemId} from invoice ${invoiceId} by ${user.email}`
     )
+
+    // Check if invoice is modifiable
+    if (!(await this.checkInvoiceModifiable(invoiceId, user, logger))) {
+      return response.status(422).send({
+        error: 'Cannot modify invoice items. Only Draft invoices can be modified.'
+      })
+    }
 
     const deleteData: Update<'invoice_items'> = { deleted_at: new Date().toISOString() }
 

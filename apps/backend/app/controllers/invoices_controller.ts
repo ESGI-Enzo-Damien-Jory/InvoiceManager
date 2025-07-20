@@ -337,32 +337,30 @@ export default class InvoicesController {
         }
       }
 
-      if (currentState === 'Sent' || currentState === 'Paid' || currentState === 'Overdue') {
-        if (!body.state || currentState === newState) {
+      // Strict check: Only Draft invoices can be modified
+      if (currentState !== 'Draft') {
+        if (body.state && currentState !== newState) {
+          // Allow state changes for non-Draft invoices (e.g., Sent -> Paid, Paid -> Overdue)
+          logger.info(`[INVOICES] State change allowed for invoice ${invoiceId}: ${currentState} -> ${newState}`)
+        } else {
+          // Block any field modifications for non-Draft invoices
           logger.warn(
-            `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in non-modifiable state: ${currentState}`
+            `[INVOICES] Attempted to modify invoice ${invoiceId} in non-modifiable state: ${currentState}`
           )
-          return response
-            .status(422)
-            .send({ error: `Cannot modify invoice fields in ${currentState} state` })
+          return response.status(422).send({ 
+            error: `Cannot modify invoice in ${currentState} state. Only Draft invoices can be modified.` 
+          })
         }
       }
 
-      if (currentState === newState && !body.state) {
-        if (currentState !== 'Draft') {
-          logger.warn(
-            `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in state: ${currentState}`
-          )
-          return response.status(422).send({ error: `Can only modify fields of Draft invoices` })
-        }
-      } else if (currentState === newState && body.state) {
-        if (newState === 'Draft') {
-        } else {
-          logger.info(
-            `[INVOICES] Invoice ${invoiceId} already in state "${newState}", no update needed`
-          )
-          return invoiceData
-        }
+      // If trying to modify fields of a non-Draft invoice without state change
+      if (currentState !== 'Draft' && Object.keys(body).some(key => key !== 'state')) {
+        logger.warn(
+          `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in state: ${currentState}`
+        )
+        return response.status(422).send({ 
+          error: `Cannot modify invoice fields in ${currentState} state. Only Draft invoices can be modified.` 
+        })
       }
 
       if (currentState === 'Cancelled' && newState === 'Draft' && body.state) {
@@ -421,7 +419,16 @@ export default class InvoicesController {
 
       const updatedInvoiceData = updatedInvoice as Invoice
 
-      if (body.items && currentState === 'Draft') {
+      if (body.items) {
+        if (currentState !== 'Draft') {
+          logger.warn(
+            `[INVOICES] Attempted to modify items of invoice ${invoiceId} in non-modifiable state: ${currentState}`
+          )
+          return response.status(422).send({ 
+            error: `Cannot modify invoice items in ${currentState} state. Only Draft invoices can be modified.` 
+          })
+        }
+        
         try {
           await supabase.from('invoice_items').delete().eq('invoice_id', invoiceId)
           await insertInvoiceItems(user.id, invoiceId, body.items)
@@ -538,21 +545,46 @@ export default class InvoicesController {
 
   public async destroy({ request, params, response, logger }: HttpContext) {
     const user = request.user
+    const invoiceId: string = params.id
+
+    logger.info(`[INVOICES] Attempting to delete invoice ${invoiceId} for ${user.email}`)
 
     try {
+      // First check the invoice state
+      const { data: invoice, error: fetchError } = await supabase
+        .from('invoices')
+        .select('id, state')
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
+
+      if (fetchError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
+        return response.notFound({ error: 'Invoice not found' })
+      }
+
+      const invoiceData = invoice as Pick<Invoice, 'id' | 'state'>
+
+      // Prevent deletion of sent, paid, or overdue invoices
+      if (invoiceData.state === 'Sent' || invoiceData.state === 'Paid' || invoiceData.state === 'Overdue') {
+        logger.warn(`[INVOICES] Attempted to delete invoice ${invoiceId} in non-deletable state: ${invoiceData.state}`)
+        return response.status(422).send({
+          error: `Cannot delete invoice in ${invoiceData.state} state. Only Draft and Cancelled invoices can be deleted.`
+        })
+      }
+
       const deleteData: Update<'invoices'> = { deleted_at: new Date().toISOString() }
 
       const { error } = await supabase
         .from('invoices')
         .update(deleteData)
-        .match({ id: params.id, owner_id: user.id })
+        .match({ id: invoiceId, owner_id: user.id })
 
       if (error) {
-        logger.error(`[INVOICES] Failed to delete ${params.id}: ${error.message}`)
+        logger.error(`[INVOICES] Failed to delete ${invoiceId}: ${error.message}`)
         throw new Error(error.message)
       }
 
-      logger.warn(`[INVOICES] Soft-deleted invoice ${params.id}`)
+      logger.warn(`[INVOICES] Soft-deleted invoice ${invoiceId}`)
       return { deleted: true }
     } catch (error: any) {
       logger.error(`[INVOICES] Unexpected error during invoice deletion: ${error.message}`)
