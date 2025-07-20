@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileText, Plus, Search, Filter, Download, Eye, Edit, Trash2, Calendar, DollarSign, Users } from 'lucide-react'
 import { useInvoices } from '@/hooks/use-invoices'
@@ -22,6 +22,10 @@ export default function InvoicesPage() {
     const { invoices, loading, error, deleteInvoice } = useInvoices()
     const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>(invoices)
     const [searchTerm, setSearchTerm] = useState('')
+
+    const handleFiltered = useCallback((filtered: Invoice[]) => {
+        setFilteredInvoices(filtered)
+    }, [])
 
     // Update filtered invoices when invoices change
     useEffect(() => {
@@ -299,7 +303,7 @@ export default function InvoicesPage() {
                             <CardContent>
                                 <InvoiceFilters
                                     invoices={invoices}
-                                    onFiltered={setFilteredInvoices}
+                                    onFiltered={handleFiltered}
                                     onCreateNew={handleCreateNew}
                                 />
                             </CardContent>
