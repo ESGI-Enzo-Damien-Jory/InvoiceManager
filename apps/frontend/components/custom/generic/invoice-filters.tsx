@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { IconSearch, IconFilter, IconPlus, IconDotsVertical, IconX } from '@tabler/icons-react'
+import { IconSearch, IconX } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -11,13 +11,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 import { type Invoice } from '@/services/invoices'
 
@@ -68,39 +61,20 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-semibold">Invoices</h2>
-                    <Badge variant="outline" className="text-muted-foreground">
-                        {filteredInvoices.length} of {invoices.length}
-                    </Badge>
-                    {hasActiveFilters && (
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={clearFilters}
-                            className="h-6 px-2 text-xs"
-                        >
-                            <IconX className="mr-1 h-3 w-3" />
-                            Clear filters
-                        </Button>
-                    )}
-                </div>
-            </div>
-            
+            {/* Search and Filters */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative flex-1 max-w-sm">
+                <div className="relative flex-1">
                     <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                        placeholder="Search invoices, clients, or IDs..."
+                        placeholder="Search invoices..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-9"
                     />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[160px]">
-                        <SelectValue placeholder="All Status" />
+                    <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
@@ -111,38 +85,29 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                     </SelectContent>
                 </Select>
+                {hasActiveFilters && (
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={clearFilters}
+                        className="h-9 px-2"
+                    >
+                        <IconX className="h-4 w-4" />
+                    </Button>
+                )}
             </div>
 
-            {hasActiveFilters && (
-                <div className="flex flex-wrap gap-2">
-                    {searchTerm && (
-                        <Badge variant="secondary" className="text-xs">
-                            Search: "{searchTerm}"
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="ml-1 h-4 w-4 p-0 hover:bg-transparent"
-                                onClick={() => setSearchTerm('')}
-                            >
-                                <IconX className="h-3 w-3" />
-                            </Button>
-                        </Badge>
-                    )}
-                    {statusFilter !== 'all' && (
-                        <Badge variant="secondary" className="text-xs">
-                            Status: {statusFilter}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="ml-1 h-4 w-4 p-0 hover:bg-transparent"
-                                onClick={() => setStatusFilter('all')}
-                            >
-                                <IconX className="h-3 w-3" />
-                            </Button>
-                        </Badge>
-                    )}
-                </div>
-            )}
+            {/* Results Count */}
+            <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                    {filteredInvoices.length} of {invoices.length} invoices
+                </span>
+                {hasActiveFilters && (
+                    <Badge variant="secondary" className="text-xs">
+                        Filtered
+                    </Badge>
+                )}
+            </div>
         </div>
     )
 } 
