@@ -57,7 +57,7 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
     // Update parent component when filters change
     useEffect(() => {
         onFiltered(filteredInvoices)
-    }, [filteredInvoices, onFiltered])
+    }, [filteredInvoices])
 
     const clearFilters = () => {
         setSearchTerm('')
