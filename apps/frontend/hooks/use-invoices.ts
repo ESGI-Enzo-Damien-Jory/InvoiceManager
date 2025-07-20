@@ -69,6 +69,20 @@ export function useInvoiceActions() {
         },
     })
 
+      // Generate PDF mutation
+  const generatePdfMutation = useMutation({
+    mutationFn: (invoiceId: string) => invoicesService.generatePdf(invoiceId),
+    onSuccess: (data) => {
+      toast.success('PDF generated successfully!')
+      // Invalidate the invoices query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+    },
+    onError: (error: any) => {
+      console.error('Failed to generate PDF:', error)
+      toast.error(error?.response?.data?.error || 'Failed to generate PDF')
+    },
+  })
+
     const downloadInvoice = async (id: string) => {
         try {
             const blob = await downloadMutation.mutateAsync(id)
@@ -92,7 +106,9 @@ export function useInvoiceActions() {
     return {
         downloadInvoice,
         shareInvoice,
+        generatePdf: generatePdfMutation.mutate,
         isDownloading: downloadMutation.isPending,
         isSharing: shareMutation.isPending,
+        isGeneratingPdf: generatePdfMutation.isPending,
     }
 } 

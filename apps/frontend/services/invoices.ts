@@ -74,7 +74,10 @@ export const invoicesService = {
 
     async downloadPdf(id: string): Promise<Blob> {
         const response = await api.get(`/invoices/pdf/${id}`, {
-            responseType: 'blob'
+            responseType: 'blob',
+            headers: {
+                'Accept': 'application/pdf'
+            }
         })
         return response.data
     },
@@ -82,5 +85,11 @@ export const invoicesService = {
     async generateSignedUrl(id: string): Promise<{ signed_url: string }> {
         const response = await api.post(`/invoices/share/${id}`)
         return response.data
+    },
+
+    // Generate PDF for an invoice
+    async generatePdf(invoiceId: string): Promise<{ message: string; pdf_url: string }> {
+      const response = await api.post(`/invoices/${invoiceId}/generate-pdf`)
+      return response.data
     }
 } 

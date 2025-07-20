@@ -36,10 +36,11 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useInvoice, useInvoiceActions } from '@/hooks/use-invoices'
-import { invoicesService } from '@/services/invoices'
+import { invoicesService, type Invoice, type InvoiceItem } from '@/services/invoices'
 import { toast } from 'sonner'
 import LoadingState from '@/components/custom/states/loading-state'
 import ErrorState from '@/components/custom/states/error-state'
+import { InvoicePreview } from '@/components/custom/specialized/invoice-preview'
 
 const getStatusConfig = (state: string, expirationDate?: string | null) => {
     const now = new Date()
@@ -101,6 +102,14 @@ export default function InvoicePage() {
 
     const { data: invoice, isLoading, error, refetch } = useInvoice(invoiceId)
     const { downloadInvoice, shareInvoice, isDownloading, isSharing } = useInvoiceActions()
+
+    // Fetch invoice items separately
+    const { data: invoiceItems = [] } = useQuery({
+        queryKey: ['invoice-items', invoiceId],
+        queryFn: () => invoicesService.getItems(invoiceId),
+        enabled: !!invoiceId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    })
 
     const statusConfig = invoice ? getStatusConfig(invoice.state, invoice.expiration_date) : null
     const StatusIcon = statusConfig?.icon || FileText
@@ -188,6 +197,14 @@ export default function InvoicePage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <InvoicePreview
+                            invoice={invoice}
+                            client={invoice.clients}
+                            items={invoiceItems.map(item => item.items)}
+                            invoiceItems={invoiceItems}
+                            onDownload={handleDownload}
+                            onShare={handleShare}
+                        />
                         <Button
                             variant="outline"
                             size="sm"
@@ -401,27 +418,16 @@ export default function InvoicePage() {
                                     </p>
                                 </div>
                             )}
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">
-                                    Last Updated
-                                </label>
-                                <p className="text-sm">
-                                    {new Date(invoice.updated_at).toLocaleDateString('en-US', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                    })}
-                                </p>
-                            </div>
                         </CardContent>
                     </Card>
 
                     {/* Invoice Items */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Invoice Items</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <FileText className="h-5 w-5" />
+                                Invoice Items
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <InvoiceItemsContent invoiceId={invoiceId} />
@@ -435,18 +441,16 @@ export default function InvoicePage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Are you sure you want to delete "{invoice.title}"? This action cannot be undone.
+                                Are you sure you want to delete this invoice? This action cannot be undone.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>
-                                Cancel
-                            </AlertDialogCancel>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                                 onClick={handleDelete}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                                Delete Invoice
+                                Delete
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
@@ -456,78 +460,72 @@ export default function InvoicePage() {
     )
 }
 
-// Separate component for invoice items to keep the main component clean
 function InvoiceItemsContent({ invoiceId }: { invoiceId: string }) {
-    const { data: items = [], isLoading, error } = useQuery({
+    const { data: invoiceItems = [], isLoading } = useQuery({
         queryKey: ['invoice-items', invoiceId],
         queryFn: () => invoicesService.getItems(invoiceId),
-        enabled: !!invoiceId,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 5, // 5 minutes
     })
 
     const calculateSubtotal = () => {
-        return items.reduce((total, item) => {
-            return total + (item.quantity * item.unit_price)
-        }, 0)
+        return invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
     }
 
     if (isLoading) {
         return (
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={`skeleton-${i}`} className="flex justify-between items-center">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-4 w-24" />
-                    </div>
+                    <Skeleton key={i} className="h-12 w-full" />
                 ))}
             </div>
         )
     }
 
-    if (error) {
+    if (invoiceItems.length === 0) {
         return (
-            <p className="text-muted-foreground text-center py-8">
-                Unable to load invoice items
-            </p>
-        )
-    }
-
-    if (items.length === 0) {
-        return (
-            <p className="text-muted-foreground text-center py-8">
-                No items found for this invoice
-            </p>
+            <div className="text-center py-4">
+                <p className="text-muted-foreground">No items found</p>
+            </div>
         )
     }
 
     return (
         <div className="space-y-4">
-            {items.map((item) => (
-                <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg">
-                    <div>
-                        <div className="font-medium">{item.items.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                            Item ID: {item.item_id.substring(0, 8)}
-                        </div>
+            <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                        <tr>
+                            <th className="text-left p-3 font-medium">Item</th>
+                            <th className="text-center p-3 font-medium">Qty</th>
+                            <th className="text-right p-3 font-medium">Price</th>
+                            <th className="text-right p-3 font-medium">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {invoiceItems.map((item, index) => (
+                            <tr key={index} className="border-t">
+                                <td className="p-3">
+                                    <div>
+                                        <div className="font-medium">{item.items.name}</div>
+                                    </div>
+                                </td>
+                                <td className="p-3 text-center">{item.quantity}</td>
+                                <td className="p-3 text-right">${item.unit_price.toFixed(2)}</td>
+                                <td className="p-3 text-right font-medium">
+                                    ${(item.quantity * item.unit_price).toFixed(2)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div className="flex justify-end">
+                <div className="text-right space-y-1">
+                    <div className="text-sm">
+                        <span className="text-muted-foreground">Subtotal:</span>
+                        <span className="ml-2 font-medium">${calculateSubtotal().toFixed(2)}</span>
                     </div>
-                    <div className="text-right">
-                        <div className="text-sm text-muted-foreground">
-                            {item.quantity} × ${item.unit_price.toFixed(2)}
-                        </div>
-                        <div className="font-medium">
-                            ${(item.quantity * item.unit_price).toFixed(2)}
-                        </div>
-                    </div>
-                </div>
-            ))}
-            <div className="border-t pt-4">
-                <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-muted-foreground">Total Amount</span>
-                    <span className="text-lg font-bold">
-                        ${calculateSubtotal().toFixed(2)}
-                    </span>
                 </div>
             </div>
         </div>
