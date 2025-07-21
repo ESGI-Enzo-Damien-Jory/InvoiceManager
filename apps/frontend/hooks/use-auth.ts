@@ -7,23 +7,25 @@ import {
 } from '@tanstack/react-query'
 import {
     loginUser,
-    LoginPayload,
     LoginResponse,
     registerUser,
-    RegisterPayload,
     RegisterResponse,
     logoutUser,
     resetPassword,
-    ResetPasswordPayload,
     ResetPasswordResponse,
     getUser,
-    UserProfile,
     updateUser,
-    UpdateProfilePayload,
     UpdateProfileResponse,
     uploadAvatar,
     UploadAvatarResponse,
 } from '@/services/auth'
+import type {
+    LoginPayload,
+    RegisterPayload,
+    ResetPasswordPayload,
+    UserProfile,
+    UpdateProfilePayload,
+} from '@/types'
 
 /**
  * Hook: useLogin

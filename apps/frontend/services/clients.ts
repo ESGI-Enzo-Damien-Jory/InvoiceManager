@@ -1,51 +1,7 @@
 import api from '@/lib/api'
+import type { Client, CreateClientPayload, UpdateClientPayload, ClientFilters, PaginatedResponse } from '@/types'
 
-/** --------------------------------------------- **
- * 1) Client-related types
- ** --------------------------------------------- **/
 
-/**
- * The client entity returned by the API (matches your Supabase schema)
- */
-export interface Client {
-    id: string
-    first_name: string
-    last_name: string
-    email: string
-    phone_number: string | null
-    address: string | null
-    user_id: string
-    created_at: string
-    updated_at: string
-    deleted_at: string | null
-    // These would be computed fields if you add them later
-    total_invoices?: number
-    total_revenue?: number
-    unpaid_amount?: number
-    status?: 'Active' | 'Inactive'
-}
-
-/**
- * Payload for creating a new client (matches your controller's request.only())
- */
-export interface CreateClientPayload {
-    first_name: string
-    last_name: string
-    email: string
-    phone_number?: string | null
-    address?: string | null
-}
-
-/**
- * Payload for updating an existing client (same fields as create)
- */
-export interface UpdateClientPayload {
-    first_name?: string
-    last_name?: string
-    email?: string
-    phone_number?: string | null
-    address?: string | null
-}
 
 /**
  * Response from deleting a client (matches your controller)

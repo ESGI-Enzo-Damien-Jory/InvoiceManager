@@ -1,209 +1,363 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
-import { isAfter, isBefore, startOfDay, endOfDay } from 'date-fns'
-import { DateRange } from 'react-day-picker'
-import Pagination from '@/components/custom/pagination'
-import CardStatsList from '@/components/custom/specialized/card-stats-list'
-import ListFilters from '@/components/custom/specialized/list-filters'
-import InvoiceTable from '@/components/custom/specialized/invoice-table'
-
-interface Invoice {
-    id: string
-    date: Date
-    dueDate: Date
-    title: string
-    client: string
-    status: 'Paid' | 'Sent' | 'Pending' | 'Overdue'
-    amount: number
-}
-
-const sampleInvoices: Invoice[] = [
-    {
-        id: 'INV001',
-        date: new Date(),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
-        title: 'Web Services',
-        client: 'Enzo Hugonnier',
-        status: 'Paid',
-        amount: 250.0,
-    },
-    {
-        id: 'INV002',
-        date: new Date(new Date().setDate(new Date().getDate() - 3)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 27)),
-        title: 'Design Work',
-        client: 'Alice Dupont',
-        status: 'Sent',
-        amount: 400.0,
-    },
-    {
-        id: 'INV003',
-        date: new Date(new Date().setDate(new Date().getDate() - 10)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 20)),
-        title: 'Consulting',
-        client: 'Bob Martin',
-        status: 'Pending',
-        amount: 600.0,
-    },
-    {
-        id: 'INV004',
-        date: new Date(new Date().setDate(new Date().getDate() - 15)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 15)),
-        title: 'Logo Design',
-        client: 'Emma Johnson',
-        status: 'Sent',
-        amount: 350.0,
-    },
-    {
-        id: 'INV005',
-        date: new Date(new Date().setDate(new Date().getDate() - 18)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 12)),
-        title: 'SEO Services',
-        client: 'Charles Wilson',
-        status: 'Paid',
-        amount: 500.0,
-    },
-    {
-        id: 'INV006',
-        date: new Date(new Date().setDate(new Date().getDate() - 22)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 8)),
-        title: 'Content Writing',
-        client: 'Diana Smith',
-        status: 'Overdue',
-        amount: 325.0,
-    },
-    {
-        id: 'INV007',
-        date: new Date(new Date().setDate(new Date().getDate() - 25)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 5)),
-        title: 'Mobile App Development',
-        client: 'Frank Miller',
-        status: 'Pending',
-        amount: 1200.0,
-    },
-    {
-        id: 'INV008',
-        date: new Date(new Date().setDate(new Date().getDate() - 30)),
-        dueDate: new Date(new Date().setDate(new Date().getDate())),
-        title: 'Website Maintenance',
-        client: 'Grace Lee',
-        status: 'Overdue',
-        amount: 180.0,
-    },
-    {
-        id: 'INV009',
-        date: new Date(new Date().setDate(new Date().getDate() - 35)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 5)),
-        title: 'UI/UX Design',
-        client: 'Henry Brown',
-        status: 'Paid',
-        amount: 750.0,
-    },
-    {
-        id: 'INV010',
-        date: new Date(new Date().setDate(new Date().getDate() - 40)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 10)),
-        title: 'Email Marketing',
-        client: 'Isabella Garcia',
-        status: 'Paid',
-        amount: 450.0,
-    },
-    {
-        id: 'INV011',
-        date: new Date(new Date().setDate(new Date().getDate() - 45)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 15)),
-        title: 'Social Media Management',
-        client: 'Jack Taylor',
-        status: 'Paid',
-        amount: 550.0,
-    },
-    {
-        id: 'INV012',
-        date: new Date(new Date().setDate(new Date().getDate() - 50)),
-        dueDate: new Date(new Date().setDate(new Date().getDate() - 20)),
-        title: 'Video Production',
-        client: 'Kelly Anderson',
-        status: 'Paid',
-        amount: 950.0,
-    },
-]
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { FileText, Plus, Search, Filter, Download, Eye, Edit, Trash2, Calendar, DollarSign, Users } from 'lucide-react'
+import { useInvoices } from '@/hooks/use-invoices'
+import { InvoiceStats } from '@/components/custom/generic/invoice-stats'
+import { InvoiceFilters } from '@/components/custom/generic/invoice-filters'
+import { InvoiceTable } from '@/components/custom/generic/invoice-table'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import type { Invoice } from '@/types'
+import { invoicesService } from '@/services/invoices'
+import { formatCurrency } from '@/lib/utils'
 
 export default function InvoicesPage() {
-    const allInvoices = useRef(sampleInvoices).current
+    const router = useRouter()
+    const { invoices, loading, error, deleteInvoice } = useInvoices()
+    const [searchTerm, setSearchTerm] = useState('')
 
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
-    const [searchResults, setSearchResults] = useState<Invoice[]>(allInvoices)
-    const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 10
+    // Use invoices directly instead of maintaining separate filtered state
+    const filteredInvoices = invoices
 
-    const handleSearch = (results: Invoice[]) => {
-        setSearchResults(results)
-        setCurrentPage(1)
+    const handleView = (invoice: Invoice) => {
+        router.push(`/invoices/${invoice.id}`)
     }
 
-    let displayedInvoices = [...searchResults]
-    const from = dateRange?.from
-    const to = dateRange?.to
-
-    if (from && to) {
-        displayedInvoices = displayedInvoices.filter((inv) => {
-            const d = inv.date
-            return (
-                (isAfter(d, startOfDay(from)) ||
-                    d.getTime() === startOfDay(from).getTime()) &&
-                (isBefore(d, endOfDay(to)) ||
-                    d.getTime() === endOfDay(to).getTime())
-            )
-        })
+    const handleEdit = (invoice: Invoice) => {
+        router.push(`/invoices/${invoice.id}/edit`)
     }
 
-    const handleDateRangeChange = (range: DateRange | undefined) => {
-        setDateRange(range)
-        setCurrentPage(1)
-    }
-
-    const totalPages = Math.ceil(displayedInvoices.length / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = Math.min(
-        startIndex + itemsPerPage,
-        displayedInvoices.length
-    )
-    const currentInvoices = displayedInvoices.slice(startIndex, endIndex)
-
-    const handlePageChange = (page: number) => {
-        if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page)
+    const handleDelete = async (invoice: Invoice) => {
+        if (confirm(`Are you sure you want to delete invoice "${invoice.title}"?`)) {
+            try {
+                await deleteInvoice(invoice.id)
+            } catch (error) {
+                console.error('Failed to delete invoice:', error)
+            }
         }
     }
 
+    const handleDownload = async (invoice: Invoice) => {
+        try {
+            const blob = await invoicesService.downloadPdf(invoice.id)
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `invoice-${invoice.id}.pdf`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+        } catch (error) {
+            console.error('Failed to download invoice:', error)
+        }
+    }
+
+    const handleCreateNew = () => {
+        router.push('/invoices/new')
+    }
+
+    // Calculate quick stats
+    const totalRevenue = invoices.reduce((sum, invoice) => sum + (invoice.total_amount || 0), 0)
+    const paidInvoices = invoices.filter(invoice => invoice.state === 'Paid').length
+    const pendingInvoices = invoices.filter(invoice => invoice.state === 'Sent').length
+    const overdueInvoices = invoices.filter(invoice => invoice.state === 'Overdue').length
+
+    if (loading) {
+        return (
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                {/* Header Skeleton */}
+                <div className="px-4 lg:px-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <Skeleton className="h-8 w-32 mb-2" />
+                            <Skeleton className="h-4 w-64" />
+                        </div>
+                        <Skeleton className="h-10 w-32" />
+                    </div>
+                </div>
+
+                {/* Stats Skeleton */}
+                <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <Card key={i} className="@container/card">
+                            <CardHeader>
+                                <Skeleton className="h-4 w-24 mb-2" />
+                                <Skeleton className="h-8 w-20 mb-2" />
+                                <Skeleton className="h-5 w-16" />
+                            </CardHeader>
+                            <CardFooter>
+                                <Skeleton className="h-3 w-32" />
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Content Skeleton */}
+                <div className="px-4 lg:px-6">
+                    <Card>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-32" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-2">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <Skeleton key={i} className="h-12 w-full" />
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
     return (
-        <>
-            <CardStatsList />
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+            {error && (
+                <div className="px-4 lg:px-6">
+                    <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                </div>
+            )}
 
-            <ListFilters<Invoice>
-                subtitle="Invoice List"
-                items={allInvoices}
-                searchKeys={['id', 'title', 'client', 'status']}
-                onFiltered={handleSearch}
-                dateRange={dateRange}
-                setDateRange={handleDateRangeChange}
-            />
+            {/* Header */}
+            <div className="px-4 lg:px-6">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
+                        <p className="text-muted-foreground mt-1">
+                            Manage your invoices and track payments efficiently
+                        </p>
+                    </div>
+                    <Button
+                        onClick={handleCreateNew}
+                        size="lg"
+                        className="flex items-center gap-2 shadow-sm"
+                    >
+                        <Plus className="h-4 w-4" />
+                        New Invoice
+                    </Button>
+                </div>
+            </div>
 
-            <InvoiceTable
-                invoices={currentInvoices}
-                invoiceLinkPrefix="/invoices"
-                clientLinkPrefix="/clients"
-            />
+            {/* Quick Stats */}
+            <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+                <Card className="@container/card">
+                    <CardHeader>
+                        <CardDescription className="flex items-center gap-2">
+                            <DollarSign className="size-4" />
+                            Total Revenue
+                        </CardDescription>
+                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                            {formatCurrency(totalRevenue)}
+                        </CardTitle>
+                        <Badge variant="outline" className="text-xs w-fit">
+                            All invoices
+                        </Badge>
+                    </CardHeader>
+                    <CardFooter className="flex-col items-start gap-1.5 text-sm">
+                        <div className="text-muted-foreground">
+                            Lifetime earnings
+                        </div>
+                    </CardFooter>
+                </Card>
 
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                startIndex={startIndex + 1}
-                endIndex={endIndex}
-                totalEntries={displayedInvoices.length}
-            />
-        </>
+                <Card className="@container/card">
+                    <CardHeader>
+                        <CardDescription className="flex items-center gap-2">
+                            <FileText className="size-4" />
+                            Total Invoices
+                        </CardDescription>
+                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                            {invoices.length}
+                        </CardTitle>
+                        <Badge variant="outline" className="text-xs w-fit">
+                            Created
+                        </Badge>
+                    </CardHeader>
+                    <CardFooter className="flex-col items-start gap-1.5 text-sm">
+                        <div className="text-muted-foreground">
+                            All time invoices
+                        </div>
+                    </CardFooter>
+                </Card>
+
+                <Card className="@container/card">
+                    <CardHeader>
+                        <CardDescription className="flex items-center gap-2">
+                            <Calendar className="size-4" />
+                            Paid Invoices
+                        </CardDescription>
+                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                            {paidInvoices}
+                        </CardTitle>
+                        <Badge variant="outline" className="text-xs w-fit">
+                            Completed
+                        </Badge>
+                    </CardHeader>
+                    <CardFooter className="flex-col items-start gap-1.5 text-sm">
+                        <div className="text-muted-foreground">
+                            Successful payments
+                        </div>
+                    </CardFooter>
+                </Card>
+
+                <Card className="@container/card">
+                    <CardHeader>
+                        <CardDescription className="flex items-center gap-2">
+                            <Users className="size-4" />
+                            Pending
+                        </CardDescription>
+                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                            {pendingInvoices + overdueInvoices}
+                        </CardTitle>
+                        <Badge variant="outline" className="text-xs w-fit">
+                            Outstanding
+                        </Badge>
+                    </CardHeader>
+                    <CardFooter className="flex-col items-start gap-1.5 text-sm">
+                        <div className="text-muted-foreground">
+                            Awaiting payment
+                        </div>
+                    </CardFooter>
+                </Card>
+            </div>
+
+            {/* Content */}
+            <div className="px-4 lg:px-6">
+                {invoices.length === 0 ? (
+                    <Card className="border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center py-16">
+                            <div className="rounded-full bg-muted p-4 mb-4">
+                                <FileText className="h-12 w-12 text-muted-foreground" />
+                            </div>
+                            <h3 className="text-xl font-semibold mb-2 text-center">
+                                No invoices yet
+                            </h3>
+                            <p className="text-muted-foreground text-center mb-6 max-w-md">
+                                Get started by creating your first invoice to track your business revenue and manage client payments.
+                            </p>
+                            <div className="flex gap-3">
+                                <Button 
+                                    onClick={handleCreateNew}
+                                    size="lg"
+                                    className="shadow-sm"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create First Invoice
+                                </Button>
+                                <Button 
+                                    variant="outline"
+                                    size="lg"
+                                    onClick={() => window.open('/docs', '_blank')}
+                                >
+                                    View Documentation
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="space-y-6">
+                        {/* Search and Filters */}
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg">Invoice Management</CardTitle>
+                                        <CardDescription>
+                                            Search, filter, and manage your invoices
+                                        </CardDescription>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="Search invoices..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="pl-10 w-64"
+                                            />
+                                        </div>
+                                        <Button variant="outline" size="sm">
+                                            <Filter className="h-4 w-4 mr-2" />
+                                            Filters
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <InvoiceFilters
+                                    invoices={invoices}
+                                    onCreateNew={handleCreateNew}
+                                />
+                            </CardContent>
+                        </Card>
+                        
+                        {/* Results */}
+                        {filteredInvoices.length === 0 ? (
+                            <Card className="border-dashed">
+                                <CardContent className="flex flex-col items-center justify-center py-12">
+                                    <div className="rounded-full bg-muted p-3 mb-4">
+                                        <Search className="h-8 w-8 text-muted-foreground" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold mb-2 text-center">
+                                        No matching invoices
+                                    </h3>
+                                    <p className="text-muted-foreground text-center mb-6 max-w-md">
+                                        Try adjusting your search criteria or filters to find what you're looking for.
+                                    </p>
+                                    <div className="flex gap-3">
+                                        <Button 
+                                            onClick={() => {
+                                                setSearchTerm('')
+                                            }}
+                                            variant="outline"
+                                        >
+                                            View All Invoices
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle>Invoice List</CardTitle>
+                                            <CardDescription>
+                                                {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''} found
+                                            </CardDescription>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="outline" size="sm">
+                                                <Download className="h-4 w-4 mr-2" />
+                                                Export
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <InvoiceTable
+                                        invoices={filteredInvoices}
+                                        onView={handleView}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                        onDownload={handleDownload}
+                                    />
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
     )
 }

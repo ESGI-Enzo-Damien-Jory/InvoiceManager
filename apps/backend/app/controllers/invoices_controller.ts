@@ -8,7 +8,35 @@ import {
   processInvoiceItems,
   generatePdfSignedUrl,
 } from '#services/invoice_service'
-import { Readable } from 'node:stream'
+import { sendInvoiceEmail, sendInvoiceReminder } from '#services/email_service'
+import {
+  Invoice,
+  Client,
+  UserProfile,
+  Insert,
+  Update,
+  CreateInvoicePayload,
+  UpdateInvoicePayload,
+  Database,
+} from '@inma/types'
+
+// Types pour les relations spécifiques
+interface InvoiceWithClientData extends Invoice {
+  clients: {
+    id: string
+    first_name: string
+    last_name: string
+    email: string
+    address: string | null
+    phone_number: string | null
+  }
+}
+
+interface SignedUrlOptions {
+  expiresIn?: number
+  download?: boolean | string
+  filename?: string
+}
 
 export default class InvoicesController {
   public async index({ request, logger }: HttpContext) {
@@ -38,12 +66,12 @@ export default class InvoicesController {
       throw new Error(error.message)
     }
 
-    return data
+    return data as InvoiceWithClientData[]
   }
 
   public async store({ request, response, logger }: HttpContext) {
     const user = request.user
-    const body = request.only([
+    const body: CreateInvoicePayload & { items?: any[] } = request.only([
       'client_id',
       'title',
       'total_amount',
@@ -61,7 +89,7 @@ export default class InvoicesController {
     }
 
     if (body.state) {
-      const allowedStates = ['Draft', 'Sent']
+      const allowedStates: Database['public']['Enums']['invoice_state'][] = ['Draft', 'Sent']
       if (!allowedStates.includes(body.state)) {
         logger.warn(`[INVOICES] Invalid state for invoice creation: ${body.state}`)
         return response.badRequest({
@@ -90,6 +118,8 @@ export default class InvoicesController {
       return response.status(422).send({ error: 'Invalid or unauthorized client ID' })
     }
 
+    const clientData = client as Client
+
     let itemsWithDetails: any[] = []
     let calculatedTotal = 0
 
@@ -116,7 +146,9 @@ export default class InvoicesController {
           .eq('id', user.id)
           .single()
 
-        if (!owner) {
+        const ownerData = owner as Pick<UserProfile, 'display_name' | 'email'>
+
+        if (!ownerData) {
           logger.error(`[INVOICES] Failed to fetch user profile for PDF generation`)
           return response.badRequest({ error: 'User profile not found for PDF generation' })
         }
@@ -124,18 +156,18 @@ export default class InvoicesController {
         const pdfBuffer = await generateInvoicePdf({
           title: body.title,
           invoice_id: invoiceId,
-          total_amount: body.total_amount,
+          total_amount: body.total_amount || 0,
           state: body.state,
           created_at: new Date(),
           expiration_date: body.expiration_date ? new Date(body.expiration_date) : undefined,
 
-          owner_name: owner.display_name,
-          owner_email: owner.email,
-          client_first_name: client.first_name,
-          client_last_name: client.last_name,
-          client_email: client.email,
-          client_address: client.address || undefined,
-          client_phone: client.phone_number || undefined,
+          owner_name: ownerData.display_name,
+          owner_email: ownerData.email,
+          client_first_name: clientData.first_name,
+          client_last_name: clientData.last_name,
+          client_email: clientData.email,
+          client_address: clientData.address || undefined,
+          client_phone: clientData.phone_number || undefined,
           items: itemsWithDetails,
         })
 
@@ -159,18 +191,20 @@ export default class InvoicesController {
       }
     }
 
+    const insertData: Insert<'invoices'> = {
+      id: invoiceId,
+      client_id: body.client_id,
+      title: body.title,
+      total_amount: body.total_amount,
+      expiration_date: body.expiration_date,
+      state: body.state ?? 'Draft',
+      owner_id: user.id,
+      pdf_url: pdfUrl,
+    }
+
     const { data: invoiceData, error: invoiceError } = await supabase
       .from('invoices')
-      .insert({
-        id: invoiceId,
-        client_id: body.client_id,
-        title: body.title,
-        total_amount: body.total_amount,
-        expiration_date: body.expiration_date,
-        state: body.state ?? 'Draft',
-        owner_id: user.id,
-        pdf_url: pdfUrl,
-      })
+      .insert(insertData)
       .select()
       .single()
 
@@ -178,6 +212,8 @@ export default class InvoicesController {
       logger.error(`[INVOICES] Invoice insert failed: ${invoiceError?.message}`)
       return response.status(500).send({ error: 'Failed to create invoice' })
     }
+
+    const invoice = invoiceData as Invoice
 
     if (body.items && body.items.length > 0) {
       try {
@@ -193,7 +229,7 @@ export default class InvoicesController {
     )
 
     const responseData = {
-      ...invoiceData,
+      ...invoice,
       pdf_url: pdfUrl,
       ...(signedUrl && { signed_url: signedUrl }),
     }
@@ -203,8 +239,8 @@ export default class InvoicesController {
 
   public async update({ request, params, response, logger }: HttpContext) {
     const user = request.user
-    const invoiceId = params.id
-    const body = request.only([
+    const invoiceId: string = params.id
+    const body: UpdateInvoicePayload & { items?: any[] } = request.only([
       'client_id',
       'title',
       'total_amount',
@@ -232,11 +268,18 @@ export default class InvoicesController {
         return response.notFound({ error: 'Invoice not found' })
       }
 
-      const currentState = invoice.state
+      const invoiceData = invoice as Invoice
+      const currentState = invoiceData.state
       const newState = body.state || currentState
 
       if (body.state) {
-        const allowedStates = ['Draft', 'Sent', 'Cancelled', 'Paid', 'Overdue']
+        const allowedStates: Database['public']['Enums']['invoice_state'][] = [
+          'Draft',
+          'Sent',
+          'Cancelled',
+          'Paid',
+          'Overdue',
+        ]
         if (!allowedStates.includes(body.state)) {
           logger.warn(
             `[INVOICES] Invalid state transition attempted for invoice ${invoiceId}: from ${currentState} to ${newState}`
@@ -294,38 +337,38 @@ export default class InvoicesController {
         }
       }
 
-      if (currentState === 'Sent' || currentState === 'Paid' || currentState === 'Overdue') {
-        if (!body.state || currentState === newState) {
+      // Strict check: Only Draft invoices can be modified
+      if (currentState !== 'Draft') {
+        if (body.state && currentState !== newState) {
+          // Allow state changes for non-Draft invoices (e.g., Sent -> Paid, Paid -> Overdue)
+          logger.info(`[INVOICES] State change allowed for invoice ${invoiceId}: ${currentState} -> ${newState}`)
+        } else {
+          // Block any field modifications for non-Draft invoices
           logger.warn(
-            `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in non-modifiable state: ${currentState}`
+            `[INVOICES] Attempted to modify invoice ${invoiceId} in non-modifiable state: ${currentState}`
           )
-          return response
-            .status(422)
-            .send({ error: `Cannot modify invoice fields in ${currentState} state` })
+          return response.status(422).send({ 
+            error: `Cannot modify invoice in ${currentState} state. Only Draft invoices can be modified.` 
+          })
         }
       }
 
-      if (currentState === newState && !body.state) {
-        if (currentState !== 'Draft') {
-          logger.warn(
-            `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in state: ${currentState}`
-          )
-          return response.status(422).send({ error: `Can only modify fields of Draft invoices` })
-        }
-      } else if (currentState === newState && body.state) {
-        if (newState === 'Draft') {
-        } else {
-          logger.info(
-            `[INVOICES] Invoice ${invoiceId} already in state "${newState}", no update needed`
-          )
-          return invoice
-        }
+      // If trying to modify fields of a non-Draft invoice without state change
+      if (currentState !== 'Draft' && Object.keys(body).some(key => key !== 'state')) {
+        logger.warn(
+          `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in state: ${currentState}`
+        )
+        return response.status(422).send({ 
+          error: `Cannot modify invoice fields in ${currentState} state. Only Draft invoices can be modified.` 
+        })
       }
 
       if (currentState === 'Cancelled' && newState === 'Draft' && body.state) {
+        const updateStateData: Update<'invoices'> = { state: newState }
+
         const { data: updatedInvoice, error: updateError } = await supabase
           .from('invoices')
-          .update({ state: newState })
+          .update(updateStateData)
           .eq('id', invoiceId)
           .select()
           .single()
@@ -336,10 +379,10 @@ export default class InvoicesController {
         }
 
         logger.info(`[INVOICES] Invoice ${invoiceId} state changed from Cancelled to Draft`)
-        return updatedInvoice
+        return updatedInvoice as Invoice
       }
 
-      const updateData: any = {}
+      const updateData: Update<'invoices'> = {}
 
       if (currentState === 'Draft') {
         if (body.client_id !== undefined) updateData.client_id = body.client_id
@@ -374,7 +417,18 @@ export default class InvoicesController {
         return response.internalServerError({ error: 'Failed to update invoice' })
       }
 
-      if (body.items && currentState === 'Draft') {
+      const updatedInvoiceData = updatedInvoice as Invoice
+
+      if (body.items) {
+        if (currentState !== 'Draft') {
+          logger.warn(
+            `[INVOICES] Attempted to modify items of invoice ${invoiceId} in non-modifiable state: ${currentState}`
+          )
+          return response.status(422).send({ 
+            error: `Cannot modify invoice items in ${currentState} state. Only Draft invoices can be modified.` 
+          })
+        }
+        
         try {
           await supabase.from('invoice_items').delete().eq('invoice_id', invoiceId)
           await insertInvoiceItems(user.id, invoiceId, body.items)
@@ -390,7 +444,7 @@ export default class InvoicesController {
         logger.info(
           `[INVOICES] PDF generation skipped - transition from ${currentState} to ${newState}`
         )
-        return updatedInvoice
+        return updatedInvoiceData
       }
 
       logger.info(`[INVOICES] Generating PDF for transition from Draft to Sent`)
@@ -398,15 +452,20 @@ export default class InvoicesController {
       const { data: client, error: clientError } = await supabase
         .from('clients')
         .select('first_name, last_name, email, address, phone_number')
-        .eq('id', updatedInvoice.client_id)
+        .eq('id', updatedInvoiceData.client_id)
         .eq('user_id', user.id)
         .is('deleted_at', null)
         .single()
 
       if (clientError || !client) {
-        logger.error(`[INVOICES] Client ${updatedInvoice.client_id} not found or unauthorized`)
+        logger.error(`[INVOICES] Client ${updatedInvoiceData.client_id} not found or unauthorized`)
         return response.badRequest({ error: 'Client data required for PDF generation' })
       }
+
+      const clientData = client as Pick<
+        Client,
+        'first_name' | 'last_name' | 'email' | 'address' | 'phone_number'
+      >
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -419,6 +478,8 @@ export default class InvoicesController {
         return response.badRequest({ error: 'User profile not found' })
       }
 
+      const profileData = profile as Pick<UserProfile, 'display_name' | 'email'>
+
       const { data: items, error: itemsError } = await supabase
         .from('invoice_items')
         .select('quantity, unit_price, item_id, items (name)')
@@ -428,33 +489,36 @@ export default class InvoicesController {
         logger.warn(`[INVOICES] No items found for invoice ${invoiceId}`)
       }
 
-      const itemsWithDetails = (items || []).map((row: any) => ({
-        name: row.items?.name,
+      const itemsData = items as any[] // Type flexible pour les relations Supabase
+
+      const itemsWithDetails = (itemsData || []).map((row) => ({
+        name: row.items?.name || 'Unknown Item',
         quantity: row.quantity,
         unit_price: row.unit_price,
       }))
 
       const pdfBuffer = await generateInvoicePdf({
-        title: updatedInvoice.title,
-        invoice_id: updatedInvoice.id,
-        total_amount: updatedInvoice.total_amount,
-        state: updatedInvoice.state,
-        created_at: new Date(updatedInvoice.created_at),
-        expiration_date: updatedInvoice.expiration_date
-          ? new Date(updatedInvoice.expiration_date)
+        title: updatedInvoiceData.title,
+        invoice_id: updatedInvoiceData.id,
+        total_amount: updatedInvoiceData.total_amount || 0,
+        state: updatedInvoiceData.state,
+        created_at: new Date(updatedInvoiceData.created_at),
+        expiration_date: updatedInvoiceData.expiration_date
+          ? new Date(updatedInvoiceData.expiration_date)
           : undefined,
-        owner_name: profile.display_name,
-        owner_email: profile.email,
-        client_first_name: client.first_name,
-        client_last_name: client.last_name,
-        client_email: client.email,
-        client_address: client.address,
-        client_phone: client.phone_number,
+        owner_name: profileData.display_name,
+        owner_email: profileData.email,
+        client_first_name: clientData.first_name,
+        client_last_name: clientData.last_name,
+        client_email: clientData.email,
+        client_address: clientData.address || undefined,
+        client_phone: clientData.phone_number || undefined,
         items: itemsWithDetails,
       })
 
       const pdfUrl = await uploadInvoicePdfToStorage(user.id, pdfBuffer, invoiceId)
-      await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoiceId)
+      const pdfUpdateData: Update<'invoices'> = { pdf_url: pdfUrl }
+      await supabase.from('invoices').update(pdfUpdateData).eq('id', invoiceId)
 
       const { signedUrl, error: signedUrlError } = await generatePdfSignedUrl(user.id, invoiceId)
 
@@ -469,7 +533,7 @@ export default class InvoicesController {
         `[INVOICES] Invoice ${invoiceId} updated from ${currentState} to ${newState} with PDF generated`
       )
       return {
-        ...updatedInvoice,
+        ...updatedInvoiceData,
         pdf_url: pdfUrl,
         signed_url: finalSignedUrl,
       }
@@ -481,21 +545,48 @@ export default class InvoicesController {
 
   public async destroy({ request, params, response, logger }: HttpContext) {
     const user = request.user
+    const invoiceId: string = params.id
+
+    logger.info(`[INVOICES] Attempting to delete invoice ${invoiceId} for ${user.email}`)
 
     try {
+      // First check the invoice state
+      const { data: invoice, error: fetchError } = await supabase
+        .from('invoices')
+        .select('id, state')
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
+
+      if (fetchError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
+        return response.notFound({ error: 'Invoice not found' })
+      }
+
+      const invoiceData = invoice as Pick<Invoice, 'id' | 'state'>
+
+      // Prevent deletion of sent, paid, or overdue invoices
+      if (invoiceData.state === 'Sent' || invoiceData.state === 'Paid' || invoiceData.state === 'Overdue') {
+        logger.warn(`[INVOICES] Attempted to delete invoice ${invoiceId} in non-deletable state: ${invoiceData.state}`)
+        return response.status(422).send({
+          error: `Cannot delete invoice in ${invoiceData.state} state. Only Draft and Cancelled invoices can be deleted.`
+        })
+      }
+
+      const deleteData: Update<'invoices'> = { deleted_at: new Date().toISOString() }
+
       const { error } = await supabase
         .from('invoices')
-        .update({ deleted_at: new Date().toISOString() })
-        .match({ id: params.id, owner_id: user.id })
+        .update(deleteData)
+        .match({ id: invoiceId, owner_id: user.id })
 
       if (error) {
-        logger.error(`[INVOICES] Failed to delete ${params.id}: ${error.message}`)
+        logger.error(`[INVOICES] Failed to delete ${invoiceId}: ${error.message}`)
         throw new Error(error.message)
       }
 
-      logger.warn(`[INVOICES] Soft-deleted invoice ${params.id}`)
+      logger.warn(`[INVOICES] Soft-deleted invoice ${invoiceId}`)
       return { deleted: true }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[INVOICES] Unexpected error during invoice deletion: ${error.message}`)
       return response.internalServerError({
         error: 'Failed to delete invoice',
@@ -538,8 +629,8 @@ export default class InvoicesController {
       }
 
       logger.info(`[INVOICES] Invoice ${params.id} fetched successfully`)
-      return data
-    } catch (error) {
+      return data as InvoiceWithClientData
+    } catch (error: any) {
       logger.error(`[INVOICES] Unexpected error fetching invoice: ${error.message}`)
       return response.internalServerError({
         error: 'Failed to fetch invoice',
@@ -548,17 +639,17 @@ export default class InvoicesController {
     }
   }
 
-  public async download({ request, params, response, logger }: HttpContext) {
+  public async getItems({ request, params, response, logger }: HttpContext) {
     const user = request.user
-    const invoiceId = params.id
-    const filePath = `${user.id}/invoices/${invoiceId}.pdf`
+    const invoiceId: string = params.id
 
-    logger.info(`[INVOICES] Downloading invoice ${invoiceId} for ${user.email}`)
+    logger.info(`[INVOICES] Fetching items for invoice ${invoiceId} for ${user.email}`)
 
     try {
+      // First verify the invoice belongs to the user
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
-        .select('id, title')
+        .select('id')
         .match({ id: invoiceId, owner_id: user.id })
         .single()
 
@@ -566,6 +657,89 @@ export default class InvoicesController {
         logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
         return response.notFound({ error: 'Invoice not found' })
       }
+
+      // Get invoice items with item details - invoice_items doesn't have an id column
+      const { data: items, error } = await supabase
+        .from('invoice_items')
+        .select(
+          `
+          invoice_id,
+          item_id,
+          quantity,
+          unit_price,
+          items (
+            id,
+            name,
+            price
+          )
+        `
+        )
+        .eq('invoice_id', invoiceId)
+        .is('deleted_at', null)
+
+      if (error) {
+        logger.error(`[INVOICES] Error fetching items for invoice ${invoiceId}: ${error.message}`)
+        throw new Error(error.message)
+      }
+
+      logger.info(`[INVOICES] Items fetched successfully for invoice ${invoiceId}`)
+      return items
+    } catch (error: any) {
+      logger.error(`[INVOICES] Unexpected error fetching invoice items: ${error.message}`)
+      return response.internalServerError({
+        error: 'Failed to fetch invoice items',
+        details: error.message,
+      })
+    }
+  }
+
+  public async download({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+    const invoiceId: string = params.id
+    const filePath = `${user.id}/invoices/${invoiceId}.pdf`
+
+    logger.info(`[INVOICES] Downloading invoice ${invoiceId} for ${user.email}`)
+
+    try {
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('id, title, state, pdf_url')
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
+
+      if (invoiceError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
+        return response.notFound({ error: 'Invoice not found' })
+      }
+
+      const invoiceData = invoice as Pick<Invoice, 'id' | 'title' | 'state' | 'pdf_url'>
+
+      // Check if PDF exists in storage
+      const { data: fileExists, error: checkError } = await supabase.storage
+        .from('invoices')
+        .list(user.id + '/invoices', {
+          search: `${invoiceId}.pdf`,
+        })
+
+      if (checkError) {
+        logger.error(`[INVOICES] Error checking file existence: ${checkError.message}`)
+        return response.internalServerError({ error: 'Failed to check PDF existence' })
+      }
+
+      if (!fileExists || fileExists.length === 0) {
+        logger.warn(`[INVOICES] PDF file not found in storage for invoice ${invoiceId}, attempting to generate it`)
+        
+        // Try to generate the PDF
+        try {
+          await this.generatePdfInternal(user.id, invoiceId, logger)
+          logger.info(`[INVOICES] PDF generated successfully for invoice ${invoiceId}`)
+        } catch (generateError: any) {
+          logger.error(`[INVOICES] Failed to generate PDF: ${generateError.message}`)
+          return response.notFound({ error: 'PDF file not found and could not be generated. Please ensure the invoice has been sent.' })
+        }
+      }
+
+      logger.info(`[INVOICES] PDF file found, attempting download for invoice ${invoiceId}`)
 
       const { data: file, error } = await supabase.storage.from('invoices').download(filePath)
 
@@ -585,18 +759,18 @@ export default class InvoicesController {
       }
 
       const buffer = Buffer.from(await file.arrayBuffer())
-      const stream = Readable.from(buffer)
 
-      const filename = invoice.title
-        ? `${invoice.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${invoiceId.substring(0, 8)}.pdf`
+      const filename = invoiceData.title
+        ? `${invoiceData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${invoiceId.substring(0, 8)}.pdf`
         : `invoice-${invoiceId.substring(0, 8)}.pdf`
 
       response.header('Content-Type', 'application/pdf')
-      response.header('Content-Disposition', `inline; filename="${filename}"`)
+      response.header('Content-Disposition', `attachment; filename="${filename}"`)
+      response.header('Content-Length', buffer.length.toString())
 
-      logger.info(`[INVOICES] PDF download successful for invoice ${invoiceId}`)
-      return response.stream(stream)
-    } catch (error) {
+      logger.info(`[INVOICES] PDF download successful for invoice ${invoiceId}, size: ${buffer.length} bytes`)
+      return response.send(buffer)
+    } catch (error: any) {
       logger.error(`[INVOICES] Unexpected error during PDF download: ${error.message}`)
       return response.internalServerError({
         error: 'Failed to download PDF',
@@ -626,14 +800,16 @@ export default class InvoicesController {
         throw new Error(error.message)
       }
 
-      if (!data?.pdf_url) {
+      const invoiceData = data as Pick<Invoice, 'pdf_url'>
+
+      if (!invoiceData?.pdf_url) {
         logger.warn(`[INVOICES] PDF URL not found for invoice ${params.id}`)
         return response.notFound({ error: 'PDF not available for preview' })
       }
 
       logger.info(`[INVOICES] Preview URL retrieved for invoice ${params.id}`)
-      return { pdf_url: data.pdf_url }
-    } catch (error) {
+      return { pdf_url: invoiceData.pdf_url }
+    } catch (error: any) {
       logger.error(`[INVOICES] Unexpected error during preview: ${error.message}`)
       return response.internalServerError({
         error: 'Failed to get preview',
@@ -644,15 +820,19 @@ export default class InvoicesController {
 
   public async generateSignedUrl({ request, params, response, logger }: HttpContext) {
     const user = request.user
-    const invoiceId = params.id
-    const { expiresIn, download, filename } = request.only(['expiresIn', 'download', 'filename'])
+    const invoiceId: string = params.id
+    const { expiresIn, download, filename }: SignedUrlOptions = request.only([
+      'expiresIn',
+      'download',
+      'filename',
+    ])
 
     logger.info(`[INVOICES] Generating signed URL for invoice ${invoiceId} by ${user.email}`)
 
     try {
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
-        .select('id, title, state')
+        .select('id, title, state, pdf_url')
         .match({ id: invoiceId, owner_id: user.id })
         .single()
 
@@ -661,10 +841,39 @@ export default class InvoicesController {
         return response.notFound({ error: 'Invoice not found' })
       }
 
-      if (invoice.state === 'Draft') {
+      const invoiceData = invoice as Pick<Invoice, 'id' | 'title' | 'state' | 'pdf_url'>
+
+      if (invoiceData.state === 'Draft') {
         logger.warn(`[INVOICES] Attempted to generate signed URL for draft invoice ${invoiceId}`)
         return response.badRequest({ error: 'Cannot generate signed URL for draft invoice' })
       }
+
+      // Check if PDF exists in storage
+      const { data: fileExists, error: checkError } = await supabase.storage
+        .from('invoices')
+        .list(user.id + '/invoices', {
+          search: `${invoiceId}.pdf`,
+        })
+
+      if (checkError) {
+        logger.error(`[INVOICES] Error checking file existence: ${checkError.message}`)
+        return response.internalServerError({ error: 'Failed to check PDF existence' })
+      }
+
+      if (!fileExists || fileExists.length === 0) {
+        logger.warn(`[INVOICES] PDF file not found in storage for invoice ${invoiceId}, attempting to generate it`)
+        
+        // Try to generate the PDF
+        try {
+          await this.generatePdfInternal(user.id, invoiceId, logger)
+          logger.info(`[INVOICES] PDF generated successfully for invoice ${invoiceId}`)
+        } catch (generateError: any) {
+          logger.error(`[INVOICES] Failed to generate PDF: ${generateError.message}`)
+          return response.notFound({ error: 'PDF file not found and could not be generated. Please ensure the invoice has been sent.' })
+        }
+      }
+
+      logger.info(`[INVOICES] PDF file found, generating signed URL for invoice ${invoiceId}`)
 
       const options: any = {}
 
@@ -673,7 +882,7 @@ export default class InvoicesController {
       }
 
       if (download) {
-        options.download = filename || invoice.title || `invoice-${invoiceId.substring(0, 8)}`
+        options.download = filename || invoiceData.title || `invoice-${invoiceId.substring(0, 8)}`
       }
 
       const { signedUrl, error: signedUrlError } = await generatePdfSignedUrl(
@@ -690,16 +899,370 @@ export default class InvoicesController {
       const actualExpiresIn = options.expiresIn || 3 * 24 * 60 * 60
       const expirationDate = new Date(Date.now() + actualExpiresIn * 1000)
 
-      logger.info(`[INVOICES] Signed URL generated for invoice ${invoiceId}`)
+      logger.info(`[INVOICES] Signed URL generated successfully for invoice ${invoiceId}`)
       return {
         signed_url: signedUrl,
         expires_at: expirationDate.toISOString(),
         expires_in_seconds: actualExpiresIn,
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`[INVOICES] Unexpected error generating signed URL: ${error.message}`)
       return response.internalServerError({
         error: 'Failed to generate signed URL',
+        details: error.message,
+      })
+    }
+  }
+
+  private async generatePdfInternal(userId: string, invoiceId: string, logger: any): Promise<string> {
+    logger.info(`[INVOICES] Generating PDF for invoice ${invoiceId} by user ${userId}`)
+
+    // Get invoice with all necessary data
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .select(`
+        id,
+        title,
+        total_amount,
+        state,
+        created_at,
+        expiration_date,
+        client_id,
+        owner_id,
+        clients (
+          first_name,
+          last_name,
+          email,
+          address,
+          phone_number
+        ),
+        profiles!invoices_owner_id_fkey (
+          display_name,
+          email
+        )
+      `)
+      .match({ id: invoiceId, owner_id: userId })
+      .single()
+
+    if (invoiceError || !invoice) {
+      throw new Error('Invoice not found')
+    }
+
+    // Get invoice items with item details
+    const { data: invoiceItems, error: itemsError } = await supabase
+      .from('invoice_items')
+      .select(`
+        item_id,
+        quantity,
+        unit_price,
+        items (
+          id,
+          name,
+          price
+        )
+      `)
+      .eq('invoice_id', invoiceId)
+      .is('deleted_at', null)
+
+    if (itemsError) {
+      throw new Error(`Failed to fetch invoice items: ${itemsError.message}`)
+    }
+
+    // Prepare data for PDF generation
+    const invoiceData = {
+      title: invoice.title,
+      invoice_id: invoice.id,
+      total_amount: invoice.total_amount || 0,
+      state: invoice.state,
+      created_at: new Date(invoice.created_at),
+      expiration_date: invoice.expiration_date ? new Date(invoice.expiration_date) : undefined,
+      owner_name: (invoice as any).profiles?.display_name || 'N/A',
+      owner_email: (invoice as any).profiles?.email || 'N/A',
+      client_first_name: (invoice as any).clients?.first_name || 'N/A',
+      client_last_name: (invoice as any).clients?.last_name || 'N/A',
+      client_email: (invoice as any).clients?.email || 'N/A',
+      client_address: (invoice as any).clients?.address || '',
+      client_phone: (invoice as any).clients?.phone_number || '',
+      items: invoiceItems?.map(item => ({
+        name: (item as any).items?.name || 'Unknown Item',
+        item_id: item.item_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total: item.quantity * item.unit_price,
+      })) || [],
+    }
+
+    logger.info(`[INVOICES] Generating PDF for invoice ${invoiceId}`)
+    const pdfBuffer = await generateInvoicePdf(invoiceData)
+
+    // Upload to storage
+    const pdfUrl = await uploadInvoicePdfToStorage(userId, pdfBuffer, invoiceId)
+
+    // Update invoice with PDF URL - with better error handling
+    const { error: updateError } = await supabase
+      .from('invoices')
+      .update({ pdf_url: pdfUrl })
+      .eq('id', invoiceId)
+
+    if (updateError) {
+      logger.error(`[INVOICES] Error updating invoice with PDF URL: ${updateError.message}`)
+      logger.error(`[INVOICES] RLS Policy Error Details: ${JSON.stringify(updateError)}`)
+      
+      try {
+        const { error: retryError } = await supabase
+          .from('invoices')
+          .update({ pdf_url: pdfUrl })
+          .eq('id', invoiceId)
+          .eq('owner_id', userId)
+        
+        if (retryError) {
+          logger.error(`[INVOICES] Retry also failed: ${retryError.message}`)
+        } else {
+          logger.info(`[INVOICES] PDF URL update succeeded on retry`)
+        }
+      } catch (retryErr: any) {
+        logger.error(`[INVOICES] Retry attempt failed: ${retryErr.message}`)
+      }
+      
+      // Don't fail the request, PDF was generated successfully
+    } else {
+      logger.info(`[INVOICES] PDF URL updated successfully`)
+    }
+
+    logger.info(`[INVOICES] PDF generated and uploaded successfully for invoice ${invoiceId}`)
+    return pdfUrl
+  }
+
+  public async generatePdf({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+    const invoiceId: string = params.id
+
+    logger.info(`[INVOICES] Generating PDF for invoice ${invoiceId} by ${user.email}`)
+
+    try {
+      const pdfUrl = await this.generatePdfInternal(user.id, invoiceId, logger)
+      
+      return {
+        message: 'PDF generated successfully',
+        pdf_url: pdfUrl,
+      }
+    } catch (error: any) {
+      logger.error(`[INVOICES] Error generating PDF: ${error.message}`)
+      return response.internalServerError({
+        error: 'Failed to generate PDF',
+        details: error.message,
+      })
+    }
+  }
+
+  public async sendEmail({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+    const invoiceId: string = params.id
+    const { customMessage } = request.only(['customMessage'])
+
+    logger.info(`[INVOICES] Sending email for invoice ${invoiceId} by ${user.email}`)
+
+    try {
+      // Get invoice with client data
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select(`
+          id,
+          title,
+          state,
+          clients (
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
+
+      if (invoiceError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
+        return response.notFound({ error: 'Invoice not found' })
+      }
+
+      const invoiceData = invoice as any
+      const client = invoiceData.clients
+
+      if (!client) {
+        return response.badRequest({ error: 'Client data not found' })
+      }
+
+      // Generate PDF directly without storing
+      let pdfBuffer: Buffer
+      try {
+        // Get invoice items for PDF generation
+        const { data: invoiceItems = [] } = await supabase
+          .from('invoice_items')
+          .select(`
+            quantity,
+            unit_price,
+            items (
+              name
+            )
+          `)
+          .match({ invoice_id: invoiceId })
+
+        // Prepare data for PDF generation
+        const pdfData = {
+          title: invoiceData.title,
+          invoice_id: invoiceId,
+          total_amount: 0, // Will be calculated
+          state: invoiceData.state,
+          created_at: new Date(invoiceData.created_at),
+          expiration_date: invoiceData.expiration_date ? new Date(invoiceData.expiration_date) : undefined,
+          owner_name: user.email || 'Unknown',
+          owner_email: user.email || 'unknown@example.com',
+          client_first_name: client.first_name,
+          client_last_name: client.last_name,
+          client_email: client.email,
+          items: (invoiceItems || []).map((item: any) => ({
+            name: item.items?.name || 'Item',
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.quantity * item.unit_price
+          }))
+        }
+
+        pdfBuffer = await generateInvoicePdf(pdfData)
+        logger.info(`[INVOICES] PDF generated successfully for email`)
+      } catch (err: any) {
+        logger.error(`[INVOICES] Failed to generate PDF for email: ${err.message}`)
+        return response.badRequest({ error: 'Failed to generate PDF for email' })
+      }
+
+      const clientName = `${client.first_name} ${client.last_name}`
+      const result = await sendInvoiceEmail(
+        client.email,
+        clientName,
+        invoiceData.title,
+        invoiceId,
+        '', // No PDF URL needed
+        false,
+        customMessage,
+        pdfBuffer, // Pass PDF buffer directly
+        invoiceData // Pass invoice data for template
+      )
+
+      if (!result.success) {
+        logger.error(`[INVOICES] Email sending failed: ${result.error}`)
+        return response.internalServerError({ error: 'Failed to send email', details: result.error })
+      }
+
+      logger.info(`[INVOICES] Email sent successfully for invoice ${invoiceId} to ${client.email}`)
+      return { message: 'Email sent successfully' }
+    } catch (error: any) {
+      logger.error(`[INVOICES] Error sending email: ${error.message}`)
+      return response.internalServerError({
+        error: 'Failed to send email',
+        details: error.message,
+      })
+    }
+  }
+
+  public async sendReminder({ request, params, response, logger }: HttpContext) {
+    const user = request.user
+    const invoiceId: string = params.id
+
+    logger.info(`[INVOICES] Sending reminder for invoice ${invoiceId} by ${user.email}`)
+
+    try {
+      // Get invoice with client data
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select(`
+          id,
+          title,
+          state,
+          clients (
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .match({ id: invoiceId, owner_id: user.id })
+        .single()
+
+      if (invoiceError || !invoice) {
+        logger.warn(`[INVOICES] Invoice ${invoiceId} not found for user ${user.email}`)
+        return response.notFound({ error: 'Invoice not found' })
+      }
+
+      const invoiceData = invoice as any
+      const client = invoiceData.clients
+
+      if (!client) {
+        return response.badRequest({ error: 'Client data not found' })
+      }
+
+      // Generate PDF directly without storing
+      let pdfBuffer: Buffer
+      try {
+        // Get invoice items for PDF generation
+        const { data: invoiceItems = [] } = await supabase
+          .from('invoice_items')
+          .select(`
+            quantity,
+            unit_price,
+            items (
+              name
+            )
+          `)
+          .match({ invoice_id: invoiceId })
+
+        // Prepare data for PDF generation
+        const pdfData = {
+          title: invoiceData.title,
+          invoice_id: invoiceId,
+          total_amount: 0, // Will be calculated
+          state: invoiceData.state,
+          created_at: new Date(invoiceData.created_at),
+          expiration_date: invoiceData.expiration_date ? new Date(invoiceData.expiration_date) : undefined,
+          owner_name: user.email || 'Unknown',
+          owner_email: user.email || 'unknown@example.com',
+          client_first_name: client.first_name,
+          client_last_name: client.last_name,
+          client_email: client.email,
+          items: (invoiceItems || []).map((item: any) => ({
+            name: item.items?.name || 'Item',
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.quantity * item.unit_price
+          }))
+        }
+
+        pdfBuffer = await generateInvoicePdf(pdfData)
+        logger.info(`[INVOICES] PDF generated successfully for reminder`)
+      } catch (err: any) {
+        logger.error(`[INVOICES] Failed to generate PDF for reminder: ${err.message}`)
+        return response.badRequest({ error: 'Failed to generate PDF for reminder' })
+      }
+
+      const clientName = `${client.first_name} ${client.last_name}`
+      const result = await sendInvoiceReminder(
+        client.email,
+        clientName,
+        invoiceData.title,
+        invoiceId,
+        '', // No PDF URL needed
+        pdfBuffer, // Pass PDF buffer directly
+        invoiceData // Pass invoice data for template
+      )
+
+      if (!result.success) {
+        logger.error(`[INVOICES] Reminder sending failed: ${result.error}`)
+        return response.internalServerError({ error: 'Failed to send reminder', details: result.error })
+      }
+
+      logger.info(`[INVOICES] Reminder sent successfully for invoice ${invoiceId} to ${client.email}`)
+      return { message: 'Reminder sent successfully' }
+    } catch (error: any) {
+      logger.error(`[INVOICES] Error sending reminder: ${error.message}`)
+      return response.internalServerError({
+        error: 'Failed to send reminder',
         details: error.message,
       })
     }

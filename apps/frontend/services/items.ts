@@ -1,17 +1,7 @@
 import api from '@/lib/api'
-import { Item } from '@/types/items'
+import type { Item, CreateItemPayload, UpdateItemPayload, ItemFilters } from '@/types'
 
-export interface CreateItemPayload {
-    name: string
-    price: number
-    avatarHex?: string | null
-}
 
-export interface UpdateItemPayload {
-    name?: string
-    price?: number
-    avatarHex?: string | null
-}
 
 /** Fetch all items. Browser automatically sends auth cookie. */
 export async function fetchItems(): Promise<Item[]> {

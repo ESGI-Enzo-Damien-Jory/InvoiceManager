@@ -14,8 +14,8 @@ import {
     User,
 } from 'lucide-react'
 
-import LoadingState from '@/components/custom/loading-state'
-import ErrorState from '@/components/custom/error-state'
+import LoadingState from '@/components/custom/states/loading-state'
+import ErrorState from '@/components/custom/states/error-state'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -328,11 +328,11 @@ export default function ClientViewPage() {
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">
-                                    Created Date
+                                    Last Updated
                                 </label>
                                 <p className="text-sm">
                                     {new Date(
-                                        client.created_at
+                                        client.updated_at
                                     ).toLocaleDateString('en-US', {
                                         year: 'numeric',
                                         month: 'long',

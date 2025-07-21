@@ -1,15 +1,9 @@
 import api from '@/lib/api'
-import { ZodNullDef } from 'zod'
+import type { UserProfile, LoginPayload, RegisterPayload, ResetPasswordPayload, AuthResponse, SessionData } from '@/types'
 
 /** --------------------------------------------- **
  * 1) Auth‐related types & functions
  ** --------------------------------------------- **/
-
-/** Payload for login: email & password. */
-export interface LoginPayload {
-    email: string
-    password: string
-}
 
 /** Response from POST /auth/login: only a success message. */
 export interface LoginResponse {
@@ -26,12 +20,7 @@ export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
     return response.data
 }
 
-/** Payload for registration: email, password, display_name. */
-export interface RegisterPayload {
-    email: string
-    password: string
-    display_name: string
-}
+
 
 /** Response from POST /auth/register: created user info + message. */
 export interface RegisterResponse {
@@ -67,10 +56,7 @@ export async function logoutUser(): Promise<{ message: string }> {
     return response.data
 }
 
-/** Payload for sending a password‐reset email. */
-export interface ResetPasswordPayload {
-    email: string
-}
+
 
 /** Response from POST /auth/reset: only a message. */
 export interface ResetPasswordResponse {
@@ -93,21 +79,8 @@ export async function resetPassword(
 }
 
 /** --------------------------------------------- **
- * 2) User‐profile types & functions
+ * 2) User‐profile functions
  ** --------------------------------------------- **/
-
-/**
- * The user profile returned by GET /profile (ProfilesController.show).
- * Includes avatar_url which is a signed URL when an avatar exists.
- */
-export interface UserProfile {
-    id: string
-    display_name: string
-    email: string
-    phone_number: string | null
-    avatar_url: string | null
-    updated_at: string
-}
 
 /**
  * GET /profile

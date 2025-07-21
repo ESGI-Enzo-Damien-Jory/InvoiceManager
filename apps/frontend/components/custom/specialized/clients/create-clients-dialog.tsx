@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
-import type { CreateClientPayload, Client } from '@/services/clients'
+import type { CreateClientPayload, Client } from '@/types'
 
 interface ClientFormData {
     first_name: string

@@ -3,17 +3,17 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
-import { useForm } from 'react-hook-form'
+import { useForm, UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { cn } from '@/lib/utils'
 import { useRegister } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { AlertCircle, Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import axios from 'axios'
 
-const formSchema = z
+const register_schema = z
     .object({
         display_name: z
             .string()
@@ -34,103 +34,119 @@ const formSchema = z
         path: ['confirm_password'],
     })
 
-type RegisterFormValues = z.infer<typeof formSchema>
+export type RegisterFormValues = z.infer<typeof register_schema>
 
-export function RegisterForm({
-    className,
-    ...props
-}: React.ComponentProps<'form'>) {
+export interface RegisterFormProps extends React.ComponentProps<'form'> {
+    className?: string
+}
+
+type RegisterField = {
+    name: keyof RegisterFormValues
+    label: string
+    placeholder: string
+    type: 'text' | 'email' | 'password'
+    auto_complete?: string
+}
+
+const register_fields: RegisterField[] = [
+    {
+        name: 'display_name',
+        label: 'Display Name',
+        placeholder: 'Your full name (min. 6 characters)',
+        type: 'text',
+        auto_complete: 'name',
+    },
+    {
+        name: 'email',
+        label: 'Email',
+        placeholder: 'm@example.com',
+        type: 'email',
+        auto_complete: 'email',
+    },
+    {
+        name: 'password',
+        label: 'Password',
+        placeholder: '8+ chars, 1 number, 1 special char',
+        type: 'password',
+        auto_complete: 'new-password',
+    },
+    {
+        name: 'confirm_password',
+        label: 'Confirm Password',
+        placeholder: 'Confirm your password',
+        type: 'password',
+        auto_complete: 'new-password',
+    },
+]
+
+function get_password_strength(password: string) {
+    let score = 0
+    if (password.length >= 8) score++
+    if (/[0-9]/.test(password)) score++
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++
+    if (/[A-Z]/.test(password)) score++
+    if (/[a-z]/.test(password)) score++
+    if (score <= 2) return { score: 1, label: 'Weak' }
+    if (score <= 3) return { score: 2, label: 'Fair' }
+    if (score <= 4) return { score: 3, label: 'Good' }
+    return { score: 4, label: 'Strong' }
+}
+
+type FieldShowPassword = {
+    [K in keyof RegisterFormValues]?: boolean
+}
+
+export function RegisterForm({ className, ...props }: RegisterFormProps) {
+    const [field_show_password, set_field_show_password] =
+        useState<FieldShowPassword>({})
+    const [form_error, set_form_error] = useState<string | null>(null)
+    const router = useRouter()
+    const { registerMutate, status } = useRegister()
+
     const {
         register,
         handleSubmit,
-        formState: { errors, isValid },
+        formState: { errors, isValid, isSubmitting, touchedFields },
         watch,
-    } = useForm<RegisterFormValues>({
-        resolver: zodResolver(formSchema),
+    }: UseFormReturn<RegisterFormValues> = useForm<RegisterFormValues>({
+        resolver: zodResolver(register_schema),
         mode: 'onChange',
     })
 
-    const router = useRouter()
-    const [error, setError] = useState<string | null>(null)
-    const [showPassword, setShowPassword] = useState(false)
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const values = watch()
+    const is_pending = status === 'pending'
 
-    const { registerMutate, status } = useRegister()
-
-    const watchedValues = watch()
-    const isPending = status === 'pending'
-
-    const onSubmit = async (data: RegisterFormValues): Promise<void> => {
-        setError(null)
-
-        registerMutate(
-            {
-                display_name: data.display_name,
-                email: data.email,
-                password: data.password,
-            },
-            {
-                onSuccess: () => {
-                    router.push('/login')
-                },
-                onError: (err: unknown) => {
-                    if (axios.isAxiosError(err)) {
-                        const backendMessage = (
-                            err.response?.data as { error?: string }
-                        )?.error
-                        setError(backendMessage ?? 'Something went wrong')
-                    } else if (err instanceof Error) {
-                        setError(err.message)
-                    } else {
-                        setError('Something went wrong')
-                    }
-                },
-            }
-        )
-    }
-
-    const getFieldStatus = (fieldName: keyof RegisterFormValues) => {
-        const hasValue = watchedValues[fieldName]
-        const hasError = errors[fieldName]
-
-        if (!hasValue) return null
-        if (hasError) return 'error'
-        return 'success'
-    }
-
-    const getPasswordStrength = (password: string) => {
-        if (!password) return { score: 0, label: '' }
-
-        let score = 0
-        const checks = {
-            length: password.length >= 8,
-            number: /[0-9]/.test(password),
-            special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-            upper: /[A-Z]/.test(password),
-            lower: /[a-z]/.test(password),
+    const on_submit = (data: RegisterFormValues) => {
+        set_form_error(null)
+        const payload = {
+            display_name: data.display_name,
+            email: data.email,
+            password: data.password,
         }
-
-        if (checks.length) score++
-        if (checks.number) score++
-        if (checks.special) score++
-        if (checks.upper) score++
-        if (checks.lower) score++
-
-        if (score <= 2) return { score: 1, label: 'Weak' }
-        if (score <= 3) return { score: 2, label: 'Fair' }
-        if (score <= 4) return { score: 3, label: 'Good' }
-        return { score: 4, label: 'Strong' }
+        registerMutate(payload, {
+            onSuccess: () => router.push('/login'),
+            onError: (err: unknown) => {
+                if (axios.isAxiosError(err)) {
+                    set_form_error(
+                        err.response?.data?.error ?? 'Something went wrong'
+                    )
+                } else if (err instanceof Error) {
+                    set_form_error(err.message)
+                } else set_form_error('Something went wrong')
+            },
+        })
     }
 
-    const passwordStrength = getPasswordStrength(watchedValues.password || '')
+    const is_field_success = (name: keyof RegisterFormValues) =>
+        Boolean(values[name] && !errors[name] && touchedFields[name])
 
     return (
         <form
             className={cn('flex flex-col gap-6', className)}
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={handleSubmit(on_submit)}
+            autoComplete="on"
             {...props}
         >
-            {/* Header */}
             <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Create an account</h1>
                 <p className="text-muted-foreground text-sm text-balance">
@@ -138,207 +154,120 @@ export function RegisterForm({
                 </p>
             </div>
 
-            {/* Error message global */}
-            {error && (
+            {form_error && (
                 <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
                     <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <div>{error}</div>
+                    <div>{form_error}</div>
                 </div>
             )}
 
             <div className="grid gap-4">
-                {/* Display Name */}
-                <div className="grid gap-2">
-                    <Label htmlFor="display_name">Display Name</Label>
-                    <div className="relative">
-                        <Input
-                            id="display_name"
-                            placeholder="Your full name (min. 6 characters)"
-                            className={cn(
-                                'input-autofill',
-                                errors.display_name &&
-                                    'border-destructive focus-visible:ring-destructive'
-                            )}
-                            disabled={isPending}
-                            {...register('display_name')}
-                        />
-                        {getFieldStatus('display_name') === 'success' && (
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                        )}
-                    </div>
-                    {errors.display_name && (
-                        <div className="flex items-center gap-2 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.display_name.message}
-                        </div>
-                    )}
-                </div>
-
-                {/* Email */}
-                <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="m@example.com"
-                            className={cn(
-                                'input-autofill',
-                                errors.email &&
-                                    'border-destructive focus-visible:ring-destructive'
-                            )}
-                            disabled={isPending}
-                            {...register('email')}
-                        />
-                        {getFieldStatus('email') === 'success' && (
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                        )}
-                    </div>
-                    {errors.email && (
-                        <div className="flex items-center gap-2 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.email.message}
-                        </div>
-                    )}
-                </div>
-
-                {/* Password */}
-                <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                        <Input
-                            id="password"
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="8+ chars, 1 number, 1 special character"
-                            className={cn(
-                                'pr-10 input-autofill',
-                                errors.password &&
-                                    'border-destructive focus-visible:ring-destructive'
-                            )}
-                            disabled={isPending}
-                            {...register('password')}
-                        />
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                            disabled={isPending}
-                        >
-                            {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
-                            ) : (
-                                <Eye className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">
-                                {showPassword
-                                    ? 'Hide password'
-                                    : 'Show password'}
-                            </span>
-                        </Button>
-                        {getFieldStatus('password') === 'success' && (
-                            <div className="absolute right-10 top-1/2 -translate-y-1/2">
-                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Password strength indicator */}
-                    {watchedValues.password &&
-                        watchedValues.password.length > 0 && (
-                            <div className="space-y-2">
-                                <div className="flex gap-1">
-                                    {[...Array(4)].map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className={cn(
-                                                'h-1 flex-1 rounded-full transition-all duration-300',
-                                                i < passwordStrength.score
-                                                    ? 'bg-muted-foreground'
-                                                    : 'bg-muted'
-                                            )}
-                                        />
-                                    ))}
-                                </div>
-                                {passwordStrength.label && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Strength: {passwordStrength.label}
-                                    </p>
+                {register_fields.map((field) => {
+                    const is_password = field.type === 'password'
+                    const show_pw = !!field_show_password[field.name]
+                    return (
+                        <div className="grid gap-2" key={field.name}>
+                            <Label htmlFor={field.name}>{field.label}</Label>
+                            <div className="relative">
+                                <Input
+                                    id={field.name}
+                                    type={
+                                        is_password
+                                            ? show_pw
+                                                ? 'text'
+                                                : 'password'
+                                            : field.type
+                                    }
+                                    autoComplete={field.auto_complete}
+                                    placeholder={field.placeholder}
+                                    disabled={is_pending || isSubmitting}
+                                    {...register(field.name)}
+                                    className={cn(
+                                        is_password && 'pr-10',
+                                        errors[field.name] &&
+                                            'border-destructive focus-visible:ring-destructive'
+                                    )}
+                                />
+                                {is_password && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                        onClick={() =>
+                                            set_field_show_password((prev) => ({
+                                                ...prev,
+                                                [field.name]: !prev[field.name],
+                                            }))
+                                        }
+                                        tabIndex={-1}
+                                        disabled={is_pending || isSubmitting}
+                                    >
+                                        {show_pw ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                        <span className="sr-only">
+                                            {show_pw
+                                                ? 'Hide password'
+                                                : 'Show password'}
+                                        </span>
+                                    </Button>
+                                )}
+                                {is_field_success(field.name) && (
+                                    <CheckCircle
+                                        className={cn(
+                                            'absolute top-1/2 h-4 w-4 text-muted-foreground -translate-y-1/2',
+                                            is_password ? 'right-10' : 'right-3'
+                                        )}
+                                    />
                                 )}
                             </div>
-                        )}
-
-                    {errors.password && (
-                        <div className="flex items-center gap-2 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.password.message}
-                        </div>
-                    )}
-                </div>
-
-                {/* Confirm Password */}
-                <div className="grid gap-2">
-                    <Label htmlFor="confirm_password">Confirm Password</Label>
-                    <div className="relative">
-                        <Input
-                            id="confirm_password"
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            placeholder="Confirm your password"
-                            className={cn(
-                                'pr-10 input-autofill',
-                                errors.confirm_password &&
-                                    'border-destructive focus-visible:ring-destructive'
+                            {field.name === 'password' && values.password && (
+                                <div className="space-y-2">
+                                    <div className="flex gap-1">
+                                        {[...Array(4)].map((_, i) => (
+                                            <div
+                                                key={i}
+                                                className={cn(
+                                                    'h-1 flex-1 rounded-full transition-all duration-300',
+                                                    i <
+                                                        get_password_strength(
+                                                            values.password
+                                                        ).score
+                                                        ? 'bg-muted-foreground'
+                                                        : 'bg-muted'
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Strength:{' '}
+                                        {
+                                            get_password_strength(
+                                                values.password
+                                            ).label
+                                        }
+                                    </p>
+                                </div>
                             )}
-                            disabled={isPending}
-                            {...register('confirm_password')}
-                        />
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() =>
-                                setShowConfirmPassword(!showConfirmPassword)
-                            }
-                            disabled={isPending}
-                        >
-                            {showConfirmPassword ? (
-                                <EyeOff className="h-4 w-4" />
-                            ) : (
-                                <Eye className="h-4 w-4" />
+                            {errors[field.name] && (
+                                <div className="flex items-center gap-2 text-xs text-destructive">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {errors[field.name]?.message as string}
+                                </div>
                             )}
-                            <span className="sr-only">
-                                {showConfirmPassword
-                                    ? 'Hide password'
-                                    : 'Show password'}
-                            </span>
-                        </Button>
-                        {getFieldStatus('confirm_password') === 'success' && (
-                            <div className="absolute right-10 top-1/2 -translate-y-1/2">
-                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                        )}
-                    </div>
-                    {errors.confirm_password && (
-                        <div className="flex items-center gap-2 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.confirm_password.message}
                         </div>
-                    )}
-                </div>
+                    )
+                })}
 
-                {/* Submit Button */}
                 <Button
                     type="submit"
                     className="w-full"
-                    disabled={!isValid || isPending}
+                    disabled={!isValid || is_pending || isSubmitting}
                 >
-                    {isPending ? (
+                    {is_pending || isSubmitting ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Signing up...
@@ -348,18 +277,15 @@ export function RegisterForm({
                     )}
                 </Button>
 
-                {/* Divider */}
                 <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
                     <span className="relative z-10 bg-background px-2 text-muted-foreground">
                         Or continue with
                     </span>
                 </div>
-
-                {/* Google Button */}
                 <Button
                     variant="outline"
                     className="w-full"
-                    disabled={isPending}
+                    disabled={is_pending || isSubmitting}
                     type="button"
                 >
                     <svg
@@ -391,7 +317,6 @@ export function RegisterForm({
                 </Button>
             </div>
 
-            {/* Footer */}
             <div className="text-center text-sm">
                 Already have an account?{' '}
                 <a href="/login" className="underline underline-offset-4">

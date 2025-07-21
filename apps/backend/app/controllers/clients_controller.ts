@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { supabase } from '#start/supabase'
+import { Client, Insert, Update, CreateClientPayload, UpdateClientPayload } from '@inma/types'
 
 export default class ClientsController {
   public async index({ request, logger }: HttpContext) {
@@ -28,19 +29,24 @@ export default class ClientsController {
     }
 
     logger.info(`[CLIENTS] Found ${data?.length ?? 0} active clients`)
-    return data
+    return data as Client[]
   }
 
   public async store({ request, logger }: HttpContext) {
     const user = request.user
-    const body = request.only(['first_name', 'last_name', 'email', 'phone_number', 'address'])
+    const body: CreateClientPayload = request.only([
+      'first_name',
+      'last_name',
+      'email',
+      'phone_number',
+      'address',
+    ])
 
     logger.info(`[CLIENTS] Creating client for ${user.email}: ${body.first_name} ${body.last_name}`)
 
-    const { data, error } = await supabase
-      .from('clients')
-      .insert({ ...body, user_id: user.id })
-      .select()
+    const insertData: Insert<'clients'> = { ...body, user_id: user.id }
+
+    const { data, error } = await supabase.from('clients').insert(insertData).select()
 
     if (error) {
       logger.error(`[CLIENTS] Failed to create client: ${error.message}`)
@@ -49,18 +55,26 @@ export default class ClientsController {
 
     const clientId = data?.[0]?.id
     logger.info(`[CLIENTS] Client created with ID: ${clientId}`)
-    return data
+    return data as Client[]
   }
 
   public async update({ request, params, response, logger }: HttpContext) {
     const user = request.user
-    const body = request.only(['first_name', 'last_name', 'email', 'phone_number', 'address'])
+    const body: UpdateClientPayload = request.only([
+      'first_name',
+      'last_name',
+      'email',
+      'phone_number',
+      'address',
+    ])
 
     logger.info(`[CLIENTS] Updating client ${params.id} for ${user.email}`)
 
+    const updateData: Update<'clients'> = body
+
     const { data, error } = await supabase
       .from('clients')
-      .update(body)
+      .update(updateData)
       .match({ id: params.id, user_id: user.id })
       .is('deleted_at', null)
       .select()
@@ -76,16 +90,18 @@ export default class ClientsController {
     }
 
     logger.info(`[CLIENTS] Client ${params.id} updated`)
-    return data
+    return data as Client[]
   }
 
   public async destroy({ request, params, logger }: HttpContext) {
     const user = request.user
     logger.warn(`[CLIENTS] Deleting client ${params.id} for ${user.email}`)
 
+    const deleteData: Update<'clients'> = { deleted_at: new Date().toISOString() }
+
     const { error } = await supabase
       .from('clients')
-      .update({ deleted_at: new Date().toISOString() })
+      .update(deleteData)
       .match({ id: params.id, user_id: user.id })
       .is('deleted_at', null)
 
@@ -115,6 +131,6 @@ export default class ClientsController {
     }
 
     logger.info(`[CLIENTS] Client ${params.id} fetched successfully`)
-    return data
+    return data as Client
   }
 }

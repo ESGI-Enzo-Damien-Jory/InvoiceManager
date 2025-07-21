@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Mail, ArrowRight, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Client } from '@/types/clients'
+import type { ClientWithStats } from '@/types'
 
 export interface ClientGridProps {
-    clients: Client[]
+    clients: ClientWithStats[]
     linkPrefix?: string
 }
 

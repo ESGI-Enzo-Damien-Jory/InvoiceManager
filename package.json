@@ -2,7 +2,7 @@
     "name": "invoice-manager",
     "version": "1.0.0",
     "private": true,
-    "packageManager": "pnpm@10.0.0",
+    "packageManager": "pnpm@10.12.1",
     "scripts": {
         "build": "turbo run build",
         "dev": "turbo run dev",
@@ -16,11 +16,12 @@
         "test:ci:e2e": "turbo run test:ci:e2e"
     },
     "devDependencies": {
-        "eslint": "^9.24.0",
+        "depcheck": "^1.4.7",
+        "eslint": "^9.29.0",
         "husky": "^9.1.7",
-        "lint-staged": "^15.5.0",
+        "lint-staged": "16.1.2",
         "prettier": "^3.5.3",
-        "turbo": "^2.5.0"
+        "turbo": "^2.5.4"
     },
     "workspaces": [
         "apps/*",

@@ -1,5 +1,5 @@
-import { AppSidebar } from '@/components/app-sidebar'
-import { SiteHeader } from '@/components/site-header'
+import { AppSidebar } from '@/components/custom/specialized/navigation/app-sidebar'
+import { SiteHeader } from '@/components/custom/generic/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import './theme.css'
 
@@ -15,9 +15,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         >
             <AppSidebar variant="inset" />
             <SidebarInset>
-                <SiteHeader />
+                <div className="p-2 bg-background">
+                    <SiteHeader />
+                </div>
                 <div className="flex flex-1 flex-col">
-                    <div className="@container/main flex flex-1 flex-col gap-2 justify-center">
+                    <div className="@container/main flex flex-1 flex-col">
                         {children}
                     </div>
                 </div>

@@ -1,6 +1,8 @@
 import { generate } from '@pdfme/generator'
-import { text, table } from '@pdfme/schemas'
-import { invoiceTemplate } from './templates/invoice_template.js'
+import { text, table, svg, line, multiVariableText } from '@pdfme/schemas'
+import { readFileSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
 interface InvoiceData {
   title: string
@@ -32,6 +34,13 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
   try {
     console.log('PDF Generation - Input data:', JSON.stringify(data, null, 2))
 
+    // Read template JSON file
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = dirname(__filename)
+    const templatePath = join(__dirname, '../../templates/template.json')
+    const templateContent = readFileSync(templatePath, 'utf-8')
+    const template = JSON.parse(templateContent)
+
     const issueDate = data.created_at.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -60,15 +69,17 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
     const finalTotal = calculatedTotal > 0 ? calculatedTotal : Number(data.total_amount) || 0
     console.log('Final total amount:', finalTotal)
 
-    const formattedAmount = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(finalTotal)
-
     const clientName = `${data.client_first_name} ${data.client_last_name}`
     const clientAddress = data.client_address || ''
     const clientPhone = data.client_phone ? `Phone: ${data.client_phone}` : ''
     const fullAddress = [clientAddress, clientPhone].filter(Boolean).join('\n')
+
+    // Format client info for the template
+    const clientInfo = [
+      clientName,
+      data.client_email,
+      fullAddress
+    ].filter(Boolean).join('\n')
 
     let tableData: string[][]
 
@@ -87,8 +98,8 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
         const row = [
           itemName,
           String(quantity),
-          `$${unitPrice.toFixed(2)}`,
-          `$${itemTotal.toFixed(2)}`,
+          String(unitPrice), // Remove $ symbol for calculations
+          String(itemTotal), // Remove $ symbol for calculations
         ]
 
         console.log(`Generated row:`, row)
@@ -96,49 +107,40 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
       })
     } else {
       console.log('No items provided, using default row')
-      tableData = [['No items', '0', '$0.00', '$0.00']]
+      tableData = [['No items', '0', '0', '0']]
     }
 
     console.log('Final table data:', tableData)
 
+    // Format payment info
+    const paymentInfo = [
+      'Invoice Manager',
+      `Account Name: ${clientName}`,
+      `Email: ${data.client_email}`,
+      `Due Date: ${dueDate}`
+    ].join('\n')
+
     const input = {
-      invoice_title: 'INVOICE',
-      invoice_id: `#${data.invoice_id.substring(0, 8).toUpperCase()}`,
-
-      from_label: 'FROM:',
-      from_name: data.owner_name || 'N/A',
-      from_email: data.owner_email || 'N/A',
-
-      to_label: 'BILL TO:',
-      client_name: clientName,
-      client_email: data.client_email,
-      client_address: fullAddress,
-
-      issue_date_label: 'Issue Date:',
-      issue_date: issueDate,
-      due_date_label: 'Due Date:',
-      due_date: dueDate,
-      status_label: 'Status:',
-      status: data.state.toUpperCase(),
-
-      description_label: 'Description:',
-      description: data.title,
-
-      items_table: tableData,
-
-      total_label: 'TOTAL:',
-      total_amount: formattedAmount,
-
-      footer_note:
-        'Thank you for your business! Please contact us if you have any questions about this invoice.',
+      billedToInput: clientInfo,
+      info: JSON.stringify({
+        InvoiceNo: data.invoice_id.substring(0, 8).toUpperCase(),
+        Date: issueDate
+      }),
+      orders: tableData,
+      taxInput: JSON.stringify({
+        rate: '10'
+      }),
+      paymentInfoInput: paymentInfo,
+      shopName: 'Invoice Manager',
+      shopAddress: 'Professional Invoice Management System'
     }
 
     console.log('PDF input data:', JSON.stringify(input, null, 2))
 
     const pdf = await generate({
-      template: invoiceTemplate,
+      template: template as any,
       inputs: [input],
-      plugins: { text, table },
+      plugins: { text, table, svg, line, multiVariableText },
     })
 
     return Buffer.from(pdf instanceof Uint8Array ? pdf.buffer : pdf)

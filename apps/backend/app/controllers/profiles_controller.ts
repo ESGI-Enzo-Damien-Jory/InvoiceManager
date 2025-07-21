@@ -2,6 +2,12 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { supabase } from '#start/supabase'
 import { uploadAvatarToStorage } from '#services/profile_service'
 import { promises as fs } from 'node:fs'
+import { UserProfile, Update, UpdateProfilePayload } from '@inma/types'
+
+interface ProfileResponse
+  extends Pick<UserProfile, 'id' | 'display_name' | 'email' | 'phone_number' | 'updated_at'> {
+  avatar_url: string | null
+}
 
 export default class ProfilesController {
   public async show({ request }: HttpContext) {
@@ -17,32 +23,41 @@ export default class ProfilesController {
       throw new Error(`[USER] Failed to fetch profile: ${error.message}`)
     }
 
-    let avatarSignedUrl = null
-    if (profile.avatar_url) {
+    const profileData = profile as Pick<
+      UserProfile,
+      'id' | 'display_name' | 'email' | 'phone_number' | 'avatar_url' | 'updated_at'
+    >
+
+    let avatarSignedUrl: string | null = null
+    if (profileData.avatar_url) {
       const { data, error: urlError } = await supabase.storage
         .from('avatars')
-        .createSignedUrl(profile.avatar_url, 60 * 60)
+        .createSignedUrl(profileData.avatar_url, 60 * 60)
 
       if (!urlError && data?.signedUrl) {
         avatarSignedUrl = data.signedUrl
       }
     }
 
-    return {
-      ...profile,
+    const response: ProfileResponse = {
+      ...profileData,
       avatar_url: avatarSignedUrl,
     }
+
+    return response
   }
 
   public async update({ request, logger }: HttpContext) {
     const user = request.user
-    const updates = request.only(['display_name', 'phone_number'])
+    const updates: UpdateProfilePayload = request.only(['display_name', 'phone_number'])
 
     logger.info(`[USER] Updating profile for user ${user.id}`)
 
+    const updateData: Update<'profiles'> = updates
+
     const { data, error } = await supabase
       .from('profiles')
-      .update(updates)
+      .update(updateData)
       .eq('id', user.id)
       .select()
 
@@ -51,8 +66,9 @@ export default class ProfilesController {
       throw new Error(error.message)
     }
 
+    const profiles = data as UserProfile[]
     logger.info(`[USER] Profile updated for ${user.email}`)
-    return data?.[0]
+    return profiles[0]
   }
 
   public async uploadAvatar({ request, response, logger }: HttpContext) {
@@ -78,10 +94,11 @@ export default class ProfilesController {
       const buffer = await fs.readFile(avatarFile.tmpPath!)
       const avatarPath = await uploadAvatarToStorage(user.id, buffer, avatarFile.type)
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({ avatar_url: avatarPath })
-        .eq('id', user.id)
+      const updateData: Update<'profiles'> = {
+        avatar_url: avatarPath,
+      }
+
+      const { error } = await supabase.from('profiles').update(updateData).eq('id', user.id)
 
       if (error) {
         throw new Error(error.message)
