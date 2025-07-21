@@ -23,13 +23,11 @@ export async function sendInvoiceEmail(
   invoiceData?: any
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const subject = isReminder 
+    const subject = isReminder
       ? `Rappel - Facture en attente: ${invoiceTitle}`
       : `Nouvelle facture: ${invoiceTitle}`
 
-    const messageContent = customMessage 
-      ? `<p>${customMessage}</p><br>`
-      : ''
+    const messageContent = customMessage ? `<p>${customMessage}</p><br>` : ''
 
     const html = `
       <!DOCTYPE html>
@@ -226,9 +224,10 @@ export async function sendInvoiceEmail(
             ${messageContent}
             
             <div class="message">
-              ${isReminder 
-                ? 'Nous vous rappelons que vous avez une facture en attente de paiement. Veuillez la traiter dans les plus brefs délais.'
-                : 'Veuillez trouver ci-joint votre facture. Merci de votre confiance.'
+              ${
+                isReminder
+                  ? 'Nous vous rappelons que vous avez une facture en attente de paiement. Veuillez la traiter dans les plus brefs délais.'
+                  : 'Veuillez trouver ci-joint votre facture. Merci de votre confiance.'
               }
             </div>
             
@@ -252,13 +251,17 @@ export async function sendInvoiceEmail(
               </div>
             </div>
             
-            ${pdfUrl ? `
+            ${
+              pdfUrl
+                ? `
             <div style="text-align: center;">
               <a href="${pdfUrl}" class="cta-button">
                 ${isReminder ? '👁️ Voir la facture' : '📥 Télécharger la facture'}
               </a>
             </div>
-            ` : ''}
+            `
+                : ''
+            }
             
             <div class="message" style="margin-top: 32px;">
               💬 Si vous avez des questions concernant cette facture, n'hésitez pas à nous contacter.
@@ -290,8 +293,8 @@ export async function sendInvoiceEmail(
         {
           filename: `${invoiceTitle.replace(/[^a-z0-9]/gi, '_')}.pdf`,
           content: pdfBuffer.toString('base64'),
-          encoding: 'base64'
-        }
+          encoding: 'base64',
+        },
       ]
     } else if (pdfUrl) {
       // Fallback to URL if no buffer
@@ -299,14 +302,14 @@ export async function sendInvoiceEmail(
         {
           filename: `${invoiceTitle.replace(/[^a-z0-9]/gi, '_')}.pdf`,
           content: pdfUrl,
-          encoding: 'url'
-        }
+          encoding: 'url',
+        },
       ]
     }
 
     // Use Supabase's built-in email functionality
     const { error } = await supabase.functions.invoke('send-email', {
-      body: emailData
+      body: emailData,
     })
 
     if (error) {
@@ -330,5 +333,15 @@ export async function sendInvoiceReminder(
   pdfBuffer?: Buffer,
   invoiceData?: any
 ): Promise<{ success: boolean; error?: string }> {
-  return sendInvoiceEmail(clientEmail, clientName, invoiceTitle, invoiceId, pdfUrl, true, undefined, pdfBuffer, invoiceData)
-} 
+  return sendInvoiceEmail(
+    clientEmail,
+    clientName,
+    invoiceTitle,
+    invoiceId,
+    pdfUrl,
+    true,
+    undefined,
+    pdfBuffer,
+    invoiceData
+  )
+}

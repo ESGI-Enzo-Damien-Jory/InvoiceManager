@@ -6,7 +6,11 @@ import { toast } from 'sonner'
 export function useInvoices() {
     const queryClient = useQueryClient()
 
-    const { data: invoices = [], isLoading: loading, error } = useQuery({
+    const {
+        data: invoices = [],
+        isLoading: loading,
+        error,
+    } = useQuery({
         queryKey: ['invoices'],
         queryFn: invoicesService.getAll,
         staleTime: 1000 * 60 * 5, // 5 minutes
@@ -20,7 +24,9 @@ export function useInvoices() {
         },
         onError: (error: any) => {
             console.error('Failed to delete invoice:', error)
-            toast.error(error?.response?.data?.error || 'Failed to delete invoice')
+            toast.error(
+                error?.response?.data?.error || 'Failed to delete invoice'
+            )
         },
     })
 
@@ -70,44 +76,59 @@ export function useInvoiceActions() {
         },
     })
 
-      // Generate PDF mutation
-  const generatePdfMutation = useMutation({
-    mutationFn: (invoiceId: string) => invoicesService.generatePdf(invoiceId),
-    onSuccess: (data) => {
-      toast.success('PDF generated successfully!')
-      // Invalidate the invoices query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['invoices'] })
-    },
-    onError: (error: any) => {
-      console.error('Failed to generate PDF:', error)
-      toast.error(error?.response?.data?.error || 'Failed to generate PDF')
-    },
-  })
+    // Generate PDF mutation
+    const generatePdfMutation = useMutation({
+        mutationFn: (invoiceId: string) =>
+            invoicesService.generatePdf(invoiceId),
+        onSuccess: (data) => {
+            toast.success('PDF generated successfully!')
+            // Invalidate the invoices query to refresh the data
+            queryClient.invalidateQueries({ queryKey: ['invoices'] })
+        },
+        onError: (error: any) => {
+            console.error('Failed to generate PDF:', error)
+            toast.error(
+                error?.response?.data?.error || 'Failed to generate PDF'
+            )
+        },
+    })
 
-  // Send email mutation
-  const sendEmailMutation = useMutation({
-    mutationFn: ({ invoiceId, customMessage }: { invoiceId: string; customMessage?: string }) =>
-      invoicesService.sendEmail(invoiceId, customMessage),
-    onSuccess: () => {
-      toast.success('Email envoyé avec succès !')
-    },
-    onError: (error: any) => {
-      console.error('Failed to send email:', error)
-      toast.error(error?.response?.data?.error || 'Erreur lors de l\'envoi de l\'email')
-    },
-  })
+    // Send email mutation
+    const sendEmailMutation = useMutation({
+        mutationFn: ({
+            invoiceId,
+            customMessage,
+        }: {
+            invoiceId: string
+            customMessage?: string
+        }) => invoicesService.sendEmail(invoiceId, customMessage),
+        onSuccess: () => {
+            toast.success('Email envoyé avec succès !')
+        },
+        onError: (error: any) => {
+            console.error('Failed to send email:', error)
+            toast.error(
+                error?.response?.data?.error ||
+                    "Erreur lors de l'envoi de l'email"
+            )
+        },
+    })
 
-  // Send reminder mutation
-  const sendReminderMutation = useMutation({
-    mutationFn: (invoiceId: string) => invoicesService.sendReminder(invoiceId),
-    onSuccess: () => {
-      toast.success('Rappel envoyé avec succès !')
-    },
-    onError: (error: any) => {
-      console.error('Failed to send reminder:', error)
-      toast.error(error?.response?.data?.error || 'Erreur lors de l\'envoi du rappel')
-    },
-  })
+    // Send reminder mutation
+    const sendReminderMutation = useMutation({
+        mutationFn: (invoiceId: string) =>
+            invoicesService.sendReminder(invoiceId),
+        onSuccess: () => {
+            toast.success('Rappel envoyé avec succès !')
+        },
+        onError: (error: any) => {
+            console.error('Failed to send reminder:', error)
+            toast.error(
+                error?.response?.data?.error ||
+                    "Erreur lors de l'envoi du rappel"
+            )
+        },
+    })
 
     const downloadInvoice = async (id: string) => {
         try {
@@ -139,4 +160,4 @@ export function useInvoiceActions() {
         sendReminder: sendReminderMutation.mutateAsync,
         isSendingReminder: sendReminderMutation.isPending,
     }
-} 
+}

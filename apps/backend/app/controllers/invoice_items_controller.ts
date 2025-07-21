@@ -17,7 +17,11 @@ interface InvoiceItemWithItem extends InvoiceItem {
 }
 
 export default class InvoiceItemsController {
-  private async checkInvoiceModifiable(invoiceId: string, user: any, logger: any): Promise<boolean> {
+  private async checkInvoiceModifiable(
+    invoiceId: string,
+    user: any,
+    logger: any
+  ): Promise<boolean> {
     const { data: invoice, error } = await supabase
       .from('invoices')
       .select('id, state')
@@ -78,7 +82,7 @@ export default class InvoiceItemsController {
     // Check if invoice is modifiable
     if (!(await this.checkInvoiceModifiable(body.invoice_id, user, logger))) {
       return response.status(422).send({
-        error: 'Cannot modify invoice items. Only Draft invoices can be modified.'
+        error: 'Cannot modify invoice items. Only Draft invoices can be modified.',
       })
     }
 
@@ -108,7 +112,7 @@ export default class InvoiceItemsController {
     // Check if invoice is modifiable
     if (!(await this.checkInvoiceModifiable(invoiceId, user, logger))) {
       return response.status(422).send({
-        error: 'Cannot modify invoice items. Only Draft invoices can be modified.'
+        error: 'Cannot modify invoice items. Only Draft invoices can be modified.',
       })
     }
 
@@ -146,7 +150,7 @@ export default class InvoiceItemsController {
     // Check if invoice is modifiable
     if (!(await this.checkInvoiceModifiable(invoiceId, user, logger))) {
       return response.status(422).send({
-        error: 'Cannot modify invoice items. Only Draft invoices can be modified.'
+        error: 'Cannot modify invoice items. Only Draft invoices can be modified.',
       })
     }
 

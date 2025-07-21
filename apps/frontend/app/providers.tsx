@@ -14,11 +14,18 @@ export function Providers({ children }: ProvidersProps) {
     // Apply theme class to <html> globally
     useEffect(() => {
         const THEMES = [
-            'theme-ocean', 'theme-sunset', 'theme-nord', 'theme-tokyo', 'theme-emerald', 'theme-dracula', 'theme-catppuccin'
+            'theme-ocean',
+            'theme-sunset',
+            'theme-nord',
+            'theme-tokyo',
+            'theme-emerald',
+            'theme-dracula',
+            'theme-catppuccin',
         ]
         const html = document.documentElement
         const applyTheme = () => {
-            const stored = sessionStorage.getItem('customTheme') || 'theme-ocean'
+            const stored =
+                sessionStorage.getItem('customTheme') || 'theme-ocean'
             html.classList.remove(...THEMES)
             html.classList.add(stored)
         }

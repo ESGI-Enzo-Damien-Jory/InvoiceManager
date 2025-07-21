@@ -42,12 +42,14 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     const router = useRouter()
     const query_client = useQueryClient()
     const { loginMutate, status } = useLogin()
-    const { register, handleSubmit, formState, reset } = useForm<LoginFormData>({
-        resolver: zodResolver(schema),
-        mode: 'onChange',
-        reValidateMode: 'onChange',
-        defaultValues: { email: '', password: '' },
-    })
+    const { register, handleSubmit, formState, reset } = useForm<LoginFormData>(
+        {
+            resolver: zodResolver(schema),
+            mode: 'onChange',
+            reValidateMode: 'onChange',
+            defaultValues: { email: '', password: '' },
+        }
+    )
     const { errors, isValid, isSubmitting, touchedFields } = formState
 
     // Reset form when status changes from pending to idle

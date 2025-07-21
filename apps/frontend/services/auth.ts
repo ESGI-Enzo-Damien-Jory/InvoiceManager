@@ -1,5 +1,12 @@
 import api from '@/lib/api'
-import type { UserProfile, LoginPayload, RegisterPayload, ResetPasswordPayload, AuthResponse, SessionData } from '@/types'
+import type {
+    UserProfile,
+    LoginPayload,
+    RegisterPayload,
+    ResetPasswordPayload,
+    AuthResponse,
+    SessionData,
+} from '@/types'
 
 /** --------------------------------------------- **
  * 1) Auth‐related types & functions
@@ -19,8 +26,6 @@ export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
     const response = await api.post<LoginResponse>('/auth/login', payload)
     return response.data
 }
-
-
 
 /** Response from POST /auth/register: created user info + message. */
 export interface RegisterResponse {
@@ -55,8 +60,6 @@ export async function logoutUser(): Promise<{ message: string }> {
     const response = await api.post<{ message: string }>('/auth/logout')
     return response.data
 }
-
-
 
 /** Response from POST /auth/reset: only a message. */
 export interface ResetPasswordResponse {

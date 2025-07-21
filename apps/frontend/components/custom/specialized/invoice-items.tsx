@@ -3,7 +3,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { Package } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+    TableFooter,
+} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { invoicesService, type InvoiceItem } from '@/services/invoices'
@@ -13,7 +21,11 @@ interface InvoiceItemsProps {
 }
 
 export function InvoiceItems({ invoiceId }: InvoiceItemsProps) {
-    const { data: items = [], isLoading, error } = useQuery({
+    const {
+        data: items = [],
+        isLoading,
+        error,
+    } = useQuery({
         queryKey: ['invoice-items', invoiceId],
         queryFn: () => invoicesService.getItems(invoiceId),
         enabled: !!invoiceId,
@@ -22,7 +34,7 @@ export function InvoiceItems({ invoiceId }: InvoiceItemsProps) {
 
     const calculateSubtotal = () => {
         return items.reduce((total, item) => {
-            return total + (item.quantity * item.unit_price)
+            return total + item.quantity * item.unit_price
         }, 0)
     }
 
@@ -83,7 +95,9 @@ export function InvoiceItems({ invoiceId }: InvoiceItemsProps) {
                         <TableRow key={item.id}>
                             <TableCell>
                                 <div>
-                                    <div className="font-medium">{item.items.name}</div>
+                                    <div className="font-medium">
+                                        {item.items.name}
+                                    </div>
                                     <div className="text-sm text-muted-foreground">
                                         Item ID: {item.item_id.substring(0, 8)}
                                     </div>
@@ -103,7 +117,10 @@ export function InvoiceItems({ invoiceId }: InvoiceItemsProps) {
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={3} className="text-right font-medium">
+                        <TableCell
+                            colSpan={3}
+                            className="text-right font-medium"
+                        >
                             Total Amount
                         </TableCell>
                         <TableCell className="text-right font-bold text-lg">
@@ -114,4 +131,4 @@ export function InvoiceItems({ invoiceId }: InvoiceItemsProps) {
             </Table>
         </div>
     )
-} 
+}

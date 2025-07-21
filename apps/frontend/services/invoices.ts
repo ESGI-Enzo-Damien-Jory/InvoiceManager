@@ -1,5 +1,11 @@
 import api from '@/lib/api'
-import type { Invoice, InvoiceWithClient, CreateInvoicePayload, UpdateInvoicePayload, InvoiceFilters } from '@/types'
+import type {
+    Invoice,
+    InvoiceWithClient,
+    CreateInvoicePayload,
+    UpdateInvoicePayload,
+    InvoiceFilters,
+} from '@/types'
 
 export type InvoiceItem = {
     id: string
@@ -12,8 +18,6 @@ export type InvoiceItem = {
         price: number
     }
 }
-
-
 
 export const invoicesService = {
     async getAll(): Promise<Invoice[]> {
@@ -49,8 +53,8 @@ export const invoicesService = {
         const response = await api.get(`/invoices/pdf/${id}`, {
             responseType: 'blob',
             headers: {
-                'Accept': 'application/pdf'
-            }
+                Accept: 'application/pdf',
+            },
         })
         return response.data
     },
@@ -61,25 +65,32 @@ export const invoicesService = {
     },
 
     // Generate PDF for an invoice
-    async generatePdf(invoiceId: string): Promise<{ message: string; pdf_url: string }> {
-      const response = await api.post(`/invoices/${invoiceId}/generate-pdf`)
-      return response.data
+    async generatePdf(
+        invoiceId: string
+    ): Promise<{ message: string; pdf_url: string }> {
+        const response = await api.post(`/invoices/${invoiceId}/generate-pdf`)
+        return response.data
     },
 
     // Send invoice email
-    async sendEmail(invoiceId: string, customMessage?: string): Promise<{ message: string }> {
-      const response = await api.post(`/invoices/${invoiceId}/send-email`, { customMessage })
-      return response.data
+    async sendEmail(
+        invoiceId: string,
+        customMessage?: string
+    ): Promise<{ message: string }> {
+        const response = await api.post(`/invoices/${invoiceId}/send-email`, {
+            customMessage,
+        })
+        return response.data
     },
 
     // Send invoice reminder
     async sendReminder(invoiceId: string): Promise<{ message: string }> {
-      const response = await api.post(`/invoices/${invoiceId}/send-reminder`)
-      return response.data
+        const response = await api.post(`/invoices/${invoiceId}/send-reminder`)
+        return response.data
     },
 
     async getClient(clientId: string): Promise<any> {
         const response = await api.get(`/clients/${clientId}`)
         return response.data
-    }
-} 
+    },
+}

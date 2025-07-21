@@ -1,7 +1,10 @@
 import api from '@/lib/api'
-import type { Item, CreateItemPayload, UpdateItemPayload, ItemFilters } from '@/types'
-
-
+import type {
+    Item,
+    CreateItemPayload,
+    UpdateItemPayload,
+    ItemFilters,
+} from '@/types'
 
 /** Fetch all items. Browser automatically sends auth cookie. */
 export async function fetchItems(): Promise<Item[]> {

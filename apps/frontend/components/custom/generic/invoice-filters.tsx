@@ -20,7 +20,11 @@ interface InvoiceFiltersProps {
     onCreateNew?: () => void
 }
 
-export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFiltersProps) {
+export function InvoiceFilters({
+    invoices,
+    onFiltered,
+    onCreateNew,
+}: InvoiceFiltersProps) {
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('all')
 
@@ -30,15 +34,18 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
         // Search filter
         if (searchTerm) {
             const term = searchTerm.toLowerCase()
-            filtered = filtered.filter(invoice => 
-                invoice.title.toLowerCase().includes(term) ||
-                invoice.id.toLowerCase().includes(term)
+            filtered = filtered.filter(
+                (invoice) =>
+                    invoice.title.toLowerCase().includes(term) ||
+                    invoice.id.toLowerCase().includes(term)
             )
         }
 
         // Status filter
         if (statusFilter !== 'all') {
-            filtered = filtered.filter(invoice => invoice.state === statusFilter)
+            filtered = filtered.filter(
+                (invoice) => invoice.state === statusFilter
+            )
         }
 
         return filtered
@@ -83,9 +90,9 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
                     </SelectContent>
                 </Select>
                 {hasActiveFilters && (
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={clearFilters}
                         className="h-9 px-2"
                     >
@@ -107,4 +114,4 @@ export function InvoiceFilters({ invoices, onFiltered, onCreateNew }: InvoiceFil
             </div>
         </div>
     )
-} 
+}

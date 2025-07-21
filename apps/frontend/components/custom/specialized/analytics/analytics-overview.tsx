@@ -2,11 +2,18 @@
 
 import { useInvoices } from '@/hooks/use-invoices'
 import { useClients } from '@/hooks/use-clients'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    CardFooter,
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-    DollarSign, 
-    TrendingUp, 
+import {
+    DollarSign,
+    TrendingUp,
     TrendingDown,
     Users,
     FileText,
@@ -14,7 +21,7 @@ import {
     CheckCircle,
     AlertCircle,
     Target,
-    Zap
+    Zap,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
@@ -23,20 +30,31 @@ export function AnalyticsOverview() {
     const { data: clients = [] } = useClients()
 
     // Calculate advanced metrics
-    const totalRevenue = invoices.reduce((sum: number, invoice: any) => 
-        sum + (invoice.total_amount || 0), 0
+    const totalRevenue = invoices.reduce(
+        (sum: number, invoice: any) => sum + (invoice.total_amount || 0),
+        0
     )
-    
+
     const totalInvoices = invoices.length
     const totalClients = clients.length
-    
-    const sentInvoices = invoices.filter((invoice: any) => invoice.state === 'Sent').length
-    const paidInvoices = invoices.filter((invoice: any) => invoice.state === 'Paid').length
-    const overdueInvoices = invoices.filter((invoice: any) => invoice.state === 'Overdue').length
+
+    const sentInvoices = invoices.filter(
+        (invoice: any) => invoice.state === 'Sent'
+    ).length
+    const paidInvoices = invoices.filter(
+        (invoice: any) => invoice.state === 'Paid'
+    ).length
+    const overdueInvoices = invoices.filter(
+        (invoice: any) => invoice.state === 'Overdue'
+    ).length
 
     // Calculate conversion rates
-    const conversionRate = totalInvoices > 0 ? (paidInvoices / totalInvoices * 100).toFixed(1) : '0'
-    const averageInvoiceValue = totalInvoices > 0 ? (totalRevenue / totalInvoices) : 0
+    const conversionRate =
+        totalInvoices > 0
+            ? ((paidInvoices / totalInvoices) * 100).toFixed(1)
+            : '0'
+    const averageInvoiceValue =
+        totalInvoices > 0 ? totalRevenue / totalInvoices : 0
 
     // Calculate monthly trends (last 3 months)
     const now = new Date()
@@ -46,92 +64,112 @@ export function AnalyticsOverview() {
             month: date.toLocaleDateString('en-US', { month: 'short' }),
             invoices: invoices.filter((invoice: any) => {
                 const invoiceDate = new Date(invoice.created_at)
-                return invoiceDate.getMonth() === date.getMonth() && 
-                       invoiceDate.getFullYear() === date.getFullYear()
+                return (
+                    invoiceDate.getMonth() === date.getMonth() &&
+                    invoiceDate.getFullYear() === date.getFullYear()
+                )
             }).length,
-            revenue: invoices.filter((invoice: any) => {
-                const invoiceDate = new Date(invoice.created_at)
-                return invoiceDate.getMonth() === date.getMonth() && 
-                       invoiceDate.getFullYear() === date.getFullYear()
-            }).reduce((sum: number, invoice: any) => sum + (invoice.total_amount || 0), 0)
+            revenue: invoices
+                .filter((invoice: any) => {
+                    const invoiceDate = new Date(invoice.created_at)
+                    return (
+                        invoiceDate.getMonth() === date.getMonth() &&
+                        invoiceDate.getFullYear() === date.getFullYear()
+                    )
+                })
+                .reduce(
+                    (sum: number, invoice: any) =>
+                        sum + (invoice.total_amount || 0),
+                    0
+                ),
         }
     }).reverse()
 
     const currentMonth = last3Months[2]
     const previousMonth = last3Months[1]
-    
-    const revenueGrowth = previousMonth.revenue > 0 
-        ? ((currentMonth.revenue - previousMonth.revenue) / previousMonth.revenue * 100).toFixed(1)
-        : '0'
-    
-    const invoiceGrowth = previousMonth.invoices > 0
-        ? ((currentMonth.invoices - previousMonth.invoices) / previousMonth.invoices * 100).toFixed(1)
-        : '0'
+
+    const revenueGrowth =
+        previousMonth.revenue > 0
+            ? (
+                  ((currentMonth.revenue - previousMonth.revenue) /
+                      previousMonth.revenue) *
+                  100
+              ).toFixed(1)
+            : '0'
+
+    const invoiceGrowth =
+        previousMonth.invoices > 0
+            ? (
+                  ((currentMonth.invoices - previousMonth.invoices) /
+                      previousMonth.invoices) *
+                  100
+              ).toFixed(1)
+            : '0'
 
     const cards = [
         {
-            title: "Total Revenue",
+            title: 'Total Revenue',
             value: formatCurrency(totalRevenue),
-            description: "Lifetime earnings",
+            description: 'Lifetime earnings',
             icon: DollarSign,
             trend: revenueGrowth,
             trendUp: parseFloat(revenueGrowth) >= 0,
-            color: "text-green-600"
+            color: 'text-green-600',
         },
         {
-            title: "Conversion Rate",
+            title: 'Conversion Rate',
             value: `${conversionRate}%`,
-            description: "Invoices paid vs sent",
+            description: 'Invoices paid vs sent',
             icon: Target,
-            trend: "High",
+            trend: 'High',
             trendUp: true,
-            color: "text-blue-600"
+            color: 'text-blue-600',
         },
         {
-            title: "Average Invoice",
+            title: 'Average Invoice',
             value: formatCurrency(averageInvoiceValue),
-            description: "Per invoice value",
+            description: 'Per invoice value',
             icon: Zap,
-            trend: "Stable",
+            trend: 'Stable',
             trendUp: true,
-            color: "text-purple-600"
+            color: 'text-purple-600',
         },
         {
-            title: "Active Clients",
+            title: 'Active Clients',
             value: totalClients.toString(),
-            description: "Total client base",
+            description: 'Total client base',
             icon: Users,
-            trend: "+5.2%",
+            trend: '+5.2%',
             trendUp: true,
-            color: "text-orange-600"
-        }
+            color: 'text-orange-600',
+        },
     ]
 
     const statusMetrics = [
         {
-            title: "Sent",
+            title: 'Sent',
             value: sentInvoices,
-            description: "Awaiting payment",
+            description: 'Awaiting payment',
             icon: Clock,
-            color: "text-yellow-600",
-            bgColor: "bg-yellow-100 dark:bg-yellow-900/20"
+            color: 'text-yellow-600',
+            bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
         },
         {
-            title: "Paid",
+            title: 'Paid',
             value: paidInvoices,
-            description: "Successfully collected",
+            description: 'Successfully collected',
             icon: CheckCircle,
-            color: "text-green-600",
-            bgColor: "bg-green-100 dark:bg-green-900/20"
+            color: 'text-green-600',
+            bgColor: 'bg-green-100 dark:bg-green-900/20',
         },
         {
-            title: "Overdue",
+            title: 'Overdue',
             value: overdueInvoices,
-            description: "Past due date",
+            description: 'Past due date',
             icon: AlertCircle,
-            color: "text-red-600",
-            bgColor: "bg-red-100 dark:bg-red-900/20"
-        }
+            color: 'text-red-600',
+            bgColor: 'bg-red-100 dark:bg-red-900/20',
+        },
     ]
 
     return (
@@ -172,14 +210,20 @@ export function AnalyticsOverview() {
                     <Card key={index}>
                         <CardContent className="p-6">
                             <div className="flex items-center space-x-4">
-                                <div className={`p-3 rounded-lg ${metric.bgColor}`}>
-                                    <metric.icon className={`h-6 w-6 ${metric.color}`} />
+                                <div
+                                    className={`p-3 rounded-lg ${metric.bgColor}`}
+                                >
+                                    <metric.icon
+                                        className={`h-6 w-6 ${metric.color}`}
+                                    />
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-sm font-medium leading-none">
                                         {metric.title}
                                     </p>
-                                    <p className="text-2xl font-bold">{metric.value}</p>
+                                    <p className="text-2xl font-bold">
+                                        {metric.value}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
                                         {metric.description}
                                     </p>
@@ -202,9 +246,15 @@ export function AnalyticsOverview() {
                     <div className="grid grid-cols-3 gap-4">
                         {last3Months.map((month, index) => (
                             <div key={index} className="text-center">
-                                <p className="text-sm font-medium text-muted-foreground">{month.month}</p>
-                                <p className="text-lg font-bold">{formatCurrency(month.revenue)}</p>
-                                <p className="text-xs text-muted-foreground">{month.invoices} invoices</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    {month.month}
+                                </p>
+                                <p className="text-lg font-bold">
+                                    {formatCurrency(month.revenue)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    {month.invoices} invoices
+                                </p>
                             </div>
                         ))}
                     </div>
@@ -212,4 +262,4 @@ export function AnalyticsOverview() {
             </Card>
         </div>
     )
-} 
+}

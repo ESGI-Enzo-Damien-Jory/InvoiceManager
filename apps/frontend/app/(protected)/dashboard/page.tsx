@@ -12,15 +12,16 @@ export default function DashboardPage() {
                 <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
                 <div className="flex items-center space-x-2">
                     <span className="text-sm text-muted-foreground">
-                        Welcome back! Here's what's happening with your business.
+                        Welcome back! Here's what's happening with your
+                        business.
                     </span>
                 </div>
             </div>
-            
+
             <Suspense fallback={<LoadingState />}>
                 <DashboardOverview />
             </Suspense>
-            
+
             <Suspense fallback={<LoadingState />}>
                 <DashboardBento />
             </Suspense>

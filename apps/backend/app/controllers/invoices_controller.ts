@@ -341,25 +341,27 @@ export default class InvoicesController {
       if (currentState !== 'Draft') {
         if (body.state && currentState !== newState) {
           // Allow state changes for non-Draft invoices (e.g., Sent -> Paid, Paid -> Overdue)
-          logger.info(`[INVOICES] State change allowed for invoice ${invoiceId}: ${currentState} -> ${newState}`)
+          logger.info(
+            `[INVOICES] State change allowed for invoice ${invoiceId}: ${currentState} -> ${newState}`
+          )
         } else {
           // Block any field modifications for non-Draft invoices
           logger.warn(
             `[INVOICES] Attempted to modify invoice ${invoiceId} in non-modifiable state: ${currentState}`
           )
-          return response.status(422).send({ 
-            error: `Cannot modify invoice in ${currentState} state. Only Draft invoices can be modified.` 
+          return response.status(422).send({
+            error: `Cannot modify invoice in ${currentState} state. Only Draft invoices can be modified.`,
           })
         }
       }
 
       // If trying to modify fields of a non-Draft invoice without state change
-      if (currentState !== 'Draft' && Object.keys(body).some(key => key !== 'state')) {
+      if (currentState !== 'Draft' && Object.keys(body).some((key) => key !== 'state')) {
         logger.warn(
           `[INVOICES] Attempted to modify fields of invoice ${invoiceId} in state: ${currentState}`
         )
-        return response.status(422).send({ 
-          error: `Cannot modify invoice fields in ${currentState} state. Only Draft invoices can be modified.` 
+        return response.status(422).send({
+          error: `Cannot modify invoice fields in ${currentState} state. Only Draft invoices can be modified.`,
         })
       }
 
@@ -424,11 +426,11 @@ export default class InvoicesController {
           logger.warn(
             `[INVOICES] Attempted to modify items of invoice ${invoiceId} in non-modifiable state: ${currentState}`
           )
-          return response.status(422).send({ 
-            error: `Cannot modify invoice items in ${currentState} state. Only Draft invoices can be modified.` 
+          return response.status(422).send({
+            error: `Cannot modify invoice items in ${currentState} state. Only Draft invoices can be modified.`,
           })
         }
-        
+
         try {
           await supabase.from('invoice_items').delete().eq('invoice_id', invoiceId)
           await insertInvoiceItems(user.id, invoiceId, body.items)
@@ -565,10 +567,16 @@ export default class InvoicesController {
       const invoiceData = invoice as Pick<Invoice, 'id' | 'state'>
 
       // Prevent deletion of sent, paid, or overdue invoices
-      if (invoiceData.state === 'Sent' || invoiceData.state === 'Paid' || invoiceData.state === 'Overdue') {
-        logger.warn(`[INVOICES] Attempted to delete invoice ${invoiceId} in non-deletable state: ${invoiceData.state}`)
+      if (
+        invoiceData.state === 'Sent' ||
+        invoiceData.state === 'Paid' ||
+        invoiceData.state === 'Overdue'
+      ) {
+        logger.warn(
+          `[INVOICES] Attempted to delete invoice ${invoiceId} in non-deletable state: ${invoiceData.state}`
+        )
         return response.status(422).send({
-          error: `Cannot delete invoice in ${invoiceData.state} state. Only Draft and Cancelled invoices can be deleted.`
+          error: `Cannot delete invoice in ${invoiceData.state} state. Only Draft and Cancelled invoices can be deleted.`,
         })
       }
 
@@ -727,15 +735,20 @@ export default class InvoicesController {
       }
 
       if (!fileExists || fileExists.length === 0) {
-        logger.warn(`[INVOICES] PDF file not found in storage for invoice ${invoiceId}, attempting to generate it`)
-        
+        logger.warn(
+          `[INVOICES] PDF file not found in storage for invoice ${invoiceId}, attempting to generate it`
+        )
+
         // Try to generate the PDF
         try {
           await this.generatePdfInternal(user.id, invoiceId, logger)
           logger.info(`[INVOICES] PDF generated successfully for invoice ${invoiceId}`)
         } catch (generateError: any) {
           logger.error(`[INVOICES] Failed to generate PDF: ${generateError.message}`)
-          return response.notFound({ error: 'PDF file not found and could not be generated. Please ensure the invoice has been sent.' })
+          return response.notFound({
+            error:
+              'PDF file not found and could not be generated. Please ensure the invoice has been sent.',
+          })
         }
       }
 
@@ -768,7 +781,9 @@ export default class InvoicesController {
       response.header('Content-Disposition', `attachment; filename="${filename}"`)
       response.header('Content-Length', buffer.length.toString())
 
-      logger.info(`[INVOICES] PDF download successful for invoice ${invoiceId}, size: ${buffer.length} bytes`)
+      logger.info(
+        `[INVOICES] PDF download successful for invoice ${invoiceId}, size: ${buffer.length} bytes`
+      )
       return response.send(buffer)
     } catch (error: any) {
       logger.error(`[INVOICES] Unexpected error during PDF download: ${error.message}`)
@@ -861,15 +876,20 @@ export default class InvoicesController {
       }
 
       if (!fileExists || fileExists.length === 0) {
-        logger.warn(`[INVOICES] PDF file not found in storage for invoice ${invoiceId}, attempting to generate it`)
-        
+        logger.warn(
+          `[INVOICES] PDF file not found in storage for invoice ${invoiceId}, attempting to generate it`
+        )
+
         // Try to generate the PDF
         try {
           await this.generatePdfInternal(user.id, invoiceId, logger)
           logger.info(`[INVOICES] PDF generated successfully for invoice ${invoiceId}`)
         } catch (generateError: any) {
           logger.error(`[INVOICES] Failed to generate PDF: ${generateError.message}`)
-          return response.notFound({ error: 'PDF file not found and could not be generated. Please ensure the invoice has been sent.' })
+          return response.notFound({
+            error:
+              'PDF file not found and could not be generated. Please ensure the invoice has been sent.',
+          })
         }
       }
 
@@ -914,13 +934,18 @@ export default class InvoicesController {
     }
   }
 
-  private async generatePdfInternal(userId: string, invoiceId: string, logger: any): Promise<string> {
+  private async generatePdfInternal(
+    userId: string,
+    invoiceId: string,
+    logger: any
+  ): Promise<string> {
     logger.info(`[INVOICES] Generating PDF for invoice ${invoiceId} by user ${userId}`)
 
     // Get invoice with all necessary data
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select(`
+      .select(
+        `
         id,
         title,
         total_amount,
@@ -940,7 +965,8 @@ export default class InvoicesController {
           display_name,
           email
         )
-      `)
+      `
+      )
       .match({ id: invoiceId, owner_id: userId })
       .single()
 
@@ -951,7 +977,8 @@ export default class InvoicesController {
     // Get invoice items with item details
     const { data: invoiceItems, error: itemsError } = await supabase
       .from('invoice_items')
-      .select(`
+      .select(
+        `
         item_id,
         quantity,
         unit_price,
@@ -960,7 +987,8 @@ export default class InvoicesController {
           name,
           price
         )
-      `)
+      `
+      )
       .eq('invoice_id', invoiceId)
       .is('deleted_at', null)
 
@@ -983,13 +1011,14 @@ export default class InvoicesController {
       client_email: (invoice as any).clients?.email || 'N/A',
       client_address: (invoice as any).clients?.address || '',
       client_phone: (invoice as any).clients?.phone_number || '',
-      items: invoiceItems?.map(item => ({
-        name: (item as any).items?.name || 'Unknown Item',
-        item_id: item.item_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total: item.quantity * item.unit_price,
-      })) || [],
+      items:
+        invoiceItems?.map((item) => ({
+          name: (item as any).items?.name || 'Unknown Item',
+          item_id: item.item_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total: item.quantity * item.unit_price,
+        })) || [],
     }
 
     logger.info(`[INVOICES] Generating PDF for invoice ${invoiceId}`)
@@ -1007,14 +1036,14 @@ export default class InvoicesController {
     if (updateError) {
       logger.error(`[INVOICES] Error updating invoice with PDF URL: ${updateError.message}`)
       logger.error(`[INVOICES] RLS Policy Error Details: ${JSON.stringify(updateError)}`)
-      
+
       try {
         const { error: retryError } = await supabase
           .from('invoices')
           .update({ pdf_url: pdfUrl })
           .eq('id', invoiceId)
           .eq('owner_id', userId)
-        
+
         if (retryError) {
           logger.error(`[INVOICES] Retry also failed: ${retryError.message}`)
         } else {
@@ -1023,7 +1052,7 @@ export default class InvoicesController {
       } catch (retryErr: any) {
         logger.error(`[INVOICES] Retry attempt failed: ${retryErr.message}`)
       }
-      
+
       // Don't fail the request, PDF was generated successfully
     } else {
       logger.info(`[INVOICES] PDF URL updated successfully`)
@@ -1041,7 +1070,7 @@ export default class InvoicesController {
 
     try {
       const pdfUrl = await this.generatePdfInternal(user.id, invoiceId, logger)
-      
+
       return {
         message: 'PDF generated successfully',
         pdf_url: pdfUrl,
@@ -1066,7 +1095,8 @@ export default class InvoicesController {
       // Get invoice with client data
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
-        .select(`
+        .select(
+          `
           id,
           title,
           state,
@@ -1075,7 +1105,8 @@ export default class InvoicesController {
             last_name,
             email
           )
-        `)
+        `
+        )
         .match({ id: invoiceId, owner_id: user.id })
         .single()
 
@@ -1097,13 +1128,15 @@ export default class InvoicesController {
         // Get invoice items for PDF generation
         const { data: invoiceItems = [] } = await supabase
           .from('invoice_items')
-          .select(`
+          .select(
+            `
             quantity,
             unit_price,
             items (
               name
             )
-          `)
+          `
+          )
           .match({ invoice_id: invoiceId })
 
         // Prepare data for PDF generation
@@ -1113,7 +1146,9 @@ export default class InvoicesController {
           total_amount: 0, // Will be calculated
           state: invoiceData.state,
           created_at: new Date(invoiceData.created_at),
-          expiration_date: invoiceData.expiration_date ? new Date(invoiceData.expiration_date) : undefined,
+          expiration_date: invoiceData.expiration_date
+            ? new Date(invoiceData.expiration_date)
+            : undefined,
           owner_name: user.email || 'Unknown',
           owner_email: user.email || 'unknown@example.com',
           client_first_name: client.first_name,
@@ -1123,8 +1158,8 @@ export default class InvoicesController {
             name: item.items?.name || 'Item',
             quantity: item.quantity,
             unit_price: item.unit_price,
-            total: item.quantity * item.unit_price
-          }))
+            total: item.quantity * item.unit_price,
+          })),
         }
 
         pdfBuffer = await generateInvoicePdf(pdfData)
@@ -1149,7 +1184,10 @@ export default class InvoicesController {
 
       if (!result.success) {
         logger.error(`[INVOICES] Email sending failed: ${result.error}`)
-        return response.internalServerError({ error: 'Failed to send email', details: result.error })
+        return response.internalServerError({
+          error: 'Failed to send email',
+          details: result.error,
+        })
       }
 
       logger.info(`[INVOICES] Email sent successfully for invoice ${invoiceId} to ${client.email}`)
@@ -1173,7 +1211,8 @@ export default class InvoicesController {
       // Get invoice with client data
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
-        .select(`
+        .select(
+          `
           id,
           title,
           state,
@@ -1182,7 +1221,8 @@ export default class InvoicesController {
             last_name,
             email
           )
-        `)
+        `
+        )
         .match({ id: invoiceId, owner_id: user.id })
         .single()
 
@@ -1204,13 +1244,15 @@ export default class InvoicesController {
         // Get invoice items for PDF generation
         const { data: invoiceItems = [] } = await supabase
           .from('invoice_items')
-          .select(`
+          .select(
+            `
             quantity,
             unit_price,
             items (
               name
             )
-          `)
+          `
+          )
           .match({ invoice_id: invoiceId })
 
         // Prepare data for PDF generation
@@ -1220,7 +1262,9 @@ export default class InvoicesController {
           total_amount: 0, // Will be calculated
           state: invoiceData.state,
           created_at: new Date(invoiceData.created_at),
-          expiration_date: invoiceData.expiration_date ? new Date(invoiceData.expiration_date) : undefined,
+          expiration_date: invoiceData.expiration_date
+            ? new Date(invoiceData.expiration_date)
+            : undefined,
           owner_name: user.email || 'Unknown',
           owner_email: user.email || 'unknown@example.com',
           client_first_name: client.first_name,
@@ -1230,8 +1274,8 @@ export default class InvoicesController {
             name: item.items?.name || 'Item',
             quantity: item.quantity,
             unit_price: item.unit_price,
-            total: item.quantity * item.unit_price
-          }))
+            total: item.quantity * item.unit_price,
+          })),
         }
 
         pdfBuffer = await generateInvoicePdf(pdfData)
@@ -1254,10 +1298,15 @@ export default class InvoicesController {
 
       if (!result.success) {
         logger.error(`[INVOICES] Reminder sending failed: ${result.error}`)
-        return response.internalServerError({ error: 'Failed to send reminder', details: result.error })
+        return response.internalServerError({
+          error: 'Failed to send reminder',
+          details: result.error,
+        })
       }
 
-      logger.info(`[INVOICES] Reminder sent successfully for invoice ${invoiceId} to ${client.email}`)
+      logger.info(
+        `[INVOICES] Reminder sent successfully for invoice ${invoiceId} to ${client.email}`
+      )
       return { message: 'Reminder sent successfully' }
     } catch (error: any) {
       logger.error(`[INVOICES] Error sending reminder: ${error.message}`)

@@ -17,11 +17,11 @@ export default function AnalyticsPage() {
                     </span>
                 </div>
             </div>
-            
+
             <Suspense fallback={<LoadingState />}>
                 <AnalyticsOverview />
             </Suspense>
-            
+
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 <Suspense fallback={<LoadingState />}>
                     <AnalyticsCharts className="col-span-2" />
@@ -32,4 +32,4 @@ export default function AnalyticsPage() {
             </div>
         </div>
     )
-} 
+}
