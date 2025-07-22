@@ -200,6 +200,7 @@ export default class InvoicesController {
       state: body.state ?? 'Draft',
       owner_id: user.id,
       pdf_url: pdfUrl,
+      // invoice_number will be set by DB trigger
     }
 
     const { data: invoiceData, error: invoiceError } = await supabase
@@ -231,6 +232,7 @@ export default class InvoicesController {
     const responseData = {
       ...invoice,
       pdf_url: pdfUrl,
+      invoice_number: (invoice as any).invoice_number, // expose in API, avoid TS error
       ...(signedUrl && { signed_url: signedUrl }),
     }
 

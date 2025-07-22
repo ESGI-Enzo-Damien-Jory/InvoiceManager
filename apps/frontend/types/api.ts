@@ -119,6 +119,20 @@ export interface InvoiceFilters {
 }
 
 // =============================================================================
+// INVOICE SETTINGS
+// =============================================================================
+
+export interface InvoiceSettings {
+    prefix: string;
+    next_number: number;
+}
+
+export interface UpdateInvoiceSettingsPayload {
+    prefix?: string;
+    reset_number?: boolean;
+}
+
+// =============================================================================
 // PROFILES
 // =============================================================================
 

@@ -10,7 +10,7 @@ interface ProfileResponse
 }
 
 export default class ProfilesController {
-  public async show({ request }: HttpContext) {
+  public async show({ request, logger }: HttpContext) {
     const user = request.user
 
     const { data: profile, error } = await supabase
@@ -19,14 +19,42 @@ export default class ProfilesController {
       .eq('id', user.id)
       .single()
 
-    if (error) {
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = no rows returned, other errors we throw
       throw new Error(`[USER] Failed to fetch profile: ${error.message}`)
     }
 
-    const profileData = profile as Pick<
+    let profileData = profile as Pick<
       UserProfile,
       'id' | 'display_name' | 'email' | 'phone_number' | 'avatar_url' | 'updated_at'
-    >
+    > | null
+
+    // Auto-create profile if it doesn't exist
+    if (!profileData) {
+      logger.info(`[PROFILE] No profile found for user ${user.id}, creating one`)
+      
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
+          phone_number: user.phone || null,
+          avatar_url: null,
+          last_login: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select('id, display_name, email, phone_number, avatar_url, updated_at')
+        .single()
+        
+      if (createError || !newProfile) {
+        throw new Error(`[USER] Failed to create profile: ${createError?.message}`)
+      }
+      
+      profileData = newProfile
+      logger.info(`[PROFILE] Created profile for user ${user.id}`)
+    }
 
     let avatarSignedUrl: string | null = null
     if (profileData.avatar_url) {

@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import { useUser, useUpdateProfile, useUploadAvatar } from '@/hooks/use-auth'
+import { getInvoiceSettings, updateInvoiceSettings } from '@/services/invoiceSettings'
+import type { InvoiceSettings } from '@/types/api'
 import {
     Card,
     CardContent,
@@ -23,7 +25,6 @@ import {
     SelectItem,
     SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Loader2, User, Upload, Palette, Check } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
@@ -103,6 +104,12 @@ export default function SettingsPage() {
     const [tab, setTab] = useState('profile')
     const [loading, setLoading] = useState(false)
     const [saved, setSaved] = useState(false)
+    // Invoice ID settings state
+    const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings | null>(null)
+    const [prefix, setPrefix] = useState('')
+    const [invoiceSettingsLoading, setInvoiceSettingsLoading] = useState(false)
+    const [invoiceSettingsError, setInvoiceSettingsError] = useState<string | null>(null)
+    const [invoiceSettingsSaved, setInvoiceSettingsSaved] = useState(false)
 
     // Load profile
     useEffect(() => {
@@ -131,6 +138,20 @@ export default function SettingsPage() {
         setTheme(theme)
         sessionStorage.setItem('themeMode', theme)
     }, [theme, setTheme])
+
+    // Load invoice settings
+    useEffect(() => {
+        if (tab === 'invoice-ids' && !invoiceSettings) {
+            setInvoiceSettingsLoading(true)
+            getInvoiceSettings()
+                .then((data: InvoiceSettings) => {
+                    setInvoiceSettings(data)
+                    setPrefix(data.prefix)
+                })
+                .catch(() => setInvoiceSettingsError('Failed to load invoice settings'))
+                .finally(() => setInvoiceSettingsLoading(false))
+        }
+    }, [tab, invoiceSettings])
 
     // Avatar upload
     const handleAvatarClick = () => fileInputRef.current?.click()
@@ -174,6 +195,22 @@ export default function SettingsPage() {
         )
     }
 
+    // Save invoice settings
+    const handleSaveInvoiceSettings = async () => {
+        setInvoiceSettingsLoading(true)
+        setInvoiceSettingsError(null)
+        try {
+            const updated = await updateInvoiceSettings({ prefix })
+            setInvoiceSettings(updated)
+            setInvoiceSettingsSaved(true)
+            setTimeout(() => setInvoiceSettingsSaved(false), 2000)
+        } catch (e) {
+            setInvoiceSettingsError('Failed to update invoice settings')
+        } finally {
+            setInvoiceSettingsLoading(false)
+        }
+    }
+
     if (status === 'pending') {
         return (
             <div className="flex justify-center items-center h-64">
@@ -199,9 +236,8 @@ export default function SettingsPage() {
                     <Tabs value={tab} onValueChange={setTab} className="w-full">
                         <TabsList className="mb-6">
                             <TabsTrigger value="profile">Profile</TabsTrigger>
-                            <TabsTrigger value="appearance">
-                                Appearance
-                            </TabsTrigger>
+                            <TabsTrigger value="appearance">Appearance</TabsTrigger>
+                            <TabsTrigger value="invoice-ids">Invoice IDs</TabsTrigger>
                         </TabsList>
                         <TabsContent value="profile">
                             <div className="flex flex-col gap-8">
@@ -350,6 +386,49 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         </TabsContent>
+                        <TabsContent value="invoice-ids">
+                            <div className="grid gap-6">
+                                <div className="mb-2 text-sm text-muted-foreground">
+                                    <b>European law:</b> Invoice numbers must be strictly sequential and unique. <b>Changing the prefix mid-year is forbidden</b> (except at year change or for legal reasons).<br />
+                                    <span className="text-xs">If you change the prefix, you must ensure compliance with your local regulations.</span>
+                                </div>
+                                {invoiceSettingsLoading ? (
+                                    <div className="flex items-center gap-2"><Loader2 className="animate-spin w-4 h-4" /> Loading…</div>
+                                ) : invoiceSettingsError ? (
+                                    <div className="text-destructive text-sm">{invoiceSettingsError}</div>
+                                ) : invoiceSettings ? (
+                                    <form
+                                        onSubmit={e => { e.preventDefault(); handleSaveInvoiceSettings(); }}
+                                        className="grid gap-4"
+                                    >
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="prefix">Invoice Prefix</Label>
+                                            <Input
+                                                id="prefix"
+                                                value={prefix}
+                                                onChange={e => setPrefix(e.target.value.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 12))}
+                                                maxLength={12}
+                                                autoComplete="off"
+                                            />
+                                            <span className="text-xs text-muted-foreground">Max 12 alphanumeric characters. Example: <b>INV</b>, <b>2024-</b>, <b>FCT</b></span>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Next Invoice Number</Label>
+                                            <Input
+                                                value={invoiceSettings.prefix + String(invoiceSettings.next_number).padStart(6, '0')}
+                                                readOnly
+                                                className="font-mono"
+                                            />
+                                            <span className="text-xs text-muted-foreground">Preview of the next invoice number to be generated.</span>
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                            <Button type="submit" disabled={invoiceSettingsLoading}>Save</Button>
+                                            {invoiceSettingsSaved && <span className="text-success text-xs">Saved!</span>}
+                                        </div>
+                                    </form>
+                                ) : null}
+                            </div>
+                        </TabsContent>
                     </Tabs>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
@@ -363,6 +442,9 @@ export default function SettingsPage() {
                             ) : null}
                             Save Profile
                         </Button>
+                    )}
+                    {tab === 'profile' && saved && (
+                        <span className="text-success text-xs">Saved!</span>
                     )}
                 </CardFooter>
             </Card>

@@ -131,6 +131,7 @@ export type Database = {
                     deleted_at: string | null
                     expiration_date: string | null
                     id: string
+                    invoice_number: string | null
                     owner_id: string
                     pdf_url: string | null
                     state: Database['public']['Enums']['invoice_state']
@@ -144,6 +145,7 @@ export type Database = {
                     deleted_at?: string | null
                     expiration_date?: string | null
                     id?: string
+                    invoice_number?: string | null
                     owner_id: string
                     pdf_url?: string | null
                     state?: Database['public']['Enums']['invoice_state']
@@ -157,6 +159,7 @@ export type Database = {
                     deleted_at?: string | null
                     expiration_date?: string | null
                     id?: string
+                    invoice_number?: string | null
                     owner_id?: string
                     pdf_url?: string | null
                     state?: Database['public']['Enums']['invoice_state']
@@ -254,6 +257,41 @@ export type Database = {
                     updated_at?: string
                 }
                 Relationships: []
+            }
+            invoice_settings: {
+                Row: {
+                    id: string
+                    user_id: string
+                    prefix: string
+                    next_number: number
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    prefix?: string
+                    next_number?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    prefix?: string
+                    next_number?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: 'invoice_settings_user_id_fkey'
+                        columns: ['user_id']
+                        isOneToOne: true
+                        referencedRelation: 'profiles'
+                        referencedColumns: ['id']
+                    },
+                ]
             }
         }
         Views: {

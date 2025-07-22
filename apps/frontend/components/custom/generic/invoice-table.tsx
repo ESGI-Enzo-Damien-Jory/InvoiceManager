@@ -130,7 +130,7 @@ export function InvoiceTable({
                                             {invoice.title}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                            {invoice.id}
+                                            {invoice.invoice_number || invoice.id}
                                         </span>
                                     </div>
                                 </TableCell>
