@@ -6,7 +6,13 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowLeft, FileText, Loader2, Plus, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { invoicesService } from '@/services/invoices'
@@ -22,13 +28,21 @@ export default function NewInvoicePage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Fetch clients and items
-    const { data: clients = [], isLoading: clientsLoading, error: clientsError } = useQuery({
+    const {
+        data: clients = [],
+        isLoading: clientsLoading,
+        error: clientsError,
+    } = useQuery({
         queryKey: ['clients'],
         queryFn: getClients,
         staleTime: 1000 * 60 * 5, // 5 minutes
     })
 
-    const { data: items = [], isLoading: itemsLoading, error: itemsError } = useQuery({
+    const {
+        data: items = [],
+        isLoading: itemsLoading,
+        error: itemsError,
+    } = useQuery({
         queryKey: ['items'],
         queryFn: fetchItems,
         staleTime: 1000 * 60 * 5, // 5 minutes
@@ -36,14 +50,17 @@ export default function NewInvoicePage() {
 
     // Create invoice mutation
     const createInvoiceMutation = useMutation({
-        mutationFn: (data: CreateInvoicePayload) => invoicesService.create(data),
+        mutationFn: (data: CreateInvoicePayload) =>
+            invoicesService.create(data),
         onSuccess: (invoice) => {
             toast.success('Invoice created successfully!')
             router.push(`/invoices/${invoice.id}`)
         },
         onError: (error: any) => {
             console.error('Failed to create invoice:', error)
-            toast.error(error?.response?.data?.error || 'Failed to create invoice')
+            toast.error(
+                error?.response?.data?.error || 'Failed to create invoice'
+            )
         },
     })
 
@@ -82,7 +99,11 @@ export default function NewInvoicePage() {
     if (clientsError || itemsError) {
         return (
             <ErrorState
-                message={clientsError?.message || itemsError?.message || 'Failed to load form data'}
+                message={
+                    clientsError?.message ||
+                    itemsError?.message ||
+                    'Failed to load form data'
+                }
                 onRetry={() => window.location.reload()}
             />
         )
@@ -103,16 +124,20 @@ export default function NewInvoicePage() {
                         Back to Invoices
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold">Create New Invoice</h1>
+                        <h1 className="text-2xl font-bold">
+                            Create New Invoice
+                        </h1>
                         <p className="text-muted-foreground">
                             Create a professional invoice for your client
                         </p>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Invoice Builder</span>
+                    <span className="text-sm text-muted-foreground">
+                        Invoice Builder
+                    </span>
                 </div>
             </div>
 
@@ -124,7 +149,8 @@ export default function NewInvoicePage() {
                         Invoice Details
                     </CardTitle>
                     <CardDescription>
-                        Fill in the invoice information and add items to create your invoice
+                        Fill in the invoice information and add items to create
+                        your invoice
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

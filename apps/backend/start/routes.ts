@@ -16,6 +16,7 @@ const ClientsController = () => import('#controllers/clients_controller')
 const ItemsController = () => import('#controllers/items_controller')
 const InvoicesController = () => import('#controllers/invoices_controller')
 const InvoiceItemsController = () => import('#controllers/invoice_items_controller')
+const InvoiceSettingsController = () => import('#controllers/invoice_settings_controller')
 
 /*
 |--------------------------------------------------------------------------
@@ -113,4 +114,17 @@ router
     router.delete('/:invoice_id/items/:item_id', [InvoiceItemsController, 'destroy'])
   })
   .prefix('/api/invoices')
+  .use(middleware.supabaseAuth())
+
+/*
+|--------------------------------------------------------------------------
+| Invoice Settings Routes
+|--------------------------------------------------------------------------
+*/
+router
+  .group(() => {
+    router.get('/', [InvoiceSettingsController, 'show'])
+    router.put('/', [InvoiceSettingsController, 'update'])
+  })
+  .prefix('/api/invoice-settings')
   .use(middleware.supabaseAuth())

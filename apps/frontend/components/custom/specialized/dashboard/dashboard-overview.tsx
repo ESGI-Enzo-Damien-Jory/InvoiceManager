@@ -3,18 +3,24 @@
 import { useInvoices } from '@/hooks/use-invoices'
 import { useClients } from '@/hooks/use-clients'
 import { useItems } from '@/hooks/use-items'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    CardFooter,
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-    DollarSign, 
-    Users, 
-    CreditCard, 
+import {
+    DollarSign,
+    Users,
+    CreditCard,
     Activity,
     TrendingUp,
-    TrendingDown
+    TrendingDown,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-
 
 export function DashboardOverview() {
     const { invoices = [] } = useInvoices()
@@ -22,60 +28,57 @@ export function DashboardOverview() {
     const { data: items = [] } = useItems()
 
     // Calculate metrics
-    const totalRevenue = invoices.reduce((sum: number, invoice: any) => 
-        sum + (invoice.total_amount || 0), 0
+    const totalRevenue = invoices.reduce(
+        (sum: number, invoice: any) => sum + (invoice.total_amount || 0),
+        0
     )
-    
+
     const totalInvoices = invoices.length
     const totalClients = clients.length
     const totalItems = items.length
 
-
-
     const cards = [
         {
-            title: "Total Revenue",
+            title: 'Total Revenue',
             value: formatCurrency(totalRevenue),
-            description: "Total revenue from all invoices",
+            description: 'Total revenue from all invoices',
             icon: DollarSign,
-            trend: "+20.1%",
+            trend: '+20.1%',
             trendUp: true,
-            color: "text-green-600",
-            bgColor: "bg-green-100 dark:bg-green-900/20"
+            color: 'text-green-600',
+            bgColor: 'bg-green-100 dark:bg-green-900/20',
         },
         {
-            title: "Total Invoices",
+            title: 'Total Invoices',
             value: totalInvoices.toString(),
-            description: "Number of invoices created",
+            description: 'Number of invoices created',
             icon: CreditCard,
-            trend: "+12.5%",
+            trend: '+12.5%',
             trendUp: true,
-            color: "text-blue-600",
-            bgColor: "bg-blue-100 dark:bg-blue-900/20"
+            color: 'text-blue-600',
+            bgColor: 'bg-blue-100 dark:bg-blue-900/20',
         },
         {
-            title: "Active Clients",
+            title: 'Active Clients',
             value: totalClients.toString(),
-            description: "Number of active clients",
+            description: 'Number of active clients',
             icon: Users,
-            trend: "+8.2%",
+            trend: '+8.2%',
             trendUp: true,
-            color: "text-purple-600",
-            bgColor: "bg-purple-100 dark:bg-purple-900/20"
+            color: 'text-purple-600',
+            bgColor: 'bg-purple-100 dark:bg-purple-900/20',
         },
         {
-            title: "Catalog Items",
+            title: 'Catalog Items',
             value: totalItems.toString(),
-            description: "Items in your catalog",
+            description: 'Items in your catalog',
             icon: Activity,
-            trend: "+5.4%",
+            trend: '+5.4%',
             trendUp: true,
-            color: "text-orange-600",
-            bgColor: "bg-orange-100 dark:bg-orange-900/20"
-        }
+            color: 'text-orange-600',
+            bgColor: 'bg-orange-100 dark:bg-orange-900/20',
+        },
     ]
-
-
 
     return (
         <div className="space-y-6">
@@ -108,10 +111,6 @@ export function DashboardOverview() {
                     </Card>
                 ))}
             </div>
-
-
-
-
         </div>
     )
-} 
+}

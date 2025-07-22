@@ -4,15 +4,15 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { format, isAfter } from 'date-fns'
-import { 
-    ArrowLeft, 
-    Download, 
-    Share2, 
-    Edit, 
-    Trash2, 
-    FileText, 
-    Calendar, 
-    User, 
+import {
+    ArrowLeft,
+    Download,
+    Share2,
+    Edit,
+    Trash2,
+    FileText,
+    Calendar,
+    User,
     DollarSign,
     Clock,
     CheckCircle,
@@ -20,7 +20,7 @@ import {
     AlertCircle,
     Loader2,
     Mail,
-    Bell
+    Bell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -50,7 +50,7 @@ import { ShareLinkDialog } from '@/components/custom/specialized/invoice-form/sh
 const getStatusConfig = (state: string, expirationDate?: string | null) => {
     const now = new Date()
     const isExpired = expirationDate && isAfter(now, new Date(expirationDate))
-    
+
     switch (state) {
         case 'Draft':
             return {
@@ -102,20 +102,20 @@ export default function InvoicePage() {
     const params = useParams()
     const router = useRouter()
     const invoiceId = params.id as string
-    
+
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
     const [showEmailDialog, setShowEmailDialog] = useState(false)
     const [showShareDialog, setShowShareDialog] = useState(false)
 
     const { data: invoice, isLoading, error, refetch } = useInvoice(invoiceId)
-    const { 
-        downloadInvoice, 
-        shareInvoice, 
-        sendEmail, 
+    const {
+        downloadInvoice,
+        shareInvoice,
+        sendEmail,
         sendReminder,
         isGeneratingPdf,
         isSendingEmail,
-        isSendingReminder 
+        isSendingReminder,
     } = useInvoiceActions()
 
     // Fetch client data separately if invoice exists
@@ -134,7 +134,9 @@ export default function InvoicePage() {
         staleTime: 1000 * 60 * 5, // 5 minutes
     })
 
-    const statusConfig = invoice ? getStatusConfig(invoice.state, invoice.expiration_date) : null
+    const statusConfig = invoice
+        ? getStatusConfig(invoice.state, invoice.expiration_date)
+        : null
     const StatusIcon = statusConfig?.icon || FileText
 
     const handleEdit = () => {
@@ -143,14 +145,16 @@ export default function InvoicePage() {
 
     const handleDelete = async () => {
         if (!invoice) return
-        
+
         try {
             await invoicesService.delete(invoiceId)
             toast.success('Invoice deleted successfully')
             router.push('/invoices')
         } catch (error: any) {
             console.error('Failed to delete invoice:', error)
-            toast.error(error?.response?.data?.error || 'Failed to delete invoice')
+            toast.error(
+                error?.response?.data?.error || 'Failed to delete invoice'
+            )
         } finally {
             setShowDeleteDialog(false)
         }
@@ -193,7 +197,9 @@ export default function InvoicePage() {
         )
     }
 
-    const isExpired = invoice.expiration_date && isAfter(new Date(), new Date(invoice.expiration_date))
+    const isExpired =
+        invoice.expiration_date &&
+        isAfter(new Date(), new Date(invoice.expiration_date))
     const isOverdue = invoice.state === 'Sent' && isExpired
 
     return (
@@ -226,9 +232,12 @@ export default function InvoicePage() {
                             Back to Invoices
                         </Button>
                         <div>
-                            <h1 className="text-2xl font-bold">{invoice.title}</h1>
+                            <h1 className="text-2xl font-bold">
+                                {invoice.title}
+                            </h1>
                             <p className="text-muted-foreground">
-                                Invoice #{invoice.id.substring(0, 8).toUpperCase()}
+                                Invoice #
+                                {invoice.id.substring(0, 8).toUpperCase()}
                             </p>
                         </div>
                     </div>
@@ -236,7 +245,7 @@ export default function InvoicePage() {
                         <InvoicePreview
                             invoice={invoice}
                             client={client}
-                            items={invoiceItems.map(item => item.items)}
+                            items={invoiceItems.map((item) => item.items)}
                             invoiceItems={invoiceItems}
                             onDownload={handleDownload}
                             onShare={handleShare}
@@ -270,7 +279,9 @@ export default function InvoicePage() {
                             size="sm"
                             onClick={handleSendEmail}
                             className="flex items-center gap-2"
-                            disabled={invoice.state === 'Draft' || isSendingEmail}
+                            disabled={
+                                invoice.state === 'Draft' || isSendingEmail
+                            }
                         >
                             {isSendingEmail ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -279,7 +290,8 @@ export default function InvoicePage() {
                             )}
                             Send Email
                         </Button>
-                        {(invoice.state === 'Sent' || invoice.state === 'Overdue') && (
+                        {(invoice.state === 'Sent' ||
+                            invoice.state === 'Overdue') && (
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -301,11 +313,13 @@ export default function InvoicePage() {
                             onClick={handleEdit}
                             disabled={invoice.state !== 'Draft'}
                             className={`flex items-center gap-2 ${
-                                invoice.state !== 'Draft' ? 'opacity-50 cursor-not-allowed' : ''
+                                invoice.state !== 'Draft'
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : ''
                             }`}
                             title={
-                                invoice.state !== 'Draft' 
-                                    ? `Cannot edit invoice in ${invoice.state} state` 
+                                invoice.state !== 'Draft'
+                                    ? `Cannot edit invoice in ${invoice.state} state`
                                     : 'Edit invoice'
                             }
                         >
@@ -316,14 +330,19 @@ export default function InvoicePage() {
                             variant="outline"
                             size="sm"
                             onClick={() => setShowDeleteDialog(true)}
-                            disabled={invoice.state !== 'Draft' && invoice.state !== 'Cancelled'}
+                            disabled={
+                                invoice.state !== 'Draft' &&
+                                invoice.state !== 'Cancelled'
+                            }
                             className={`flex items-center gap-2 ${
-                                invoice.state !== 'Draft' && invoice.state !== 'Cancelled'
+                                invoice.state !== 'Draft' &&
+                                invoice.state !== 'Cancelled'
                                     ? 'opacity-50 cursor-not-allowed'
                                     : 'text-destructive hover:text-destructive'
                             }`}
                             title={
-                                invoice.state !== 'Draft' && invoice.state !== 'Cancelled'
+                                invoice.state !== 'Draft' &&
+                                invoice.state !== 'Cancelled'
                                     ? `Cannot delete invoice in ${invoice.state} state`
                                     : 'Delete invoice'
                             }
@@ -339,17 +358,19 @@ export default function InvoicePage() {
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                            This invoice is overdue. The due date was {format(new Date(invoice.expiration_date!), 'PPP')}.
+                            This invoice is overdue. The due date was{' '}
+                            {format(new Date(invoice.expiration_date!), 'PPP')}.
                         </AlertDescription>
                     </Alert>
                 )}
-                
+
                 {invoice.state !== 'Draft' && (
                     <Alert variant="default">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                            This invoice is in <strong>{invoice.state}</strong> state and cannot be modified. 
-                            Only Draft invoices can be edited or deleted.
+                            This invoice is in <strong>{invoice.state}</strong>{' '}
+                            state and cannot be modified. Only Draft invoices
+                            can be edited or deleted.
                         </AlertDescription>
                     </Alert>
                 )}
@@ -369,7 +390,9 @@ export default function InvoicePage() {
                                 <label className="text-sm font-medium text-muted-foreground">
                                     Invoice Title
                                 </label>
-                                <p className="text-lg font-medium">{invoice.title}</p>
+                                <p className="text-lg font-medium">
+                                    {invoice.title}
+                                </p>
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">
@@ -384,7 +407,10 @@ export default function InvoicePage() {
                                     Status
                                 </label>
                                 <div className="mt-1">
-                                    <Badge variant={statusConfig?.variant} className="flex items-center gap-1">
+                                    <Badge
+                                        variant={statusConfig?.variant}
+                                        className="flex items-center gap-1"
+                                    >
                                         <StatusIcon className="h-3 w-3" />
                                         {statusConfig?.label}
                                     </Badge>
@@ -407,14 +433,18 @@ export default function InvoicePage() {
                                     Client Name
                                 </label>
                                 <p className="text-lg font-medium">
-                                    {client ? `${client.first_name} ${client.last_name}` : 'Loading...'}
+                                    {client
+                                        ? `${client.first_name} ${client.last_name}`
+                                        : 'Loading...'}
                                 </p>
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">
                                     Email Address
                                 </label>
-                                <p className="text-sm">{client?.email || 'Loading...'}</p>
+                                <p className="text-sm">
+                                    {client?.email || 'Loading...'}
+                                </p>
                             </div>
                             {client?.phone_number && (
                                 <div>
@@ -431,9 +461,7 @@ export default function InvoicePage() {
                                     <label className="text-sm font-medium text-muted-foreground">
                                         Address
                                     </label>
-                                    <p className="text-sm">
-                                        {client.address}
-                                    </p>
+                                    <p className="text-sm">{client.address}</p>
                                 </div>
                             )}
                         </CardContent>
@@ -453,7 +481,8 @@ export default function InvoicePage() {
                                     Total Amount
                                 </label>
                                 <p className="text-2xl font-bold">
-                                    ${invoice.total_amount?.toFixed(2) || '0.00'}
+                                    $
+                                    {invoice.total_amount?.toFixed(2) || '0.00'}
                                 </p>
                             </div>
                             {invoice.pdf_url && (
@@ -485,7 +514,9 @@ export default function InvoicePage() {
                                     Created Date
                                 </label>
                                 <p className="text-sm">
-                                    {new Date(invoice.created_at).toLocaleDateString('en-US', {
+                                    {new Date(
+                                        invoice.created_at
+                                    ).toLocaleDateString('en-US', {
                                         year: 'numeric',
                                         month: 'long',
                                         day: 'numeric',
@@ -499,8 +530,12 @@ export default function InvoicePage() {
                                     <label className="text-sm font-medium text-muted-foreground">
                                         Due Date
                                     </label>
-                                    <p className={`text-sm ${isExpired ? 'text-destructive' : ''}`}>
-                                        {new Date(invoice.expiration_date).toLocaleDateString('en-US', {
+                                    <p
+                                        className={`text-sm ${isExpired ? 'text-destructive' : ''}`}
+                                    >
+                                        {new Date(
+                                            invoice.expiration_date
+                                        ).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
                                             day: 'numeric',
@@ -526,12 +561,16 @@ export default function InvoicePage() {
                 </div>
 
                 {/* Delete Confirmation Dialog */}
-                <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialog
+                    open={showDeleteDialog}
+                    onOpenChange={setShowDeleteDialog}
+                >
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Are you sure you want to delete this invoice? This action cannot be undone.
+                                Are you sure you want to delete this invoice?
+                                This action cannot be undone.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -582,7 +621,10 @@ function InvoiceItemsContent({ invoiceId }: { invoiceId: string }) {
     })
 
     const calculateSubtotal = () => {
-        return invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
+        return invoiceItems.reduce(
+            (sum, item) => sum + item.quantity * item.unit_price,
+            0
+        )
     }
 
     if (isLoading) {
@@ -611,8 +653,12 @@ function InvoiceItemsContent({ invoiceId }: { invoiceId: string }) {
                         <tr>
                             <th className="text-left p-3 font-medium">Item</th>
                             <th className="text-center p-3 font-medium">Qty</th>
-                            <th className="text-right p-3 font-medium">Price</th>
-                            <th className="text-right p-3 font-medium">Total</th>
+                            <th className="text-right p-3 font-medium">
+                                Price
+                            </th>
+                            <th className="text-right p-3 font-medium">
+                                Total
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -620,25 +666,36 @@ function InvoiceItemsContent({ invoiceId }: { invoiceId: string }) {
                             <tr key={index} className="border-t">
                                 <td className="p-3">
                                     <div>
-                                        <div className="font-medium">{item.items.name}</div>
+                                        <div className="font-medium">
+                                            {item.items.name}
+                                        </div>
                                     </div>
                                 </td>
-                                <td className="p-3 text-center">{item.quantity}</td>
-                                <td className="p-3 text-right">${item.unit_price.toFixed(2)}</td>
+                                <td className="p-3 text-center">
+                                    {item.quantity}
+                                </td>
+                                <td className="p-3 text-right">
+                                    ${item.unit_price.toFixed(2)}
+                                </td>
                                 <td className="p-3 text-right font-medium">
-                                    ${(item.quantity * item.unit_price).toFixed(2)}
+                                    $
+                                    {(item.quantity * item.unit_price).toFixed(
+                                        2
+                                    )}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-            
+
             <div className="flex justify-end">
                 <div className="text-right space-y-1">
                     <div className="text-sm">
                         <span className="text-muted-foreground">Subtotal:</span>
-                        <span className="ml-2 font-medium">${calculateSubtotal().toFixed(2)}</span>
+                        <span className="ml-2 font-medium">
+                            ${calculateSubtotal().toFixed(2)}
+                        </span>
                     </div>
                 </div>
             </div>

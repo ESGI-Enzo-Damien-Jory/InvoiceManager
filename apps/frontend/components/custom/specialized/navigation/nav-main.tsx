@@ -100,22 +100,26 @@ export function NavMain({
     const shortcutFiredRef = useRef(false)
 
     // On pré-génère un index de raccourcis pour lookup rapide
-    const shortcutIndex = useMemo(() => 
-        quickActions.reduce(
-            (acc, action) => {
-                if (action.shortcut) {
-                    const { ctrl, shift, key } = normalizeShortcut(action.shortcut)
-                    acc.push({ ctrl, shift, key, action })
-                }
-                return acc
-            },
-            [] as Array<{
-                ctrl: boolean
-                shift: boolean
-                key: string | null
-                action: QuickAction
-            }>
-        ), [quickActions]
+    const shortcutIndex = useMemo(
+        () =>
+            quickActions.reduce(
+                (acc, action) => {
+                    if (action.shortcut) {
+                        const { ctrl, shift, key } = normalizeShortcut(
+                            action.shortcut
+                        )
+                        acc.push({ ctrl, shift, key, action })
+                    }
+                    return acc
+                },
+                [] as Array<{
+                    ctrl: boolean
+                    shift: boolean
+                    key: string | null
+                    action: QuickAction
+                }>
+            ),
+        [quickActions]
     )
 
     // Handler de raccourcis clavier centralisé et robuste

@@ -2,13 +2,32 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Plus, Search, Filter, Download, Eye, Edit, Trash2, Calendar, DollarSign, Users } from 'lucide-react'
+import {
+    FileText,
+    Plus,
+    Search,
+    Filter,
+    Download,
+    Eye,
+    Edit,
+    Trash2,
+    Calendar,
+    DollarSign,
+    Users,
+} from 'lucide-react'
 import { useInvoices } from '@/hooks/use-invoices'
 import { InvoiceStats } from '@/components/custom/generic/invoice-stats'
 import { InvoiceFilters } from '@/components/custom/generic/invoice-filters'
 import { InvoiceTable } from '@/components/custom/generic/invoice-table'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    CardFooter,
+} from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +53,11 @@ export default function InvoicesPage() {
     }
 
     const handleDelete = async (invoice: Invoice) => {
-        if (confirm(`Are you sure you want to delete invoice "${invoice.title}"?`)) {
+        if (
+            confirm(
+                `Are you sure you want to delete invoice "${invoice.title}"?`
+            )
+        ) {
             try {
                 await deleteInvoice(invoice.id)
             } catch (error) {
@@ -64,10 +87,19 @@ export default function InvoicesPage() {
     }
 
     // Calculate quick stats
-    const totalRevenue = invoices.reduce((sum, invoice) => sum + (invoice.total_amount || 0), 0)
-    const paidInvoices = invoices.filter(invoice => invoice.state === 'Paid').length
-    const pendingInvoices = invoices.filter(invoice => invoice.state === 'Sent').length
-    const overdueInvoices = invoices.filter(invoice => invoice.state === 'Overdue').length
+    const totalRevenue = invoices.reduce(
+        (sum, invoice) => sum + (invoice.total_amount || 0),
+        0
+    )
+    const paidInvoices = invoices.filter(
+        (invoice) => invoice.state === 'Paid'
+    ).length
+    const pendingInvoices = invoices.filter(
+        (invoice) => invoice.state === 'Sent'
+    ).length
+    const overdueInvoices = invoices.filter(
+        (invoice) => invoice.state === 'Overdue'
+    ).length
 
     if (loading) {
         return (
@@ -132,7 +164,9 @@ export default function InvoicesPage() {
             <div className="px-4 lg:px-6">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">
+                            Invoices
+                        </h1>
                         <p className="text-muted-foreground mt-1">
                             Manage your invoices and track payments efficiently
                         </p>
@@ -243,10 +277,12 @@ export default function InvoicesPage() {
                                 No invoices yet
                             </h3>
                             <p className="text-muted-foreground text-center mb-6 max-w-md">
-                                Get started by creating your first invoice to track your business revenue and manage client payments.
+                                Get started by creating your first invoice to
+                                track your business revenue and manage client
+                                payments.
                             </p>
                             <div className="flex gap-3">
-                                <Button 
+                                <Button
                                     onClick={handleCreateNew}
                                     size="lg"
                                     className="shadow-sm"
@@ -254,10 +290,12 @@ export default function InvoicesPage() {
                                     <Plus className="mr-2 h-4 w-4" />
                                     Create First Invoice
                                 </Button>
-                                <Button 
+                                <Button
                                     variant="outline"
                                     size="lg"
-                                    onClick={() => window.open('/docs', '_blank')}
+                                    onClick={() =>
+                                        window.open('/docs', '_blank')
+                                    }
                                 >
                                     View Documentation
                                 </Button>
@@ -271,9 +309,12 @@ export default function InvoicesPage() {
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <CardTitle className="text-lg">Invoice Management</CardTitle>
+                                        <CardTitle className="text-lg">
+                                            Invoice Management
+                                        </CardTitle>
                                         <CardDescription>
-                                            Search, filter, and manage your invoices
+                                            Search, filter, and manage your
+                                            invoices
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -282,7 +323,11 @@ export default function InvoicesPage() {
                                             <Input
                                                 placeholder="Search invoices..."
                                                 value={searchTerm}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                onChange={(e) =>
+                                                    setSearchTerm(
+                                                        e.target.value
+                                                    )
+                                                }
                                                 className="pl-10 w-64"
                                             />
                                         </div>
@@ -300,7 +345,7 @@ export default function InvoicesPage() {
                                 />
                             </CardContent>
                         </Card>
-                        
+
                         {/* Results */}
                         {filteredInvoices.length === 0 ? (
                             <Card className="border-dashed">
@@ -312,10 +357,11 @@ export default function InvoicesPage() {
                                         No matching invoices
                                     </h3>
                                     <p className="text-muted-foreground text-center mb-6 max-w-md">
-                                        Try adjusting your search criteria or filters to find what you're looking for.
+                                        Try adjusting your search criteria or
+                                        filters to find what you're looking for.
                                     </p>
                                     <div className="flex gap-3">
-                                        <Button 
+                                        <Button
                                             onClick={() => {
                                                 setSearchTerm('')
                                             }}
@@ -333,7 +379,12 @@ export default function InvoicesPage() {
                                         <div>
                                             <CardTitle>Invoice List</CardTitle>
                                             <CardDescription>
-                                                {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''} found
+                                                {filteredInvoices.length}{' '}
+                                                invoice
+                                                {filteredInvoices.length !== 1
+                                                    ? 's'
+                                                    : ''}{' '}
+                                                found
                                             </CardDescription>
                                         </div>
                                         <div className="flex items-center gap-2">

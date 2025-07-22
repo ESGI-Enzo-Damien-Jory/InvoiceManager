@@ -1,7 +1,11 @@
 import api from '@/lib/api'
-import type { Client, CreateClientPayload, UpdateClientPayload, ClientFilters, PaginatedResponse } from '@/types'
-
-
+import type {
+    Client,
+    CreateClientPayload,
+    UpdateClientPayload,
+    ClientFilters,
+    PaginatedResponse,
+} from '@/types'
 
 /**
  * Response from deleting a client (matches your controller)

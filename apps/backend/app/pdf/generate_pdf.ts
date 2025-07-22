@@ -75,11 +75,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
     const fullAddress = [clientAddress, clientPhone].filter(Boolean).join('\n')
 
     // Format client info for the template
-    const clientInfo = [
-      clientName,
-      data.client_email,
-      fullAddress
-    ].filter(Boolean).join('\n')
+    const clientInfo = [clientName, data.client_email, fullAddress].filter(Boolean).join('\n')
 
     let tableData: string[][]
 
@@ -117,22 +113,22 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
       'Invoice Manager',
       `Account Name: ${clientName}`,
       `Email: ${data.client_email}`,
-      `Due Date: ${dueDate}`
+      `Due Date: ${dueDate}`,
     ].join('\n')
 
     const input = {
       billedToInput: clientInfo,
       info: JSON.stringify({
         InvoiceNo: data.invoice_id.substring(0, 8).toUpperCase(),
-        Date: issueDate
+        Date: issueDate,
       }),
       orders: tableData,
       taxInput: JSON.stringify({
-        rate: '10'
+        rate: '10',
       }),
       paymentInfoInput: paymentInfo,
       shopName: 'Invoice Manager',
-      shopAddress: 'Professional Invoice Management System'
+      shopAddress: 'Professional Invoice Management System',
     }
 
     console.log('PDF input data:', JSON.stringify(input, null, 2))
